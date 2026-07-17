@@ -15,10 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import {
-  fetchCommunityDishes,
-  type ApiDish,
-} from "../api/communities";
+import { fetchCommunityDishes, type ApiDish } from "../api/communities";
 import { searchAll } from "../api/search";
 import { useCommunities } from "../api/useCommunities";
 import { ListRow, PromoBanner, SearchBar } from "../components";
@@ -38,6 +35,8 @@ type SearchResult = {
   subtitle: string;
   thumbnail: string;
   communityId: string;
+  restaurantId?: string;
+  kind: "community" | "restaurant" | "dish";
 };
 
 function getGreeting(): string {
@@ -63,10 +62,7 @@ export function HomeScreen() {
     return map;
   }, [raw]);
 
-  const communityIds = useMemo(
-    () => raw.map((c) => c.id).join(","),
-    [raw],
-  );
+  const communityIds = useMemo(() => raw.map((c) => c.id).join(","), [raw]);
 
   useEffect(() => {
     let cancelled = false;
@@ -115,6 +111,7 @@ export function HomeScreen() {
             subtitle: `${c.neighborhood} · ${c.city}`,
             thumbnail: c.heroEmoji ?? "📍",
             communityId: c.id,
+            kind: "community" as const,
           })),
           ...data.pois.map((p) => ({
             id: `r-${p.id}`,
@@ -122,6 +119,8 @@ export function HomeScreen() {
             subtitle: `${p.category} · Place`,
             thumbnail: "🍽️",
             communityId: p.communityId,
+            restaurantId: p.id,
+            kind: "restaurant" as const,
           })),
           ...data.dishes.map((d) => ({
             id: `d-${d.id}`,
@@ -129,6 +128,8 @@ export function HomeScreen() {
             subtitle: d.poiName ? `${d.poiName} · Dish` : "Dish",
             thumbnail: "🥢",
             communityId: poiCommunity.get(d.poiId) ?? fallback,
+            restaurantId: d.poiId,
+            kind: "dish" as const,
           })),
         ]);
       } catch {
@@ -208,8 +209,17 @@ export function HomeScreen() {
                   title={item.title}
                   subtitle={item.subtitle}
                   onPress={() => {
-                    if (!item.communityId) return;
                     Keyboard.dismiss();
+                    if (
+                      (item.kind === "restaurant" || item.kind === "dish") &&
+                      item.restaurantId
+                    ) {
+                      navigation.navigate("RestaurantDetail", {
+                        restaurantId: item.restaurantId,
+                      });
+                      return;
+                    }
+                    if (!item.communityId) return;
                     navigation.navigate("CommunityProfile", {
                       communityId: item.communityId,
                     });
@@ -252,7 +262,15 @@ export function HomeScreen() {
                   <Text style={styles.emptySearch}>No dishes yet</Text>
                 ) : (
                   dishes.map((dish) => (
-                    <View key={dish.id} style={styles.dishCard}>
+                    <Pressable
+                      key={dish.id}
+                      style={styles.dishCard}
+                      onPress={() =>
+                        navigation.navigate("RestaurantDetail", {
+                          restaurantId: dish.poiId,
+                        })
+                      }
+                    >
                       <View style={styles.dishImage}>
                         <Text style={styles.dishEmoji}>🥢</Text>
                       </View>
@@ -262,7 +280,7 @@ export function HomeScreen() {
                       <Text style={styles.dishCommunity} numberOfLines={1}>
                         {dish.poiName ?? "Local spot"}
                       </Text>
-                    </View>
+                    </Pressable>
                   ))
                 )}
               </ScrollView>
@@ -310,7 +328,12 @@ export function HomeScreen() {
   );
 }
 const styles = StyleSheet.create({
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 40 },
+  centered: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+  },
   safe: {
     flex: 1,
     backgroundColor: colors.background,

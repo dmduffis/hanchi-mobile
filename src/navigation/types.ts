@@ -14,6 +14,7 @@ export type RootStackParamList = {
   Onboarding: undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   CommunityProfile: { communityId: string; initialTab?: CommunityProfileTab };
+  RestaurantDetail: { restaurantId: string };
   Search: undefined;
   Discover: undefined;
   DropIn: undefined;

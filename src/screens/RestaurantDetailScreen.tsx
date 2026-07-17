@@ -1,0 +1,328 @@
+import { Feather } from "@expo/vector-icons";
+import type { RouteProp } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { fetchCommunity, type ApiCommunity } from "../api/communities";
+import { fetchPoi, type ApiPoiDetail } from "../api/pois";
+import { Badge, ListRow, PrimaryButton } from "../components";
+import type { RootStackParamList } from "../navigation/types";
+import { colors, radii, typography } from "../theme";
+
+function formatRating(rating: number | null | undefined): string | null {
+  if (rating == null || !Number.isFinite(rating)) return null;
+  return rating.toFixed(1);
+}
+
+export function RestaurantDetailScreen() {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, "RestaurantDetail">>();
+  const restaurantId = route.params.restaurantId;
+
+  const [poi, setPoi] = useState<ApiPoiDetail | null>(null);
+  const [community, setCommunity] = useState<ApiCommunity | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const detail = await fetchPoi(restaurantId);
+        if (cancelled) return;
+        setPoi(detail);
+        try {
+          const parent = await fetchCommunity(detail.communityId);
+          if (!cancelled) setCommunity(parent);
+        } catch {
+          if (!cancelled) setCommunity(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurantId]);
+
+  const openYelp = () => {
+    if (!poi?.yelpUrl) return;
+    void Linking.openURL(poi.yelpUrl);
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.safe, styles.centered]} edges={["top"]}>
+        <ActivityIndicator color={colors.forest} />
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !poi) {
+    return (
+      <SafeAreaView style={[styles.safe, styles.centered]} edges={["top"]}>
+        <Text style={styles.body}>{error ?? "Restaurant not found"}</Text>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={{ marginTop: 16 }}
+        >
+          <Text style={styles.linkText}>Go back</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
+
+  const ratingLabel = formatRating(poi.rating);
+  const metaParts = [
+    poi.category,
+    poi.priceLevel,
+    ratingLabel ? `★ ${ratingLabel}` : null,
+  ].filter(Boolean);
+
+  return (
+    <SafeAreaView style={styles.safe} edges={["top"]}>
+      <View style={styles.nav}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={8}
+          style={styles.backBtn}
+        >
+          <Feather name="arrow-left" size={22} color={colors.ink} />
+        </Pressable>
+        <Text style={styles.navTitle} numberOfLines={1}>
+          {poi.name}
+        </Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        {poi.imageUrl ? (
+          <Image
+            source={{ uri: poi.imageUrl }}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.heroFallback}>
+            <Text style={styles.heroEmoji}>🍽️</Text>
+          </View>
+        )}
+
+        <Text style={styles.name}>{poi.name}</Text>
+        <Text style={styles.meta}>{metaParts.join(" · ")}</Text>
+
+        {community ? (
+          <Pressable
+            onPress={() =>
+              navigation.navigate("CommunityProfile", {
+                communityId: community.id,
+              })
+            }
+            style={styles.communityLink}
+          >
+            <Feather name="map-pin" size={14} color={colors.forest} />
+            <Text style={styles.communityLinkText}>
+              {community.name}
+              {community.neighborhood ? ` · ${community.neighborhood}` : ""}
+            </Text>
+            <Feather name="chevron-right" size={16} color={colors.grayLight} />
+          </Pressable>
+        ) : null}
+
+        {(poi.address || poi.hours) && (
+          <View style={styles.infoBlock}>
+            {poi.address ? (
+              <View style={styles.infoRow}>
+                <Feather name="map-pin" size={16} color={colors.gray} />
+                <Text style={styles.infoText}>{poi.address}</Text>
+              </View>
+            ) : null}
+            {poi.hours ? (
+              <View style={styles.infoRow}>
+                <Feather name="clock" size={16} color={colors.gray} />
+                <Text style={styles.infoText}>{poi.hours}</Text>
+              </View>
+            ) : null}
+          </View>
+        )}
+
+        {poi.yelpUrl ? (
+          <PrimaryButton
+            label="View on Yelp"
+            onPress={openYelp}
+            style={{ marginTop: 8 }}
+          />
+        ) : null}
+
+        <Text style={styles.sectionTitle}>
+          {poi.dishes.length > 0
+            ? `Dishes to try · ${poi.dishes.length}`
+            : "Dishes to try"}
+        </Text>
+        {poi.dishes.length === 0 ? (
+          <Text style={styles.bodyMuted}>No dish notes yet for this spot.</Text>
+        ) : (
+          poi.dishes.map((dish) => (
+            <ListRow
+              key={dish.id}
+              thumbnail="🥢"
+              title={dish.name}
+              subtitle={dish.description ?? undefined}
+              showChevron={false}
+              rightElement={
+                dish.priceRange ? <Badge label={dish.priceRange} /> : undefined
+              }
+            />
+          ))
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  centered: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  nav: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  navTitle: {
+    fontFamily: typography.bodyMedium,
+    fontSize: 15,
+    color: colors.ink,
+    flex: 1,
+    textAlign: "center",
+  },
+  scroll: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  heroImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+    marginBottom: 16,
+  },
+  heroFallback: {
+    height: 160,
+    borderRadius: radii.lg,
+    backgroundColor: colors.forest,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  heroEmoji: {
+    fontSize: 64,
+  },
+  name: {
+    fontFamily: typography.display,
+    fontSize: 28,
+    color: colors.ink,
+  },
+  meta: {
+    fontFamily: typography.bodyMedium,
+    fontSize: 14,
+    color: colors.forest,
+    marginTop: 6,
+  },
+  communityLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 14,
+    paddingVertical: 8,
+  },
+  communityLinkText: {
+    flex: 1,
+    fontFamily: typography.bodyMedium,
+    fontSize: 14,
+    color: colors.forest,
+  },
+  infoBlock: {
+    marginTop: 8,
+    gap: 10,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  infoText: {
+    flex: 1,
+    fontFamily: typography.body,
+    fontSize: 14,
+    color: colors.ink,
+    lineHeight: 20,
+  },
+  sectionTitle: {
+    fontFamily: typography.display,
+    fontSize: 18,
+    color: colors.ink,
+    marginTop: 28,
+    marginBottom: 8,
+  },
+  body: {
+    fontFamily: typography.body,
+    fontSize: 15,
+    color: colors.ink,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  bodyMuted: {
+    fontFamily: typography.body,
+    fontSize: 14,
+    color: colors.gray,
+    lineHeight: 22,
+  },
+  linkText: {
+    fontFamily: typography.bodyMedium,
+    fontSize: 14,
+    color: colors.forest,
+  },
+});

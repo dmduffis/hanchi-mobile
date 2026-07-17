@@ -8,6 +8,11 @@ export type ApiPoi = {
   category: string;
   address: string | null;
   hours: string | null;
+  yelpId?: string | null;
+  rating?: number | null;
+  priceLevel?: string | null;
+  imageUrl?: string | null;
+  yelpUrl?: string | null;
 };
 
 export type ApiSearchResults = {

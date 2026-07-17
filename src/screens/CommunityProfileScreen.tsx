@@ -129,7 +129,10 @@ export function CommunityProfileScreen() {
     return (
       <SafeAreaView style={[styles.safe, styles.centered]} edges={["top"]}>
         <Text style={styles.body}>{error ?? "Community not found"}</Text>
-        <Pressable onPress={() => navigation.goBack()} style={{ marginTop: 16 }}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={{ marginTop: 16 }}
+        >
           <Text style={styles.savePromptText}>Go back</Text>
         </Pressable>
       </SafeAreaView>
@@ -197,7 +200,11 @@ export function CommunityProfileScreen() {
                     thumbnail="🍽️"
                     title={r.name}
                     subtitle={`${r.category}${r.address ? ` · ${r.address}` : ""}`}
-                    onPress={() => setTab("Food")}
+                    onPress={() =>
+                      navigation.navigate("RestaurantDetail", {
+                        restaurantId: r.id,
+                      })
+                    }
                   />
                 ))}
               </View>
@@ -237,9 +244,7 @@ export function CommunityProfileScreen() {
                   key={tag}
                   label={tag}
                   selected={foodFilter === tag}
-                  onPress={() =>
-                    setFoodFilter(tag === foodFilter ? null : tag)
-                  }
+                  onPress={() => setFoodFilter(tag === foodFilter ? null : tag)}
                 />
               ))}
             </ScrollView>
@@ -251,28 +256,50 @@ export function CommunityProfileScreen() {
                 const poiDishes = (dishesByPoi.get(poi.id) ?? []).filter(
                   (d) => !foodFilter || d.priceRange === foodFilter,
                 );
+                const rating =
+                  poi.rating != null && Number.isFinite(poi.rating)
+                    ? `★ ${poi.rating.toFixed(1)}`
+                    : null;
+                const meta = [poi.category, poi.priceLevel, rating, poi.address]
+                  .filter(Boolean)
+                  .join(" · ");
                 return (
                   <View key={poi.id} style={styles.restaurantBlock}>
-                    <View style={styles.restaurantHeader}>
+                    <Pressable
+                      onPress={() =>
+                        navigation.navigate("RestaurantDetail", {
+                          restaurantId: poi.id,
+                        })
+                      }
+                      style={({ pressed }) => [
+                        styles.restaurantHeader,
+                        pressed && { opacity: 0.7 },
+                      ]}
+                    >
                       <View style={styles.restaurantEmojiWrap}>
                         <Text style={styles.restaurantEmoji}>🍽️</Text>
                       </View>
                       <View style={styles.restaurantInfo}>
                         <Text style={styles.restaurantName}>{poi.name}</Text>
-                        <Text style={styles.restaurantMeta}>
-                          {poi.category}
-                          {poi.address ? ` · ${poi.address}` : ""}
-                          {poi.hours ? ` · ${poi.hours}` : ""}
-                        </Text>
+                        <Text style={styles.restaurantMeta}>{meta}</Text>
                       </View>
-                    </View>
+                      <Feather
+                        name="chevron-right"
+                        size={18}
+                        color={colors.grayLight}
+                      />
+                    </Pressable>
                     {poiDishes.map((dish) => (
                       <ListRow
                         key={dish.id}
                         thumbnail="🥢"
                         title={dish.name}
                         subtitle={dish.description ?? undefined}
-                        showChevron={false}
+                        onPress={() =>
+                          navigation.navigate("RestaurantDetail", {
+                            restaurantId: poi.id,
+                          })
+                        }
                         rightElement={
                           dish.priceRange ? (
                             <Badge label={dish.priceRange} />
@@ -458,6 +485,7 @@ const styles = StyleSheet.create({
   },
   restaurantHeader: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     marginBottom: 4,
   },

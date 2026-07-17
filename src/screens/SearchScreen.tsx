@@ -24,6 +24,7 @@ type SearchResult = {
   subtitle: string;
   thumbnail: string;
   communityId: string;
+  restaurantId?: string;
   kind: "community" | "restaurant" | "dish";
 };
 
@@ -61,6 +62,7 @@ function mapLiveResults(
       subtitle: `${p.category} · Place`,
       thumbnail: "🍽️",
       communityId: p.communityId,
+      restaurantId: p.id,
       kind: "restaurant" as const,
     })),
     ...dishes.map((d) => ({
@@ -69,6 +71,7 @@ function mapLiveResults(
       subtitle: d.poiName ? `${d.poiName} · Dish` : "Dish",
       thumbnail: "🥢",
       communityId: poiCommunity.get(d.poiId) ?? fallbackCommunityId,
+      restaurantId: d.poiId,
       kind: "dish" as const,
     })),
   ];
@@ -174,6 +177,15 @@ export function SearchScreen() {
               title={item.title}
               subtitle={item.subtitle}
               onPress={() => {
+                if (
+                  (item.kind === "restaurant" || item.kind === "dish") &&
+                  item.restaurantId
+                ) {
+                  navigation.navigate("RestaurantDetail", {
+                    restaurantId: item.restaurantId,
+                  });
+                  return;
+                }
                 if (!item.communityId) return;
                 navigation.navigate("CommunityProfile", {
                   communityId: item.communityId,
