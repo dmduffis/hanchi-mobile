@@ -63,26 +63,32 @@ export function HomeScreen() {
     return map;
   }, [raw]);
 
+  const communityIds = useMemo(
+    () => raw.map((c) => c.id).join(","),
+    [raw],
+  );
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (communities.length === 0) {
-        setDishes([]);
+      if (!communityIds) {
+        setDishes((prev) => (prev.length === 0 ? prev : []));
         return;
       }
       try {
+        const ids = communityIds.split(",").slice(0, 4);
         const batches = await Promise.all(
-          communities.slice(0, 4).map((c) => fetchCommunityDishes(c.id)),
+          ids.map((id) => fetchCommunityDishes(id)),
         );
         if (!cancelled) setDishes(batches.flat().slice(0, 8));
       } catch {
-        if (!cancelled) setDishes([]);
+        if (!cancelled) setDishes((prev) => (prev.length === 0 ? prev : []));
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [communities]);
+  }, [communityIds]);
 
   useEffect(() => {
     let cancelled = false;

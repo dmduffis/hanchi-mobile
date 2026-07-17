@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { fetchCommunities, type ApiCommunity } from "./communities";
 import { mapApiCommunity } from "./mappers";
@@ -43,8 +43,10 @@ export function useCommunities(): State {
     };
   }, [tick]);
 
+  const communities = useMemo(() => raw.map(mapApiCommunity), [raw]);
+
   return {
-    communities: raw.map(mapApiCommunity),
+    communities,
     raw,
     loading,
     error,
