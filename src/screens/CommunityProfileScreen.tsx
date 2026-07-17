@@ -22,6 +22,7 @@ import {
 import { createStamp } from "../api/stamps";
 import { mapApiCommunity } from "../api/mappers";
 import { Badge, Chip, ListRow, PrimaryButton } from "../components";
+import { flagsForEthnicities } from "../data/ethnicityFlags";
 import { getInsidersForCommunity } from "../data/mockCommunities";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
@@ -263,6 +264,7 @@ export function CommunityProfileScreen() {
                 const meta = [poi.category, poi.priceLevel, rating, poi.address]
                   .filter(Boolean)
                   .join(" · ");
+                const flags = flagsForEthnicities(poi.ethnicities);
                 return (
                   <View key={poi.id} style={styles.restaurantBlock}>
                     <Pressable
@@ -282,6 +284,9 @@ export function CommunityProfileScreen() {
                       <View style={styles.restaurantInfo}>
                         <Text style={styles.restaurantName}>{poi.name}</Text>
                         <Text style={styles.restaurantMeta}>{meta}</Text>
+                        {flags ? (
+                          <Text style={styles.restaurantFlags}>{flags}</Text>
+                        ) : null}
                       </View>
                       <Feather
                         name="chevron-right"
@@ -507,6 +512,12 @@ const styles = StyleSheet.create({
     fontFamily: typography.display,
     fontSize: 18,
     color: colors.ink,
+  },
+  restaurantFlags: {
+    fontSize: 12,
+    lineHeight: 15,
+    marginTop: 4,
+    opacity: 0.9,
   },
   restaurantMeta: {
     fontFamily: typography.bodyMedium,

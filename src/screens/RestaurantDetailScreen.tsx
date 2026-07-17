@@ -2,11 +2,10 @@ import { Feather } from "@expo/vector-icons";
 import type { RouteProp } from "@react-navigation/native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,8 +15,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { fetchCommunity, type ApiCommunity } from "../api/communities";
+import { fetchUserFavorites } from "../api/favorites";
 import { fetchPoi, type ApiPoiDetail } from "../api/pois";
-import { Badge, ListRow, PrimaryButton } from "../components";
+import { Badge, FavoriteHeart, ListRow } from "../components";
+import { flagsForEthnicities } from "../data/ethnicityFlags";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
 
@@ -34,6 +35,7 @@ export function RestaurantDetailScreen() {
 
   const [poi, setPoi] = useState<ApiPoiDetail | null>(null);
   const [community, setCommunity] = useState<ApiCommunity | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,9 +45,15 @@ export function RestaurantDetailScreen() {
       setLoading(true);
       setError(null);
       try {
-        const detail = await fetchPoi(restaurantId);
+        const [detail, favorites] = await Promise.all([
+          fetchPoi(restaurantId),
+          fetchUserFavorites().catch(() => []),
+        ]);
         if (cancelled) return;
         setPoi(detail);
+        setFavoriteIds(
+          new Set(favorites.map((f) => `${f.type}:${f.targetId}`)),
+        );
         try {
           const parent = await fetchCommunity(detail.communityId);
           if (!cancelled) setCommunity(parent);
@@ -65,10 +73,10 @@ export function RestaurantDetailScreen() {
     };
   }, [restaurantId]);
 
-  const openYelp = () => {
-    if (!poi?.yelpUrl) return;
-    void Linking.openURL(poi.yelpUrl);
-  };
+  const restaurantFavorited = useMemo(
+    () => favoriteIds.has(`restaurant:${restaurantId}`),
+    [favoriteIds, restaurantId],
+  );
 
   if (loading) {
     return (
@@ -98,6 +106,7 @@ export function RestaurantDetailScreen() {
     poi.priceLevel,
     ratingLabel ? `★ ${ratingLabel}` : null,
   ].filter(Boolean);
+  const flags = flagsForEthnicities(poi.ethnicities);
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -112,7 +121,11 @@ export function RestaurantDetailScreen() {
         <Text style={styles.navTitle} numberOfLines={1}>
           {poi.name}
         </Text>
-        <View style={{ width: 40 }} />
+        <FavoriteHeart
+          type="restaurant"
+          targetId={poi.id}
+          initialFavorited={restaurantFavorited}
+        />
       </View>
 
       <ScrollView
@@ -152,30 +165,21 @@ export function RestaurantDetailScreen() {
           </Pressable>
         ) : null}
 
-        {(poi.address || poi.hours) && (
-          <View style={styles.infoBlock}>
-            {poi.address ? (
-              <View style={styles.infoRow}>
-                <Feather name="map-pin" size={16} color={colors.gray} />
-                <Text style={styles.infoText}>{poi.address}</Text>
-              </View>
-            ) : null}
-            {poi.hours ? (
-              <View style={styles.infoRow}>
-                <Feather name="clock" size={16} color={colors.gray} />
-                <Text style={styles.infoText}>{poi.hours}</Text>
-              </View>
-            ) : null}
-          </View>
-        )}
-
-        {poi.yelpUrl ? (
-          <PrimaryButton
-            label="View on Yelp"
-            onPress={openYelp}
-            style={{ marginTop: 8 }}
-          />
-        ) : null}
+        <View style={styles.infoBlock}>
+          {poi.address ? (
+            <View style={styles.infoRow}>
+              <Feather name="map-pin" size={16} color={colors.gray} />
+              <Text style={styles.infoText}>{poi.address}</Text>
+            </View>
+          ) : null}
+          {poi.hours ? (
+            <View style={styles.infoRow}>
+              <Feather name="clock" size={16} color={colors.gray} />
+              <Text style={styles.infoText}>{poi.hours}</Text>
+            </View>
+          ) : null}
+          {flags ? <Text style={styles.flags}>{flags}</Text> : null}
+        </View>
 
         <Text style={styles.sectionTitle}>
           {poi.dishes.length > 0
@@ -193,7 +197,15 @@ export function RestaurantDetailScreen() {
               subtitle={dish.description ?? undefined}
               showChevron={false}
               rightElement={
-                dish.priceRange ? <Badge label={dish.priceRange} /> : undefined
+                <View style={styles.dishActions}>
+                  {dish.priceRange ? <Badge label={dish.priceRange} /> : null}
+                  <FavoriteHeart
+                    type="dish"
+                    targetId={dish.id}
+                    size={18}
+                    initialFavorited={favoriteIds.has(`dish:${dish.id}`)}
+                  />
+                </View>
               }
             />
           ))
@@ -261,6 +273,12 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: colors.ink,
   },
+  flags: {
+    fontSize: 13,
+    lineHeight: 16,
+    marginTop: 4,
+    opacity: 0.9,
+  },
   meta: {
     fontFamily: typography.bodyMedium,
     fontSize: 14,
@@ -324,5 +342,10 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodyMedium,
     fontSize: 14,
     color: colors.forest,
+  },
+  dishActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
 });

@@ -13,6 +13,8 @@ export type ApiPoi = {
   priceLevel?: string | null;
   imageUrl?: string | null;
   yelpUrl?: string | null;
+  /** Ethnicity ids for the restaurant (e.g. ["korean"]). Map to flags on client. */
+  ethnicities?: string[];
 };
 
 export type ApiSearchResults = {
