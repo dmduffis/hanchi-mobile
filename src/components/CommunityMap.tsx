@@ -119,6 +119,127 @@ export function radiusMetersForRegion(region: MapRegion): number {
   return Math.min(Math.max(Math.round(diagonal * 1.15), 800), 40_000);
 }
 
+/** Max individual restaurant pins when zoomed in. */
+const MAX_SOLO_PINS = 30;
+/** Below this latitudeDelta, prefer individual pins (still capped). */
+const SOLO_LAT_DELTA = 0.05;
+
+type RestaurantMapItem =
+  | { kind: "pin"; restaurant: MapRestaurant }
+  | {
+      kind: "cluster";
+      id: string;
+      latitude: number;
+      longitude: number;
+      count: number;
+      members: MapRestaurant[];
+    };
+
+function distToCenterSq(r: MapRestaurant, region: MapRegion): number {
+  const dLat = r.latitude - region.latitude;
+  const dLng = r.longitude - region.longitude;
+  return dLat * dLat + dLng * dLng;
+}
+
+/**
+ * Zoom-aware restaurant markers: grid clusters when zoomed out,
+ * capped individual flag pins when zoomed in.
+ */
+function buildRestaurantMapItems(
+  restaurants: MapRestaurant[],
+  region: MapRegion,
+  selectedId: string | null,
+): RestaurantMapItem[] {
+  if (restaurants.length === 0) return [];
+
+  const selected = selectedId
+    ? restaurants.find((r) => r.id === selectedId)
+    : undefined;
+
+  const useSolo =
+    region.latitudeDelta <= SOLO_LAT_DELTA || restaurants.length <= 10;
+
+  if (useSolo) {
+    const sorted = [...restaurants].sort(
+      (a, b) => distToCenterSq(a, region) - distToCenterSq(b, region),
+    );
+    const capped = sorted.slice(0, MAX_SOLO_PINS);
+    if (selected && !capped.some((r) => r.id === selected.id)) {
+      capped[capped.length - 1] = selected;
+    }
+    return capped.map((restaurant) => ({ kind: "pin", restaurant }));
+  }
+
+  const cols = Math.max(
+    4,
+    Math.min(7, Math.round(0.32 / Math.max(region.longitudeDelta, 0.04))),
+  );
+  const rows = Math.max(
+    4,
+    Math.min(7, Math.round(0.32 / Math.max(region.latitudeDelta, 0.04))),
+  );
+  const minLat = region.latitude - region.latitudeDelta / 2;
+  const minLng = region.longitude - region.longitudeDelta / 2;
+  const cellH = region.latitudeDelta / rows;
+  const cellW = region.longitudeDelta / cols;
+
+  const cells = new Map<string, MapRestaurant[]>();
+  for (const r of restaurants) {
+    const row = Math.min(
+      rows - 1,
+      Math.max(0, Math.floor((r.latitude - minLat) / cellH)),
+    );
+    const col = Math.min(
+      cols - 1,
+      Math.max(0, Math.floor((r.longitude - minLng) / cellW)),
+    );
+    const key = `${row}:${col}`;
+    const list = cells.get(key);
+    if (list) list.push(r);
+    else cells.set(key, [r]);
+  }
+
+  const items: RestaurantMapItem[] = [];
+  for (const [key, members] of cells) {
+    if (members.length === 1) {
+      items.push({ kind: "pin", restaurant: members[0]! });
+      continue;
+    }
+
+    if (selected && members.some((m) => m.id === selected.id)) {
+      items.push({ kind: "pin", restaurant: selected });
+      const rest = members.filter((m) => m.id !== selected.id);
+      if (rest.length === 1) {
+        items.push({ kind: "pin", restaurant: rest[0]! });
+      } else if (rest.length > 1) {
+        items.push(makeCluster(`c-${key}`, rest));
+      }
+      continue;
+    }
+
+    items.push(makeCluster(`c-${key}`, members));
+  }
+  return items;
+}
+
+function makeCluster(
+  id: string,
+  members: MapRestaurant[],
+): Extract<RestaurantMapItem, { kind: "cluster" }> {
+  const latitude =
+    members.reduce((sum, m) => sum + m.latitude, 0) / members.length;
+  const longitude =
+    members.reduce((sum, m) => sum + m.longitude, 0) / members.length;
+  return {
+    kind: "cluster",
+    id,
+    latitude,
+    longitude,
+    count: members.length,
+    members,
+  };
+}
+
 /**
  * Shared map surface. MapView must be an in-flow child with flex/size —
  * absoluteFill inside a flex-only parent collapses to height 0.
@@ -189,17 +310,35 @@ export const CommunityMap = forwardRef<CommunityMapHandle, CommunityMapProps>(
       return selected ? [...visibleCommunities, selected] : visibleCommunities;
     }, [visibleCommunities, selectedId, communities]);
 
-    // Parent passes in-view restaurants; render them all (keep selection if off-edge).
-    const restaurantMarkers = useMemo(() => {
-      if (!selectedId) return restaurants;
-      if (restaurants.some((r) => r.id === selectedId)) return restaurants;
+    // Parent passes in-view restaurants; cluster when zoomed out.
+    const restaurantMapItems = useMemo(() => {
+      const base = restaurants;
+      if (!selectedId) {
+        return buildRestaurantMapItems(base, region, null);
+      }
+      if (base.some((r) => r.id === selectedId)) {
+        return buildRestaurantMapItems(base, region, selectedId);
+      }
       const selected = restaurants.find((r) => r.id === selectedId);
-      return selected ? [...restaurants, selected] : restaurants;
-    }, [restaurants, selectedId]);
+      const withSelected = selected ? [...base, selected] : base;
+      return buildRestaurantMapItems(withSelected, region, selectedId);
+    }, [restaurants, selectedId, region]);
 
     const handleRegionChangeComplete = (next: MapRegion) => {
       setRegion(next);
       onRegionChangeComplete?.(next);
+    };
+
+    const zoomToCluster = (members: MapRestaurant[]) => {
+      const coords = members.map((m) => ({
+        latitude: m.latitude,
+        longitude: m.longitude,
+      }));
+      if (coords.length === 0) return;
+      mapRef.current?.fitToCoordinates(coords, {
+        edgePadding: { top: 120, right: 56, bottom: 240, left: 56 },
+        animated: true,
+      });
     };
 
     if (Platform.OS === "web") {
@@ -237,15 +376,24 @@ export const CommunityMap = forwardRef<CommunityMapHandle, CommunityMapProps>(
                 onPress={onMarkerPress}
               />
             ))
-          : restaurantMarkers.map((r) => (
-              <RestaurantFlagMarker
-                key={r.id}
-                restaurant={r}
-                selected={r.id === selectedId}
-                refreshToken={filterKey}
-                onPress={onRestaurantPress}
-              />
-            ))}
+          : restaurantMapItems.map((item) =>
+              item.kind === "cluster" ? (
+                <ClusterMarker
+                  key={item.id}
+                  cluster={item}
+                  refreshToken={filterKey}
+                  onPress={() => zoomToCluster(item.members)}
+                />
+              ) : (
+                <RestaurantFlagMarker
+                  key={item.restaurant.id}
+                  restaurant={item.restaurant}
+                  selected={item.restaurant.id === selectedId}
+                  refreshToken={filterKey}
+                  onPress={onRestaurantPress}
+                />
+              ),
+            )}
       </MapView>
     );
   },
@@ -294,6 +442,52 @@ function FlagMarker({
           selected={selected}
           elevated
         />
+      </View>
+    </Marker>
+  );
+}
+
+function ClusterMarker({
+  cluster,
+  refreshToken,
+  onPress,
+}: {
+  cluster: Extract<RestaurantMapItem, { kind: "cluster" }>;
+  refreshToken: string;
+  onPress?: () => void;
+}) {
+  const [tracksViewChanges, setTracksViewChanges] = useState(true);
+  const size = cluster.count >= 40 ? 44 : cluster.count >= 15 ? 38 : 32;
+
+  useEffect(() => {
+    setTracksViewChanges(true);
+    const id = setTimeout(() => setTracksViewChanges(false), 700);
+    return () => clearTimeout(id);
+  }, [cluster.count, refreshToken, size]);
+
+  return (
+    <Marker
+      identifier={cluster.id}
+      coordinate={{
+        latitude: cluster.latitude,
+        longitude: cluster.longitude,
+      }}
+      anchor={{ x: 0.5, y: 0.5 }}
+      tracksViewChanges={tracksViewChanges}
+      onPress={(e) => {
+        e.stopPropagation?.();
+        onPress?.();
+      }}
+    >
+      <View
+        style={[
+          styles.cluster,
+          { width: size, height: size, borderRadius: size / 2 },
+        ]}
+        collapsable={false}
+        pointerEvents="none"
+      >
+        <Text style={styles.clusterText}>{cluster.count}</Text>
       </View>
     </Marker>
   );
@@ -403,6 +597,23 @@ const styles = StyleSheet.create({
   markerWrap: {
     alignItems: "center",
     justifyContent: "center",
+  },
+  cluster: {
+    backgroundColor: colors.forest,
+    borderWidth: 2.5,
+    borderColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  clusterText: {
+    fontFamily: typography.bodySemibold,
+    fontSize: 12,
+    color: colors.white,
   },
   fallback: {
     flex: 1,
