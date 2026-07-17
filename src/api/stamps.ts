@@ -1,0 +1,35 @@
+import { apiFetch } from "./client";
+
+export type ApiStamp = {
+  id: string;
+  userId: string;
+  communityId: string;
+  earnedAt: string;
+  community?: {
+    id: string;
+    name: string;
+    neighborhood: string;
+    city: string;
+    description: string;
+    heroEmoji: string | null;
+    imageUrl: string | null;
+  };
+};
+
+export function getUserId(): string {
+  return process.env.EXPO_PUBLIC_USER_ID?.trim() || "seed-user-1";
+}
+
+export function fetchUserStamps(userId = getUserId()): Promise<ApiStamp[]> {
+  return apiFetch<ApiStamp[]>(`/users/${userId}/stamps`);
+}
+
+export function createStamp(
+  communityId: string,
+  userId = getUserId(),
+): Promise<ApiStamp> {
+  return apiFetch<ApiStamp>("/stamps", {
+    method: "POST",
+    body: JSON.stringify({ communityId, userId }),
+  });
+}

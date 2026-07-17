@@ -2,22 +2,33 @@ import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useCommunities } from "../api/useCommunities";
 import { PrimaryButton } from "../components";
-import { mockCommunities } from "../data/mockCommunities";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, typography } from "../theme";
 
 export function DropInScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { communities, loading, error } = useCommunities();
   const [index, setIndex] = useState(0);
-  const community = mockCommunities[index % mockCommunities.length];
+  const community =
+    communities.length > 0
+      ? communities[index % communities.length]
+      : null;
 
   const tryAnother = () => {
-    setIndex((i) => (i + 1) % mockCommunities.length);
+    if (communities.length === 0) return;
+    setIndex((i) => (i + 1) % communities.length);
   };
 
   return (
@@ -32,26 +43,34 @@ export function DropInScreen() {
         </Pressable>
 
         <View style={styles.center}>
-          <Text style={styles.label}>Drop In found</Text>
-          <Text style={styles.emoji}>{community.emoji}</Text>
-          <Text style={styles.name}>{community.name}</Text>
-          <Text style={styles.meta}>
-            {community.neighborhood} · {community.distanceMiles} mi away
-          </Text>
-          <Text style={styles.heritage}>{community.heritage}</Text>
+          {loading ? (
+            <ActivityIndicator color={colors.gold} />
+          ) : error || !community ? (
+            <Text style={styles.meta}>{error ?? "No communities yet"}</Text>
+          ) : (
+            <>
+              <Text style={styles.label}>Drop In found</Text>
+              <Text style={styles.emoji}>{community.emoji}</Text>
+              <Text style={styles.name}>{community.name}</Text>
+              <Text style={styles.meta}>
+                {community.neighborhood} · {community.distanceMiles} mi away
+              </Text>
+              <Text style={styles.heritage}>{community.heritage}</Text>
 
-          <PrimaryButton
-            label="Start exploring"
-            onPress={() =>
-              navigation.replace("CommunityProfile", {
-                communityId: community.id,
-              })
-            }
-            style={styles.cta}
-          />
-          <Pressable onPress={tryAnother} style={styles.tryAnother}>
-            <Text style={styles.tryAnotherText}>Try another</Text>
-          </Pressable>
+              <PrimaryButton
+                label="Start exploring"
+                onPress={() =>
+                  navigation.replace("CommunityProfile", {
+                    communityId: community.id,
+                  })
+                }
+                style={styles.cta}
+              />
+              <Pressable onPress={tryAnother} style={styles.tryAnother}>
+                <Text style={styles.tryAnotherText}>Try another</Text>
+              </Pressable>
+            </>
+          )}
         </View>
       </SafeAreaView>
     </View>
@@ -100,6 +119,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.grayLight,
     marginTop: 10,
+    textAlign: "center",
   },
   heritage: {
     fontFamily: typography.bodyMedium,

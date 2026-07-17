@@ -3,6 +3,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   NativeScrollEvent,
@@ -18,6 +19,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
+import { useCommunities } from "../api/useCommunities";
 import { Chip, ListRow, SearchBar } from "../components";
 import { CircularFlag } from "../components/CircularFlag";
 import { CommunityMap } from "../components/CommunityMap";
@@ -28,8 +30,6 @@ import {
   getAffinityLabels,
   type CultureFilterId,
 } from "../data/cultureFilters";
-import { mockCommunities } from "../data/mockCommunities";
-import { getRestaurantCount } from "../data/mockRestaurants";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
 import type { Community } from "../types";
@@ -45,6 +45,7 @@ export function MapScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
+  const { communities, raw, loading, error } = useCommunities();
   const [mode, setMode] = useState<BottomMode>("cards");
   const [activeIndex, setActiveIndex] = useState(0);
   const [query, setQuery] = useState("");
@@ -52,9 +53,15 @@ export function MapScreen() {
   const listRef = useRef<FlatList<Community>>(null);
   const pendingScrollIndex = useRef<number | null>(null);
 
+  const poiCountById = useMemo(() => {
+    const map = new Map<string, number>();
+    raw.forEach((c) => map.set(c.id, c.poiCount ?? 0));
+    return map;
+  }, [raw]);
+
   const filtered = useMemo(
-    () => filterCommunities(mockCommunities, { culture, query }),
-    [culture, query],
+    () => filterCommunities(communities, { culture, query }),
+    [communities, culture, query],
   );
 
   useEffect(() => {
@@ -108,6 +115,22 @@ export function MapScreen() {
     culture === "all" && !query.trim()
       ? `${filtered.length} enclaves`
       : `${filtered.length} match${filtered.length === 1 ? "" : "es"}`;
+
+  if (loading) {
+    return (
+      <View style={[styles.root, styles.loadingWrap]}>
+        <ActivityIndicator color={colors.forest} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.root, styles.loadingWrap]}>
+        <Text style={styles.emptySub}>{error}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
@@ -237,7 +260,7 @@ export function MapScreen() {
                         <Text style={styles.cardDistance}>
                           {item.station
                             ? `${item.subwayLines?.slice(0, 3).join(" · ") || "Transit"} · ${item.station}`
-                            : `${getRestaurantCount(item.id)} spots · ${item.distanceMiles} mi`}
+                            : `${poiCountById.get(item.id) ?? 0} spots · ${item.distanceMiles} mi`}
                         </Text>
                       )}
                     </View>
@@ -302,6 +325,10 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.surface,
+  },
+  loadingWrap: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   topOverlay: {
     position: "absolute",

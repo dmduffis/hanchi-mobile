@@ -1,5 +1,5 @@
 import { apiFetch } from "./client";
-import type { ApiCommunity } from "./communities";
+import type { ApiCommunity, ApiDish } from "./communities";
 
 export type ApiPoi = {
   id: string;
@@ -10,21 +10,14 @@ export type ApiPoi = {
   hours: string | null;
 };
 
-export type ApiDish = {
-  id: string;
-  poiId: string;
-  name: string;
-  description: string | null;
-  priceRange: string | null;
-  poiName?: string;
-};
-
 export type ApiSearchResults = {
   query: string;
   communities: ApiCommunity[];
   pois: ApiPoi[];
   dishes: ApiDish[];
 };
+
+export type { ApiDish } from "./communities";
 
 export function searchAll(query: string): Promise<ApiSearchResults> {
   const q = encodeURIComponent(query.trim());

@@ -1,10 +1,11 @@
 import { Feather } from "@expo/vector-icons";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { fetchUserStamps } from "../api/stamps";
 import { Badge } from "../components";
 import { mockFavorites } from "../data/mockFavorites";
-import { mockPassportStamps } from "../data/mockPassport";
 import { colors, radii, typography } from "../theme";
 
 const SETTINGS = [
@@ -15,11 +16,29 @@ const SETTINGS = [
 ];
 
 export function ProfileScreen() {
-  const stamps = mockPassportStamps.filter((s) => s.earned).length;
+  const [stamps, setStamps] = useState(0);
+  const [cultures, setCultures] = useState(0);
   const favorites = mockFavorites.length;
-  const cultures = new Set(
-    mockPassportStamps.filter((s) => s.earned).map((s) => s.communityId),
-  ).size;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await fetchUserStamps();
+        if (cancelled) return;
+        setStamps(data.length);
+        setCultures(new Set(data.map((s) => s.communityId)).size);
+      } catch {
+        if (!cancelled) {
+          setStamps(0);
+          setCultures(0);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -78,35 +97,34 @@ const styles = StyleSheet.create({
   },
   profileHeader: {
     alignItems: "center",
-    marginTop: 16,
-    marginBottom: 28,
+    marginTop: 12,
+    marginBottom: 24,
     gap: 10,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: colors.forest,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
   },
   avatarText: {
-    fontFamily: typography.display,
-    fontSize: 32,
+    fontFamily: typography.bodySemibold,
     color: colors.white,
+    fontSize: 28,
   },
   name: {
     fontFamily: typography.display,
-    fontSize: 26,
+    fontSize: 24,
     color: colors.ink,
   },
   stats: {
     flexDirection: "row",
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
-    paddingVertical: 20,
-    marginBottom: 32,
+    paddingVertical: 18,
+    marginBottom: 28,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -116,8 +134,8 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontFamily: typography.display,
-    fontSize: 24,
-    color: colors.forest,
+    fontSize: 22,
+    color: colors.ink,
   },
   statLabel: {
     fontFamily: typography.body,
@@ -126,14 +144,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   statDivider: {
-    width: 1,
+    width: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,
   },
   sectionTitle: {
     fontFamily: typography.display,
-    fontSize: 18,
+    fontSize: 20,
     color: colors.ink,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   settingsRow: {
     flexDirection: "row",

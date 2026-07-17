@@ -2,21 +2,27 @@ import { Feather } from "@expo/vector-icons";
 import type { RouteProp } from "@react-navigation/native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import {
+  fetchCommunity,
+  fetchCommunityDishes,
+  type ApiCommunityDetail,
+  type ApiDish,
+} from "../api/communities";
+import { createStamp } from "../api/stamps";
+import { mapApiCommunity } from "../api/mappers";
 import { Badge, Chip, ListRow, PrimaryButton } from "../components";
-import {
-  getCommunityById,
-  getInsidersForCommunity,
-  mockCommunities,
-} from "../data/mockCommunities";
-import {
-  getDishesForCommunity,
-  getDishesForRestaurant,
-} from "../data/mockDishes";
-import { getRestaurantsForCommunity } from "../data/mockRestaurants";
+import { getInsidersForCommunity } from "../data/mockCommunities";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
 import type { CommunityProfileTab } from "../types";
@@ -27,43 +33,108 @@ export function CommunityProfileScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, "CommunityProfile">>();
-  const community =
-    getCommunityById(route.params.communityId) ?? mockCommunities[0];
+  const communityId = route.params.communityId;
+
   const [tab, setTab] = useState<CommunityProfileTab>(
     route.params.initialTab ?? "Food",
   );
+  const [detail, setDetail] = useState<ApiCommunityDetail | null>(null);
+  const [dishes, setDishes] = useState<ApiDish[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stamping, setStamping] = useState(false);
+  const [stamped, setStamped] = useState(false);
   const [foodFilter, setFoodFilter] = useState<string | null>(null);
 
-  const restaurants = useMemo(
-    () => getRestaurantsForCommunity(community.id),
-    [community.id],
-  );
-  const dishes = useMemo(
-    () => getDishesForCommunity(community.id),
-    [community.id],
-  );
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [community, communityDishes] = await Promise.all([
+          fetchCommunity(communityId),
+          fetchCommunityDishes(communityId),
+        ]);
+        if (cancelled) return;
+        setDetail(community);
+        setDishes(communityDishes);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [communityId]);
+
+  const community = detail ? mapApiCommunity(detail) : null;
+  const pois = detail?.pois ?? [];
   const insiders = useMemo(
-    () => getInsidersForCommunity(community.id),
-    [community.id],
+    () => getInsidersForCommunity(communityId),
+    [communityId],
   );
-  const dietaryOptions = useMemo(() => {
+
+  const dishesByPoi = useMemo(() => {
+    const map = new Map<string, ApiDish[]>();
+    dishes.forEach((d) => {
+      const list = map.get(d.poiId) ?? [];
+      list.push(d);
+      map.set(d.poiId, list);
+    });
+    return map;
+  }, [dishes]);
+
+  const priceOptions = useMemo(() => {
     const tags = new Set<string>();
-    dishes.forEach((d) => d.dietaryTags.forEach((t) => tags.add(t)));
+    dishes.forEach((d) => {
+      if (d.priceRange) tags.add(d.priceRange);
+    });
     return Array.from(tags);
   }, [dishes]);
 
-  const visibleRestaurants = useMemo(() => {
-    if (!foodFilter) return restaurants;
-    return restaurants.filter((r) =>
-      getDishesForRestaurant(r.id).some((d) =>
-        d.dietaryTags.includes(foodFilter),
-      ),
+  const visiblePois = useMemo(() => {
+    if (!foodFilter) return pois;
+    return pois.filter((p) =>
+      (dishesByPoi.get(p.id) ?? []).some((d) => d.priceRange === foodFilter),
     );
-  }, [restaurants, foodFilter]);
+  }, [pois, dishesByPoi, foodFilter]);
 
-  const related = community.relatedIds
-    .map((id) => getCommunityById(id))
-    .filter(Boolean);
+  const onStamp = async () => {
+    if (!community || stamping || stamped) return;
+    setStamping(true);
+    try {
+      await createStamp(community.id);
+      setStamped(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save stamp");
+    } finally {
+      setStamping(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.safe, styles.centered]} edges={["top"]}>
+        <ActivityIndicator color={colors.forest} />
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !community || !detail) {
+    return (
+      <SafeAreaView style={[styles.safe, styles.centered]} edges={["top"]}>
+        <Text style={styles.body}>{error ?? "Community not found"}</Text>
+        <Pressable onPress={() => navigation.goBack()} style={{ marginTop: 16 }}>
+          <Text style={styles.savePromptText}>Go back</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -115,78 +186,41 @@ export function CommunityProfileScreen() {
         {tab === "About" && (
           <View style={styles.tabContent}>
             <Text style={styles.body}>{community.description}</Text>
-            <View style={styles.quote}>
-              <Text style={styles.quoteText}>"{community.pullQuote}"</Text>
-              <Text style={styles.quoteAuthor}>
-                — {community.pullQuoteAuthor}
-              </Text>
-            </View>
-            {restaurants.length > 0 && (
+            {pois.length > 0 && (
               <View style={styles.aboutFood}>
                 <Text style={styles.sectionTitle}>
-                  {restaurants.length} restaurants nearby
+                  {pois.length} places nearby
                 </Text>
-                {restaurants.slice(0, 3).map((r) => (
+                {pois.slice(0, 3).map((r) => (
                   <ListRow
                     key={r.id}
-                    thumbnail={r.emoji}
+                    thumbnail="🍽️"
                     title={r.name}
-                    subtitle={`${r.cuisine} · ${r.priceLevel}`}
+                    subtitle={`${r.category}${r.address ? ` · ${r.address}` : ""}`}
                     onPress={() => setTab("Food")}
                   />
                 ))}
-                <Pressable
-                  style={styles.savePrompt}
-                  onPress={() => setTab("Food")}
-                >
-                  <Feather name="coffee" size={16} color={colors.forest} />
-                  <Text style={styles.savePromptText}>
-                    See all food in {community.name}
-                  </Text>
-                </Pressable>
               </View>
             )}
+            <PrimaryButton
+              label={stamped ? "Stamped ✓" : "Stamp passport"}
+              onPress={onStamp}
+              loading={stamping}
+              disabled={stamped}
+              style={{ marginTop: 8 }}
+            />
             <PrimaryButton
               label="See on map"
               onPress={() => navigation.navigate("MainTabs", { screen: "Map" })}
               style={{ marginTop: 8 }}
             />
-            <Pressable
-              style={styles.savePrompt}
-              onPress={() =>
-                navigation.navigate("MainTabs", { screen: "Favorites" })
-              }
-            >
-              <Feather name="heart" size={16} color={colors.forest} />
-              <Text style={styles.savePromptText}>Save to favorites</Text>
-            </Pressable>
-            {related.length > 0 && (
-              <View style={{ marginTop: 24 }}>
-                <Text style={styles.sectionTitle}>Related communities</Text>
-                {related.map((c) =>
-                  c ? (
-                    <ListRow
-                      key={c.id}
-                      thumbnail={c.emoji}
-                      title={c.name}
-                      subtitle={`${c.neighborhood} · ${c.heritage}`}
-                      onPress={() =>
-                        navigation.push("CommunityProfile", {
-                          communityId: c.id,
-                        })
-                      }
-                    />
-                  ) : null,
-                )}
-              </View>
-            )}
           </View>
         )}
 
         {tab === "Food" && (
           <View style={styles.tabContent}>
             <Text style={styles.foodIntro}>
-              {restaurants.length} restaurants · {dishes.length} dishes to try
+              {pois.length} places · {dishes.length} dishes to try
             </Text>
             <ScrollView
               horizontal
@@ -198,56 +232,50 @@ export function CommunityProfileScreen() {
                 selected={foodFilter === null}
                 onPress={() => setFoodFilter(null)}
               />
-              {dietaryOptions.map((tag) => (
+              {priceOptions.map((tag) => (
                 <Chip
                   key={tag}
                   label={tag}
                   selected={foodFilter === tag}
-                  onPress={() => setFoodFilter(tag === foodFilter ? null : tag)}
+                  onPress={() =>
+                    setFoodFilter(tag === foodFilter ? null : tag)
+                  }
                 />
               ))}
             </ScrollView>
 
-            {visibleRestaurants.length === 0 ? (
-              <Text style={styles.body}>No restaurants match this filter.</Text>
+            {visiblePois.length === 0 ? (
+              <Text style={styles.body}>No places match this filter.</Text>
             ) : (
-              visibleRestaurants.map((restaurant) => {
-                const restaurantDishes = getDishesForRestaurant(
-                  restaurant.id,
-                ).filter(
-                  (d) => !foodFilter || d.dietaryTags.includes(foodFilter),
+              visiblePois.map((poi) => {
+                const poiDishes = (dishesByPoi.get(poi.id) ?? []).filter(
+                  (d) => !foodFilter || d.priceRange === foodFilter,
                 );
                 return (
-                  <View key={restaurant.id} style={styles.restaurantBlock}>
+                  <View key={poi.id} style={styles.restaurantBlock}>
                     <View style={styles.restaurantHeader}>
                       <View style={styles.restaurantEmojiWrap}>
-                        <Text style={styles.restaurantEmoji}>
-                          {restaurant.emoji}
-                        </Text>
+                        <Text style={styles.restaurantEmoji}>🍽️</Text>
                       </View>
                       <View style={styles.restaurantInfo}>
-                        <Text style={styles.restaurantName}>
-                          {restaurant.name}
-                        </Text>
+                        <Text style={styles.restaurantName}>{poi.name}</Text>
                         <Text style={styles.restaurantMeta}>
-                          {restaurant.cuisine} · {restaurant.priceLevel} ·{" "}
-                          {restaurant.address}
-                        </Text>
-                        <Text style={styles.restaurantBlurb}>
-                          {restaurant.blurb}
+                          {poi.category}
+                          {poi.address ? ` · ${poi.address}` : ""}
+                          {poi.hours ? ` · ${poi.hours}` : ""}
                         </Text>
                       </View>
                     </View>
-                    {restaurantDishes.map((dish) => (
+                    {poiDishes.map((dish) => (
                       <ListRow
                         key={dish.id}
-                        thumbnail={dish.emoji}
+                        thumbnail="🥢"
                         title={dish.name}
-                        subtitle={dish.description}
+                        subtitle={dish.description ?? undefined}
                         showChevron={false}
                         rightElement={
-                          dish.dietaryTags[0] ? (
-                            <Badge label={dish.dietaryTags[0]} />
+                          dish.priceRange ? (
+                            <Badge label={dish.priceRange} />
                           ) : undefined
                         }
                       />
@@ -281,8 +309,8 @@ export function CommunityProfileScreen() {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
+  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   safe: {
     flex: 1,
     backgroundColor: colors.background,

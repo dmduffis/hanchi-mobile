@@ -3,8 +3,9 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Keyboard,
   Pressable,
   ScrollView,
@@ -14,13 +15,15 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import {
+  fetchCommunityDishes,
+  type ApiDish,
+} from "../api/communities";
+import { searchAll } from "../api/search";
+import { useCommunities } from "../api/useCommunities";
 import { ListRow, PromoBanner, SearchBar } from "../components";
 import { CommunityMap } from "../components/CommunityMap";
 import { getCommunityFlag } from "../data/communityFlags";
-import { filterCommunities } from "../data/cultureFilters";
-import { mockCommunities } from "../data/mockCommunities";
-import { getFeaturedDishes, mockDishes } from "../data/mockDishes";
-import { getRestaurantCount, mockRestaurants } from "../data/mockRestaurants";
 import type { MainTabParamList, RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
 
@@ -46,65 +49,93 @@ function getGreeting(): string {
 
 export function HomeScreen() {
   const navigation = useNavigation<HomeNavigation>();
+  const { communities, raw, loading, error } = useCommunities();
   const [query, setQuery] = useState("");
-  const dishes = getFeaturedDishes(6);
-  const nearby = mockCommunities.slice(0, 5);
+  const [dishes, setDishes] = useState<ApiDish[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+
   const isSearching = query.trim().length > 0;
+  const nearby = communities.slice(0, 5);
+  const poiCountById = useMemo(() => {
+    const map = new Map<string, number>();
+    raw.forEach((c) => map.set(c.id, c.poiCount ?? 0));
+    return map;
+  }, [raw]);
 
-  const searchResults = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [] as SearchResult[];
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (communities.length === 0) {
+        setDishes([]);
+        return;
+      }
+      try {
+        const batches = await Promise.all(
+          communities.slice(0, 4).map((c) => fetchCommunityDishes(c.id)),
+        );
+        if (!cancelled) setDishes(batches.flat().slice(0, 8));
+      } catch {
+        if (!cancelled) setDishes([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [communities]);
 
-    const communities = filterCommunities(mockCommunities, {
-      culture: "all",
-      query: q,
-    }).map(
-      (c): SearchResult => ({
-        id: `c-${c.id}`,
-        title: c.name,
-        subtitle: `${c.neighborhood} · ${c.heritage}`,
-        thumbnail: getCommunityFlag(c.id, c.emoji),
-        communityId: c.id,
-      }),
-    );
+  useEffect(() => {
+    let cancelled = false;
+    const q = query.trim();
+    if (!q) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
 
-    const restaurants = mockRestaurants
-      .filter(
-        (r) =>
-          r.name.toLowerCase().includes(q) ||
-          r.cuisine.toLowerCase().includes(q) ||
-          r.communityName.toLowerCase().includes(q) ||
-          r.knownFor.some((k) => k.toLowerCase().includes(q)),
-      )
-      .map(
-        (r): SearchResult => ({
-          id: `r-${r.id}`,
-          title: r.name,
-          subtitle: `${r.communityName} · ${r.cuisine} · Restaurant`,
-          thumbnail: r.emoji,
-          communityId: r.communityId,
-        }),
-      );
+    const handle = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const data = await searchAll(q);
+        if (cancelled) return;
+        const poiCommunity = new Map(
+          data.pois.map((p) => [p.id, p.communityId]),
+        );
+        const fallback = data.communities[0]?.id ?? "";
+        setSearchResults([
+          ...data.communities.map((c) => ({
+            id: `c-${c.id}`,
+            title: c.name,
+            subtitle: `${c.neighborhood} · ${c.city}`,
+            thumbnail: c.heroEmoji ?? "📍",
+            communityId: c.id,
+          })),
+          ...data.pois.map((p) => ({
+            id: `r-${p.id}`,
+            title: p.name,
+            subtitle: `${p.category} · Place`,
+            thumbnail: "🍽️",
+            communityId: p.communityId,
+          })),
+          ...data.dishes.map((d) => ({
+            id: `d-${d.id}`,
+            title: d.name,
+            subtitle: d.poiName ? `${d.poiName} · Dish` : "Dish",
+            thumbnail: "🥢",
+            communityId: poiCommunity.get(d.poiId) ?? fallback,
+          })),
+        ]);
+      } catch {
+        if (!cancelled) setSearchResults([]);
+      } finally {
+        if (!cancelled) setSearchLoading(false);
+      }
+    }, 250);
 
-    const dishHits = mockDishes
-      .filter(
-        (d) =>
-          d.name.toLowerCase().includes(q) ||
-          d.communityName.toLowerCase().includes(q) ||
-          d.restaurantName.toLowerCase().includes(q) ||
-          d.dietaryTags.some((t) => t.toLowerCase().includes(q)),
-      )
-      .map(
-        (d): SearchResult => ({
-          id: `d-${d.id}`,
-          title: d.name,
-          subtitle: `${d.restaurantName} · ${d.communityName}`,
-          thumbnail: d.emoji,
-          communityId: d.communityId,
-        }),
-      );
-
-    return [...communities, ...restaurants, ...dishHits];
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
   }, [query]);
 
   return (
@@ -144,14 +175,22 @@ export function HomeScreen() {
           placeholder="Search communities, dishes…"
         />
 
-        {isSearching ? (
+        {loading ? (
+          <View style={styles.centered}>
+            <ActivityIndicator color={colors.forest} />
+          </View>
+        ) : error ? (
+          <Text style={styles.emptySearch}>{error}</Text>
+        ) : isSearching ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
-              {searchResults.length === 0
-                ? "No matches"
-                : `${searchResults.length} result${searchResults.length === 1 ? "" : "s"}`}
+              {searchLoading
+                ? "Searching…"
+                : searchResults.length === 0
+                  ? "No matches"
+                  : `${searchResults.length} result${searchResults.length === 1 ? "" : "s"}`}
             </Text>
-            {searchResults.length === 0 ? (
+            {searchResults.length === 0 && !searchLoading ? (
               <Text style={styles.emptySearch}>
                 Try an enclave, restaurant, or dish name.
               </Text>
@@ -163,6 +202,7 @@ export function HomeScreen() {
                   title={item.title}
                   subtitle={item.subtitle}
                   onPress={() => {
+                    if (!item.communityId) return;
                     Keyboard.dismiss();
                     navigation.navigate("CommunityProfile", {
                       communityId: item.communityId,
@@ -175,7 +215,7 @@ export function HomeScreen() {
         ) : (
           <>
             <View style={styles.mapPeek}>
-              <CommunityMap communities={mockCommunities} interactive={false} />
+              <CommunityMap communities={communities} interactive={false} />
               <Pressable
                 style={styles.mapHitArea}
                 onPress={() => navigation.navigate("Map")}
@@ -202,19 +242,23 @@ export function HomeScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.dishRow}
               >
-                {dishes.map((dish) => (
-                  <View key={dish.id} style={styles.dishCard}>
-                    <View style={styles.dishImage}>
-                      <Text style={styles.dishEmoji}>{dish.emoji}</Text>
+                {dishes.length === 0 ? (
+                  <Text style={styles.emptySearch}>No dishes yet</Text>
+                ) : (
+                  dishes.map((dish) => (
+                    <View key={dish.id} style={styles.dishCard}>
+                      <View style={styles.dishImage}>
+                        <Text style={styles.dishEmoji}>🥢</Text>
+                      </View>
+                      <Text style={styles.dishName} numberOfLines={1}>
+                        {dish.name}
+                      </Text>
+                      <Text style={styles.dishCommunity} numberOfLines={1}>
+                        {dish.poiName ?? "Local spot"}
+                      </Text>
                     </View>
-                    <Text style={styles.dishName} numberOfLines={1}>
-                      {dish.name}
-                    </Text>
-                    <Text style={styles.dishCommunity} numberOfLines={1}>
-                      {dish.restaurantName}
-                    </Text>
-                  </View>
-                ))}
+                  ))
+                )}
               </ScrollView>
             </View>
 
@@ -244,7 +288,7 @@ export function HomeScreen() {
                   key={c.id}
                   thumbnail={getCommunityFlag(c.id, c.emoji)}
                   title={c.name}
-                  subtitle={`${c.neighborhood} · ${getRestaurantCount(c.id)} restaurants · ${c.distanceMiles} mi`}
+                  subtitle={`${c.neighborhood} · ${poiCountById.get(c.id) ?? 0} places · ${c.distanceMiles} mi`}
                   onPress={() =>
                     navigation.navigate("CommunityProfile", {
                       communityId: c.id,
@@ -259,8 +303,8 @@ export function HomeScreen() {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
+  centered: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 40 },
   safe: {
     flex: 1,
     backgroundColor: colors.background,
