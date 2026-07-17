@@ -5,6 +5,7 @@ import { DiscoverScreen } from "../screens/DiscoverScreen";
 import { DropInScreen } from "../screens/DropInScreen";
 import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { OnboardingScreen } from "../screens/OnboardingScreen";
+import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
 import { SearchScreen } from "../screens/SearchScreen";
 import { colors } from "../theme";
 import { TabNavigator } from "./TabNavigator";
@@ -38,6 +39,11 @@ export function RootNavigator({
           <Stack.Screen
             name="CommunityProfile"
             component={CommunityProfileScreen}
+            options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen
+            name="RestaurantDetail"
+            component={RestaurantDetailScreen}
             options={{ animation: "slide_from_right" }}
           />
           <Stack.Screen

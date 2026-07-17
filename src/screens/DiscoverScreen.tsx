@@ -1,19 +1,58 @@
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { fetchRoutes, type ApiRouteSummary } from "../api/routes";
 import { PrimaryButton, PromoBanner } from "../components";
-import { mockRoutes } from "../data/mockPassport";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
 
 export function DiscoverScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const aiRoute = mockRoutes.find((r) => r.isAiSuggested) ?? mockRoutes[0];
-  const curated = mockRoutes.filter((r) => !r.isAiSuggested);
+  const [routes, setRoutes] = useState<ApiRouteSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchRoutes();
+        if (!cancelled) setRoutes(data);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load routes");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const aiRoute = useMemo(
+    () => routes.find((r) => r.type === "ai_generated") ?? routes[0],
+    [routes],
+  );
+  const curated = useMemo(
+    () => routes.filter((r) => r.type !== "ai_generated"),
+    [routes],
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -33,44 +72,57 @@ export function DiscoverScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.sectionTitle}>Made for you</Text>
-        <View style={styles.aiCard}>
-          <View style={styles.aiBadge}>
-            <Feather name="zap" size={12} color={colors.goldText} />
-            <Text style={styles.aiBadgeText}>AI suggested</Text>
-          </View>
-          <Text style={styles.aiTitle}>{aiRoute.title}</Text>
-          <Text style={styles.aiSub}>{aiRoute.subtitle}</Text>
-          <Text style={styles.aiMeta}>
-            {aiRoute.stops} stops · ~{aiRoute.durationHours} hrs ·{" "}
-            {aiRoute.communities.join(", ")}
-          </Text>
-          <PrimaryButton label="Start this route" style={{ marginTop: 16 }} />
-        </View>
+        {loading ? (
+          <ActivityIndicator color={colors.forest} style={{ marginTop: 40 }} />
+        ) : error ? (
+          <Text style={styles.routeSub}>{error}</Text>
+        ) : (
+          <>
+            <Text style={styles.sectionTitle}>Made for you</Text>
+            {aiRoute ? (
+              <View style={styles.aiCard}>
+                <View style={styles.aiBadge}>
+                  <Feather name="zap" size={12} color={colors.goldText} />
+                  <Text style={styles.aiBadgeText}>AI suggested</Text>
+                </View>
+                <Text style={styles.aiTitle}>{aiRoute.title}</Text>
+                <Text style={styles.aiSub}>
+                  {aiRoute.description ?? "A suggested walk through the city."}
+                </Text>
+                <Text style={styles.aiMeta}>
+                  {aiRoute.stopCount ?? 0} stops · {aiRoute.type.replace("_", " ")}
+                </Text>
+                <PrimaryButton label="Start this route" style={{ marginTop: 16 }} />
+              </View>
+            ) : null}
 
-        <Text style={styles.sectionTitle}>Curated routes</Text>
-        {curated.map((route) => (
-          <Pressable key={route.id} style={styles.routeRow}>
-            <View style={styles.routeIcon}>
-              <Feather name="navigation" size={18} color={colors.forest} />
-            </View>
-            <View style={styles.routeContent}>
-              <Text style={styles.routeTitle}>{route.title}</Text>
-              <Text style={styles.routeSub}>{route.subtitle}</Text>
-              <Text style={styles.routeMeta}>
-                {route.stops} stops · {route.durationHours} hrs
-              </Text>
-            </View>
-            <Feather name="chevron-right" size={18} color={colors.grayLight} />
-          </Pressable>
-        ))}
+            <Text style={styles.sectionTitle}>Curated routes</Text>
+            {curated.map((route) => (
+              <Pressable key={route.id} style={styles.routeRow}>
+                <View style={styles.routeIcon}>
+                  <Feather name="navigation" size={18} color={colors.forest} />
+                </View>
+                <View style={styles.routeContent}>
+                  <Text style={styles.routeTitle}>{route.title}</Text>
+                  <Text style={styles.routeSub}>
+                    {route.description ?? "Explore this route"}
+                  </Text>
+                  <Text style={styles.routeMeta}>
+                    {route.stopCount ?? 0} stops · {route.type}
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={18} color={colors.grayLight} />
+              </Pressable>
+            ))}
 
-        <View style={{ marginTop: 24 }}>
-          <PromoBanner
-            text="Seasonal challenge: Taste of Queens — stamp 4 communities by Sunday"
-            icon="award"
-          />
-        </View>
+            <View style={{ marginTop: 24 }}>
+              <PromoBanner
+                text="Seasonal challenge: Taste of Queens — stamp 4 communities by Sunday"
+                icon="award"
+              />
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

@@ -1,0 +1,110 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet } from "react-native";
+
+import {
+  fetchUserFavorites,
+  toggleFavorite,
+  type FavoriteType,
+} from "../api/favorites";
+import { colors } from "../theme";
+
+type FavoriteHeartProps = {
+  type: FavoriteType;
+  targetId: string;
+  size?: number;
+  /** When provided, skips the initial favorites fetch. */
+  initialFavorited?: boolean;
+};
+
+export function FavoriteHeart({
+  type,
+  targetId,
+  size = 22,
+  initialFavorited,
+}: FavoriteHeartProps) {
+  const [favorited, setFavorited] = useState(initialFavorited ?? false);
+  const [loading, setLoading] = useState(initialFavorited === undefined);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (initialFavorited !== undefined) {
+      setFavorited(initialFavorited);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const list = await fetchUserFavorites();
+        if (cancelled) return;
+        setFavorited(
+          list.some((f) => f.type === type && f.targetId === targetId),
+        );
+      } catch {
+        if (!cancelled) setFavorited(false);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [type, targetId, initialFavorited]);
+
+  const onPress = useCallback(async () => {
+    if (busy) return;
+    setBusy(true);
+    const previous = favorited;
+    setFavorited(!previous);
+    try {
+      const result = await toggleFavorite(type, targetId);
+      setFavorited(Boolean(result.favorited));
+    } catch {
+      setFavorited(previous);
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, favorited, type, targetId]);
+
+  if (loading) {
+    return (
+      <Pressable style={styles.btn} disabled>
+        <ActivityIndicator size="small" color={colors.forest} />
+      </Pressable>
+    );
+  }
+
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => [styles.btn, pressed && styles.pressed]}
+      disabled={busy}
+      accessibilityRole="button"
+      accessibilityLabel={
+        favorited ? "Remove from favorites" : "Add to favorites"
+      }
+    >
+      <Ionicons
+        name={favorited ? "heart" : "heart-outline"}
+        size={size}
+        color={favorited ? colors.forest : colors.grayLight}
+      />
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  btn: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+});

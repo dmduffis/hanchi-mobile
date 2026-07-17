@@ -26,12 +26,14 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const base = getApiBaseUrl();
   const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
+  const userId = process.env.EXPO_PUBLIC_USER_ID?.trim();
 
   const response = await fetch(url, {
     ...init,
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
+      ...(userId ? { "x-user-id": userId } : {}),
       ...(init?.headers ?? {}),
     },
   });

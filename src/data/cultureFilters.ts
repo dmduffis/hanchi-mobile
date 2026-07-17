@@ -66,6 +66,10 @@ const AFFINITIES: Record<string, CultureFilterId[]> = {
   "little-senegal": ["african"],
   "little-ukraine": ["european"],
   "little-yemen": ["middle-eastern"],
+  "little-india-hicksville": ["south-asian"],
+  "little-portugal-mineola": ["european"],
+  "little-el-salvador-brentwood": ["latino"],
+  "koreatown-nassau": ["korean"],
 };
 
 function affinitiesFor(community: Community): CultureFilterId[] {

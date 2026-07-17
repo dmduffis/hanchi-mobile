@@ -1,17 +1,84 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useCallback, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useCommunities } from "../api/useCommunities";
+import { createStamp, fetchUserStamps } from "../api/stamps";
 import { Stamp } from "../components";
-import {
-  mockDishStamps,
-  mockPassportBadges,
-  mockPassportStamps,
-  TOTAL_COMMUNITY_STAMPS,
-} from "../data/mockPassport";
+import { mockDishStamps, mockPassportBadges } from "../data/mockPassport";
+import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
 
 export function PassportScreen() {
-  const earnedCount = mockPassportStamps.filter((s) => s.earned).length;
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { communities, loading: communitiesLoading } = useCommunities();
+  const [earnedIds, setEarnedIds] = useState<Set<string>>(new Set());
+  const [loadingStamps, setLoadingStamps] = useState(true);
+  const [stampingId, setStampingId] = useState<string | null>(null);
+
+  const loadStamps = useCallback(async () => {
+    setLoadingStamps(true);
+    try {
+      const stamps = await fetchUserStamps();
+      setEarnedIds(new Set(stamps.map((s) => s.communityId)));
+    } catch {
+      // Soft fallback — show empty passport rather than an error screen.
+      setEarnedIds(new Set());
+    } finally {
+      setLoadingStamps(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadStamps();
+    }, [loadStamps]),
+  );
+
+  const passportStamps = useMemo(
+    () =>
+      communities.map((c) => ({
+        id: c.id,
+        communityName: c.name,
+        emoji: c.emoji,
+        earned: earnedIds.has(c.id),
+      })),
+    [communities, earnedIds],
+  );
+
+  const earnedCount = passportStamps.filter((s) => s.earned).length;
+  const total = Math.max(passportStamps.length, 1);
+  const loading = communitiesLoading || loadingStamps;
+
+  const onStampPress = async (communityId: string, earned: boolean) => {
+    if (earned) {
+      navigation.navigate("CommunityProfile", { communityId });
+      return;
+    }
+    if (stampingId) return;
+    setStampingId(communityId);
+    setEarnedIds((prev) => new Set(prev).add(communityId));
+    try {
+      await createStamp(communityId);
+    } catch {
+      setEarnedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(communityId);
+        return next;
+      });
+    } finally {
+      setStampingId(null);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -20,85 +87,110 @@ export function PassportScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.title}>Passport</Text>
-        <View style={styles.progressHeader}>
-          <Text style={styles.progressText}>
-            {earnedCount} of {TOTAL_COMMUNITY_STAMPS} stamped
-          </Text>
-          <View style={styles.progressTrack}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${(earnedCount / TOTAL_COMMUNITY_STAMPS) * 100}%` },
-              ]}
-            />
-          </View>
-        </View>
-
-        <Text style={styles.sectionTitle}>Enclave stamps</Text>
-        <View style={styles.stampGrid}>
-          {mockPassportStamps.map((stamp) => (
-            <Stamp
-              key={stamp.id}
-              emoji={stamp.emoji}
-              label={stamp.communityName}
-              earned={stamp.earned}
-            />
-          ))}
-        </View>
-
-        <Text style={styles.sectionTitle}>Dish stamps</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.dishRow}
-        >
-          {mockDishStamps.map((stamp) => (
-            <View
-              key={stamp.id}
-              style={[
-                styles.dishPill,
-                stamp.earned ? styles.dishPillEarned : styles.dishPillEmpty,
-              ]}
-            >
-              <Text style={styles.dishPillEmoji}>
-                {stamp.earned ? stamp.emoji : "·"}
-              </Text>
-              <Text
-                style={[
-                  styles.dishPillLabel,
-                  !stamp.earned && styles.dishPillLabelEmpty,
-                ]}
-              >
-                {stamp.dishName}
-              </Text>
-            </View>
-          ))}
-        </ScrollView>
-
-        <Text style={styles.sectionTitle}>Badges</Text>
-        {mockPassportBadges.map((badge) => (
-          <View
-            key={badge.id}
-            style={[styles.badgeRow, !badge.earned && styles.badgeRowEmpty]}
-          >
-            <View
-              style={[styles.badgeIcon, badge.earned && styles.badgeIconEarned]}
-            >
-              <Text style={styles.badgeIconText}>
-                {badge.earned ? "★" : "○"}
-              </Text>
-            </View>
-            <View style={styles.badgeContent}>
-              <Text style={[styles.badgeTitle, !badge.earned && styles.muted]}>
-                {badge.title}
-              </Text>
-              <Text style={styles.badgeDesc}>{badge.description}</Text>
-            </View>
-            <Text style={styles.badgeStatus}>
-              {badge.earned ? "Earned" : "Locked"}
+        {loading ? (
+          <ActivityIndicator color={colors.forest} style={{ marginTop: 24 }} />
+        ) : passportStamps.length === 0 ? (
+          <View style={styles.emptyWrap}>
+            <Text style={styles.emptyTitle}>Your passport is ready</Text>
+            <Text style={styles.empty}>
+              Explore enclaves on the map, then tap a blank stamp here — or use
+              Stamp passport on a community page — to start collecting.
             </Text>
           </View>
-        ))}
+        ) : (
+          <>
+            <View style={styles.progressHeader}>
+              <Text style={styles.progressText}>
+                {earnedCount} of {passportStamps.length} stamped
+              </Text>
+              <Text style={styles.hint}>
+                Tap a blank stamp to collect it · tap a filled one to revisit
+              </Text>
+              <View style={styles.progressTrack}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${(earnedCount / total) * 100}%` },
+                  ]}
+                />
+              </View>
+            </View>
+
+            <Text style={styles.sectionTitle}>Enclave stamps</Text>
+            <View style={styles.stampGrid}>
+              {passportStamps.map((stamp) => (
+                <Stamp
+                  key={stamp.id}
+                  emoji={stamp.emoji}
+                  label={stamp.communityName}
+                  earned={stamp.earned}
+                  disabled={stampingId === stamp.id}
+                  onPress={() => void onStampPress(stamp.id, stamp.earned)}
+                />
+              ))}
+            </View>
+
+            <Text style={styles.sectionTitle}>Dish stamps</Text>
+            <Text style={styles.comingSoon}>Coming soon</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.dishRow}
+            >
+              {mockDishStamps.map((stamp) => (
+                <View
+                  key={stamp.id}
+                  style={[
+                    styles.dishPill,
+                    stamp.earned ? styles.dishPillEarned : styles.dishPillEmpty,
+                  ]}
+                >
+                  <Text style={styles.dishPillEmoji}>
+                    {stamp.earned ? stamp.emoji : "·"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.dishPillLabel,
+                      !stamp.earned && styles.dishPillLabelEmpty,
+                    ]}
+                  >
+                    {stamp.dishName}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+
+            <Text style={styles.sectionTitle}>Badges</Text>
+            {mockPassportBadges.map((badge) => (
+              <View
+                key={badge.id}
+                style={[styles.badgeRow, !badge.earned && styles.badgeRowEmpty]}
+              >
+                <View
+                  style={[
+                    styles.badgeIcon,
+                    badge.earned && styles.badgeIconEarned,
+                  ]}
+                >
+                  <Text style={styles.badgeIconText}>
+                    {badge.earned ? "★" : "○"}
+                  </Text>
+                </View>
+                <View style={styles.badgeContent}>
+                  <Text
+                    style={[styles.badgeTitle, !badge.earned && styles.muted]}
+                  >
+                    {badge.title}
+                  </Text>
+                  <Text style={styles.badgeDesc}>{badge.description}</Text>
+                </View>
+                <Text style={styles.badgeStatus}>
+                  {badge.earned ? "Earned" : "Locked"}
+                </Text>
+              </View>
+            ))}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -127,7 +219,13 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodySemibold,
     fontSize: 15,
     color: colors.forest,
-    marginBottom: 8,
+    marginBottom: 4,
+  },
+  hint: {
+    fontFamily: typography.body,
+    fontSize: 12,
+    color: colors.gray,
+    marginBottom: 10,
   },
   progressTrack: {
     height: 8,
@@ -146,6 +244,13 @@ const styles = StyleSheet.create({
     color: colors.ink,
     marginBottom: 14,
     marginTop: 8,
+  },
+  comingSoon: {
+    fontFamily: typography.body,
+    fontSize: 12,
+    color: colors.grayLight,
+    marginTop: -8,
+    marginBottom: 10,
   },
   stampGrid: {
     flexDirection: "row",
@@ -235,5 +340,24 @@ const styles = StyleSheet.create({
   },
   muted: {
     color: colors.gray,
+  },
+  emptyWrap: {
+    alignItems: "center",
+    marginTop: 40,
+    gap: 10,
+    paddingHorizontal: 12,
+  },
+  emptyTitle: {
+    fontFamily: typography.display,
+    fontSize: 20,
+    color: colors.ink,
+    textAlign: "center",
+  },
+  empty: {
+    fontFamily: typography.body,
+    fontSize: 14,
+    color: colors.gray,
+    textAlign: "center",
+    lineHeight: 22,
   },
 });
