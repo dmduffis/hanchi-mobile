@@ -1,0 +1,235 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
+import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
+
+import type { GeoJsonPoint, LatLng } from "../api/geo";
+import { pointToLatLng } from "../api/geo";
+import {
+  primaryEthnicityCountryCode,
+  primaryEthnicityEmoji,
+} from "../data/ethnicityFlags";
+import { colors, radii, typography } from "../theme";
+import { CircularFlag } from "./CircularFlag";
+
+type EnclavePoi = {
+  id: string;
+  name: string;
+  location?: GeoJsonPoint | null;
+  ethnicities?: string[];
+};
+
+type EnclaveDetailMapProps = {
+  centroid?: LatLng | null;
+  pois: EnclavePoi[];
+  onPoiPress?: (poiId: string) => void;
+  style?: StyleProp<ViewStyle>;
+};
+
+const MAP_HEIGHT = 240;
+const PIN_SIZE = 28;
+
+export function EnclaveDetailMap({
+  centroid,
+  pois,
+  onPoiPress,
+  style,
+}: EnclaveDetailMapProps) {
+  const mapRef = useRef<MapView>(null);
+  const didFit = useRef(false);
+
+  const markers = useMemo(() => {
+    const out: {
+      id: string;
+      name: string;
+      coordinate: LatLng;
+      countryCode?: string;
+      emoji: string;
+    }[] = [];
+    for (const poi of pois) {
+      const coordinate = pointToLatLng(poi.location);
+      if (!coordinate) continue;
+      out.push({
+        id: poi.id,
+        name: poi.name,
+        coordinate,
+        countryCode: primaryEthnicityCountryCode(poi.ethnicities),
+        emoji: primaryEthnicityEmoji(poi.ethnicities),
+      });
+    }
+    return out;
+  }, [pois]);
+
+  const fitCoords = useMemo(() => {
+    if (markers.length > 0) return markers.map((m) => m.coordinate);
+    if (
+      centroid &&
+      Number.isFinite(centroid.latitude) &&
+      Number.isFinite(centroid.longitude)
+    ) {
+      return [centroid];
+    }
+    return [];
+  }, [markers, centroid]);
+
+  const hasMapContent = fitCoords.length > 0;
+
+  const fitMap = useCallback(() => {
+    if (fitCoords.length === 0 || didFit.current) return;
+    didFit.current = true;
+    requestAnimationFrame(() => {
+      mapRef.current?.fitToCoordinates(fitCoords, {
+        edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
+        animated: false,
+      });
+    });
+  }, [fitCoords]);
+
+  if (!hasMapContent) {
+    return null;
+  }
+
+  if (Platform.OS === "web") {
+    return (
+      <View style={[styles.fallback, style]}>
+        <Text style={styles.fallbackTitle}>Enclave map</Text>
+        <Text style={styles.fallbackSub}>
+          {markers.length > 0
+            ? `${markers.length} places in this area`
+            : "Map available on device"}
+        </Text>
+      </View>
+    );
+  }
+
+  const initial = fitCoords[0];
+
+  return (
+    <View style={[styles.wrap, style]} collapsable={false}>
+      <MapView
+        ref={mapRef}
+        style={styles.map}
+        provider={PROVIDER_DEFAULT}
+        initialRegion={{
+          latitude: initial.latitude,
+          longitude: initial.longitude,
+          latitudeDelta: 0.045,
+          longitudeDelta: 0.045,
+        }}
+        onMapReady={fitMap}
+        scrollEnabled
+        zoomEnabled
+        rotateEnabled={false}
+        pitchEnabled={false}
+        toolbarEnabled={false}
+        loadingEnabled={false}
+        moveOnMarkerPress={false}
+      >
+        {markers.map((m) => (
+          <RestaurantFlagMarker
+            key={m.id}
+            id={m.id}
+            name={m.name}
+            coordinate={m.coordinate}
+            countryCode={m.countryCode}
+            emoji={m.emoji}
+            onPress={onPoiPress}
+          />
+        ))}
+      </MapView>
+    </View>
+  );
+}
+
+function RestaurantFlagMarker({
+  id,
+  name,
+  coordinate,
+  countryCode,
+  emoji,
+  onPress,
+}: {
+  id: string;
+  name: string;
+  coordinate: LatLng;
+  countryCode?: string;
+  emoji: string;
+  onPress?: (poiId: string) => void;
+}) {
+  const [tracksViewChanges, setTracksViewChanges] = useState(true);
+
+  useEffect(() => {
+    setTracksViewChanges(true);
+    const t = setTimeout(() => setTracksViewChanges(false), 900);
+    return () => clearTimeout(t);
+  }, [countryCode, emoji]);
+
+  return (
+    <Marker
+      identifier={id}
+      coordinate={coordinate}
+      title={name}
+      anchor={{ x: 0.5, y: 0.5 }}
+      tracksViewChanges={tracksViewChanges}
+      onPress={(e) => {
+        e.stopPropagation?.();
+        onPress?.(id);
+      }}
+    >
+      <View style={styles.markerWrap} collapsable={false} pointerEvents="none">
+        <CircularFlag
+          countryCode={countryCode}
+          flag={emoji}
+          size={PIN_SIZE}
+          elevated
+        />
+      </View>
+    </Marker>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: {
+    height: MAP_HEIGHT,
+    width: "100%",
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  map: {
+    width: "100%",
+    height: MAP_HEIGHT,
+    borderRadius: radii.lg,
+  },
+  markerWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fallback: {
+    height: MAP_HEIGHT,
+    borderRadius: radii.lg,
+    backgroundColor: colors.forest,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+  fallbackTitle: {
+    fontFamily: typography.display,
+    fontSize: 18,
+    color: colors.white,
+  },
+  fallbackSub: {
+    fontFamily: typography.body,
+    fontSize: 13,
+    color: colors.grayLight,
+    marginTop: 6,
+    textAlign: "center",
+  },
+});

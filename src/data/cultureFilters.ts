@@ -70,6 +70,16 @@ const AFFINITIES: Record<string, CultureFilterId[]> = {
   "little-portugal-mineola": ["european"],
   "little-el-salvador-brentwood": ["latino"],
   "koreatown-nassau": ["korean"],
+  "little-arabia-dearborn": ["middle-eastern"],
+  "little-baghdad-sterling-heights": ["middle-eastern"],
+  "banglatown-hamtramck": ["south-asian"],
+  "mexicantown-detroit": ["latino"],
+  "koreatown-la": ["korean"],
+  "thai-town-la": [],
+  "little-tokyo-la": [],
+  "little-ethiopia-la": ["african"],
+  "little-arabia-anaheim": ["middle-eastern"],
+  "little-saigon-westminster": [],
 };
 
 function affinitiesFor(community: Community): CultureFilterId[] {
@@ -125,6 +135,25 @@ function haystack(c: Community): string {
     ...c.tags,
     affinityLabels,
     groupTerms,
+    // City / metro aliases so "detroit", "long island", etc. resolve.
+    c.heritage.includes("Detroit") ||
+    c.tags.some((t) => /detroit|dearborn|hamtramck/i.test(t))
+      ? "detroit dearborn sterling heights hamtramck"
+      : "",
+    c.heritage.includes("Long Island") ||
+    c.neighborhood.includes("Nassau") ||
+    c.neighborhood.includes("Suffolk")
+      ? "long island nassau suffolk"
+      : "",
+    c.neighborhood.includes("Los Angeles") ||
+    c.tags.some((t) => /los angeles/i.test(t))
+      ? "los angeles la hollywood koreatown"
+      : "",
+    c.neighborhood.includes("Anaheim") ||
+    c.neighborhood.includes("Westminster") ||
+    c.tags.some((t) => /anaheim|orange county|westminster/i.test(t))
+      ? "anaheim orange county oc westminster garden grove saigon"
+      : "",
   ]
     .join(" ")
     .toLowerCase();
@@ -191,4 +220,88 @@ export function filterCommunities(
       communityMatchesCulture(c, opts.culture) &&
       communityMatchesQuery(c, opts.query),
   );
+}
+
+/**
+ * Map culture chips → POI ethnicity slugs for Food-layer discovery.
+ * Null means no ethnicity filter (All).
+ */
+const CULTURE_POI_ETHNICITIES: Record<CultureFilterId, string[] | null> = {
+  all: null,
+  chinese: ["chinese", "taiwanese"],
+  korean: ["korean"],
+  "south-asian": ["indian", "pakistani", "bangladeshi", "nepali", "afghan"],
+  caribbean: ["jamaican", "haitian", "guyanese", "caribbean"],
+  latino: [
+    "mexican",
+    "colombian",
+    "dominican",
+    "ecuadorian",
+    "peruvian",
+    "venezuelan",
+    "cuban",
+    "puerto_rican",
+    "salvadoran",
+  ],
+  african: [
+    "senegalese",
+    "ghanaian",
+    "liberian",
+    "ethiopian",
+    "nigerian",
+    "somali",
+    "west_african",
+  ],
+  "middle-eastern": [
+    "egyptian",
+    "lebanese",
+    "syrian",
+    "palestinian",
+    "yemeni",
+    "iraqi",
+    "moroccan",
+    "turkish",
+    "iranian",
+    "israeli",
+    "middle_eastern",
+  ],
+  european: [
+    "polish",
+    "ukrainian",
+    "russian",
+    "albanian",
+    "greek",
+    "italian",
+    "german",
+    "french",
+    "spanish",
+    "portuguese",
+    "british",
+  ],
+  filipino: ["filipino"],
+};
+
+export function ethnicitiesForCultureFilter(
+  filterId: CultureFilterId,
+): string[] | null {
+  return CULTURE_POI_ETHNICITIES[filterId] ?? null;
+}
+
+export function poiMatchesQuery(
+  poi: { name: string; category: string; address?: string | null; ethnicities?: string[] },
+  query: string,
+): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const text = [
+    poi.name,
+    poi.category,
+    poi.address ?? "",
+    ...(poi.ethnicities ?? []),
+  ]
+    .join(" ")
+    .toLowerCase();
+  if (text.includes(q)) return true;
+  const tokens = q.split(/\s+/).filter(Boolean);
+  return tokens.length > 1 && tokens.every((t) => text.includes(t));
 }

@@ -1,9 +1,18 @@
+import CircleCountryFlag, {
+  COUNTRY_CODES,
+  type CountryCode,
+} from "react-native-circle-flags/country";
 import { StyleSheet, Text, View } from "react-native";
 
 import { colors } from "../theme";
 
+const VALID_CODES = new Set<string>(COUNTRY_CODES);
+
 type CircularFlagProps = {
-  flag: string;
+  /** ISO / circle-flags country code (e.g. "kr", "cn"). */
+  countryCode?: CountryCode | string | null;
+  /** Emoji fallback when no country code is available. */
+  flag?: string;
   size?: number;
   selected?: boolean;
   /** Slightly stronger border for map pins sitting on busy basemap */
@@ -11,14 +20,18 @@ type CircularFlagProps = {
 };
 
 export function CircularFlag({
-  flag,
+  countryCode,
+  flag = "🏳️",
   size = 40,
   selected = false,
   elevated = false,
 }: CircularFlagProps) {
   const border = selected ? 3 : elevated ? 2 : 1.5;
-  const inner = size - border * 2;
+  const inner = Math.max(size - border * 2, 8);
   const fontSize = Math.round(size * 0.55);
+  const code = countryCode?.toLowerCase();
+  const resolvedCode =
+    code && VALID_CODES.has(code) ? (code as CountryCode) : null;
 
   return (
     <View
@@ -45,9 +58,13 @@ export function CircularFlag({
           },
         ]}
       >
-        <Text style={[styles.flag, { fontSize, lineHeight: fontSize + 4 }]}>
-          {flag}
-        </Text>
+        {resolvedCode ? (
+          <CircleCountryFlag code={resolvedCode} size={inner} />
+        ) : (
+          <Text style={[styles.flag, { fontSize, lineHeight: fontSize + 4 }]}>
+            {flag}
+          </Text>
+        )}
       </View>
     </View>
   );
