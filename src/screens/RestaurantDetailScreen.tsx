@@ -17,8 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { fetchCommunity, type ApiCommunity } from "../api/communities";
 import { fetchUserFavorites } from "../api/favorites";
 import { fetchPoi, type ApiPoiDetail } from "../api/pois";
-import { Badge, FavoriteHeart, ListRow } from "../components";
-import { flagsForEthnicities } from "../data/ethnicityFlags";
+import { Badge, EthnicityFlags, FavoriteHeart, ListRow } from "../components";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
 
@@ -54,11 +53,15 @@ export function RestaurantDetailScreen() {
         setFavoriteIds(
           new Set(favorites.map((f) => `${f.type}:${f.targetId}`)),
         );
-        try {
-          const parent = await fetchCommunity(detail.communityId);
-          if (!cancelled) setCommunity(parent);
-        } catch {
-          if (!cancelled) setCommunity(null);
+        if (detail.communityId) {
+          try {
+            const parent = await fetchCommunity(detail.communityId);
+            if (!cancelled) setCommunity(parent);
+          } catch {
+            if (!cancelled) setCommunity(null);
+          }
+        } else if (!cancelled) {
+          setCommunity(null);
         }
       } catch (err) {
         if (!cancelled) {
@@ -106,7 +109,6 @@ export function RestaurantDetailScreen() {
     poi.priceLevel,
     ratingLabel ? `★ ${ratingLabel}` : null,
   ].filter(Boolean);
-  const flags = flagsForEthnicities(poi.ethnicities);
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -178,7 +180,11 @@ export function RestaurantDetailScreen() {
               <Text style={styles.infoText}>{poi.hours}</Text>
             </View>
           ) : null}
-          {flags ? <Text style={styles.flags}>{flags}</Text> : null}
+          <EthnicityFlags
+            ethnicities={poi.ethnicities}
+            size={22}
+            style={styles.flags}
+          />
         </View>
 
         <Text style={styles.sectionTitle}>
@@ -274,10 +280,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   flags: {
-    fontSize: 13,
-    lineHeight: 16,
-    marginTop: 4,
-    opacity: 0.9,
+    marginTop: 8,
   },
   meta: {
     fontFamily: typography.bodyMedium,

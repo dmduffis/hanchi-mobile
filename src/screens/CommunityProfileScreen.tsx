@@ -24,18 +24,26 @@ import { mapApiCommunity } from "../api/mappers";
 import {
   Badge,
   Chip,
+  EnclaveDetailMap,
+  EthnicityFlags,
   FavoriteHeart,
   ListRow,
   PassportStampButton,
   PrimaryButton,
 } from "../components";
-import { flagsForEthnicities } from "../data/ethnicityFlags";
 import { getInsidersForCommunity } from "../data/mockCommunities";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
 import type { CommunityProfileTab } from "../types";
 
 const TABS: CommunityProfileTab[] = ["About", "Food", "Insiders"];
+
+function ethnicityLabel(id: string): string {
+  return id
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
 export function CommunityProfileScreen() {
   const navigation =
@@ -52,13 +60,14 @@ export function CommunityProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [stamping, setStamping] = useState(false);
   const [stamped, setStamped] = useState(false);
-  const [foodFilter, setFoodFilter] = useState<string | null>(null);
+  const [ethnicityFilter, setEthnicityFilter] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       setError(null);
+      setEthnicityFilter(null);
       try {
         const [community, communityDishes, stamps] = await Promise.all([
           fetchCommunity(communityId),
@@ -99,20 +108,36 @@ export function CommunityProfileScreen() {
     return map;
   }, [dishes]);
 
-  const priceOptions = useMemo(() => {
-    const tags = new Set<string>();
-    dishes.forEach((d) => {
-      if (d.priceRange) tags.add(d.priceRange);
+  const ethnicityOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    pois.forEach((p) => {
+      (p.ethnicities ?? []).forEach((id) => {
+        counts.set(id, (counts.get(id) ?? 0) + 1);
+      });
     });
-    return Array.from(tags);
-  }, [dishes]);
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([id]) => id);
+  }, [pois]);
 
   const visiblePois = useMemo(() => {
-    if (!foodFilter) return pois;
-    return pois.filter((p) =>
-      (dishesByPoi.get(p.id) ?? []).some((d) => d.priceRange === foodFilter),
-    );
-  }, [pois, dishesByPoi, foodFilter]);
+    if (!ethnicityFilter) return pois;
+    return pois.filter((p) => (p.ethnicities ?? []).includes(ethnicityFilter));
+  }, [pois, ethnicityFilter]);
+
+  const mapCentroid = useMemo(() => {
+    if (!community) return null;
+    if (
+      !Number.isFinite(community.latitude) ||
+      !Number.isFinite(community.longitude)
+    ) {
+      return null;
+    }
+    return {
+      latitude: community.latitude,
+      longitude: community.longitude,
+    };
+  }, [community?.latitude, community?.longitude]);
 
   const onStamp = async () => {
     if (!community || stamping || stamped) return;
@@ -235,7 +260,7 @@ export function CommunityProfileScreen() {
             />
             <PrimaryButton
               label="See on map"
-              onPress={() => navigation.navigate("MainTabs", { screen: "Map" })}
+              onPress={() => setTab("Food")}
               style={{ marginTop: 8 }}
             />
           </View>
@@ -243,8 +268,19 @@ export function CommunityProfileScreen() {
 
         {tab === "Food" && (
           <View style={styles.tabContent}>
+            <EnclaveDetailMap
+              key={community.id}
+              centroid={mapCentroid}
+              pois={visiblePois}
+              onPoiPress={(restaurantId) =>
+                navigation.navigate("RestaurantDetail", { restaurantId })
+              }
+              style={styles.enclaveMap}
+            />
             <Text style={styles.foodIntro}>
-              {pois.length} places · {dishes.length} dishes to try
+              {visiblePois.length}
+              {ethnicityFilter ? ` of ${pois.length}` : ""} places ·{" "}
+              {dishes.length} dishes to try
             </Text>
             <ScrollView
               horizontal
@@ -253,15 +289,17 @@ export function CommunityProfileScreen() {
             >
               <Chip
                 label="All"
-                selected={foodFilter === null}
-                onPress={() => setFoodFilter(null)}
+                selected={ethnicityFilter === null}
+                onPress={() => setEthnicityFilter(null)}
               />
-              {priceOptions.map((tag) => (
+              {ethnicityOptions.map((id) => (
                 <Chip
-                  key={tag}
-                  label={tag}
-                  selected={foodFilter === tag}
-                  onPress={() => setFoodFilter(tag === foodFilter ? null : tag)}
+                  key={id}
+                  label={ethnicityLabel(id)}
+                  selected={ethnicityFilter === id}
+                  onPress={() =>
+                    setEthnicityFilter(id === ethnicityFilter ? null : id)
+                  }
                 />
               ))}
             </ScrollView>
@@ -270,9 +308,7 @@ export function CommunityProfileScreen() {
               <Text style={styles.body}>No places match this filter.</Text>
             ) : (
               visiblePois.map((poi) => {
-                const poiDishes = (dishesByPoi.get(poi.id) ?? []).filter(
-                  (d) => !foodFilter || d.priceRange === foodFilter,
-                );
+                const poiDishes = dishesByPoi.get(poi.id) ?? [];
                 const rating =
                   poi.rating != null && Number.isFinite(poi.rating)
                     ? `★ ${poi.rating.toFixed(1)}`
@@ -280,7 +316,6 @@ export function CommunityProfileScreen() {
                 const meta = [poi.category, poi.priceLevel, rating, poi.address]
                   .filter(Boolean)
                   .join(" · ");
-                const flags = flagsForEthnicities(poi.ethnicities);
                 return (
                   <View key={poi.id} style={styles.restaurantBlock}>
                     <Pressable
@@ -296,13 +331,18 @@ export function CommunityProfileScreen() {
                     >
                       <View style={styles.restaurantEmojiWrap}>
                         <Text style={styles.restaurantEmoji}>🍽️</Text>
+                        {poi.ethnicities?.length ? (
+                          <View style={styles.restaurantFlagBadge}>
+                            <EthnicityFlags
+                              ethnicities={poi.ethnicities.slice(0, 1)}
+                              size={20}
+                            />
+                          </View>
+                        ) : null}
                       </View>
                       <View style={styles.restaurantInfo}>
                         <Text style={styles.restaurantName}>{poi.name}</Text>
                         <Text style={styles.restaurantMeta}>{meta}</Text>
-                        {flags ? (
-                          <Text style={styles.restaurantFlags}>{flags}</Text>
-                        ) : null}
                       </View>
                       <Feather
                         name="chevron-right"
@@ -499,6 +539,9 @@ const styles = StyleSheet.create({
     color: colors.gray,
     marginBottom: 12,
   },
+  enclaveMap: {
+    marginBottom: 16,
+  },
   aboutFood: {
     marginTop: 24,
   },
@@ -525,6 +568,11 @@ const styles = StyleSheet.create({
   restaurantEmoji: {
     fontSize: 24,
   },
+  restaurantFlagBadge: {
+    position: "absolute",
+    right: -4,
+    bottom: -4,
+  },
   restaurantInfo: {
     flex: 1,
   },
@@ -532,12 +580,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.display,
     fontSize: 18,
     color: colors.ink,
-  },
-  restaurantFlags: {
-    fontSize: 12,
-    lineHeight: 15,
-    marginTop: 4,
-    opacity: 0.9,
   },
   restaurantMeta: {
     fontFamily: typography.bodyMedium,

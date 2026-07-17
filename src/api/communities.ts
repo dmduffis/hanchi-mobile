@@ -1,4 +1,5 @@
 import { apiFetch } from "./client";
+import type { GeoJsonPolygon } from "./geo";
 import type { ApiPoi } from "./search";
 
 export type ApiCommunity = {
@@ -16,7 +17,7 @@ export type ApiCommunity = {
 };
 
 export type ApiCommunityDetail = ApiCommunity & {
-  boundary?: unknown;
+  boundary?: GeoJsonPolygon | null;
   pois: ApiPoi[];
 };
 
