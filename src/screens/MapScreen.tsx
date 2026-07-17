@@ -192,13 +192,38 @@ export function MapScreen() {
   );
 
   // Search/filter for communities outside the current view (e.g. "detroit") → fly there.
+  // Never fit the unfiltered full list (that zooms out to the whole country).
   useEffect(() => {
     if (layer !== "enclaves") return;
     if (filtered.length === 0) return;
+    const hasIntent = query.trim().length > 0 || culture !== "all";
+    if (!hasIntent) return;
+
     const current = regionRef.current;
     const anyVisible = filtered.some((c) => isCommunityInRegion(c, current));
     if (anyVisible) return;
-    mapRef.current?.fitToCommunities(filtered);
+
+    // Prefer the nearest metro cluster, not every match nationwide.
+    const nearest = filtered.reduce(
+      (best, c) => {
+        const d =
+          (c.latitude - current.latitude) ** 2 +
+          (c.longitude - current.longitude) ** 2;
+        return d < best.d ? { c, d } : best;
+      },
+      { c: filtered[0]!, d: Number.POSITIVE_INFINITY },
+    );
+
+    const METRO_SPAN_DEG = 0.9;
+    const localCluster = filtered.filter((c) => {
+      const dLat = Math.abs(c.latitude - nearest.c.latitude);
+      const dLng = Math.abs(c.longitude - nearest.c.longitude);
+      return dLat <= METRO_SPAN_DEG && dLng <= METRO_SPAN_DEG;
+    });
+
+    mapRef.current?.fitToCommunities(
+      localCluster.length > 0 ? localCluster : [nearest.c],
+    );
   }, [filteredKey, query, culture, filtered, layer]);
 
   // Restaurants layer: fetch cultural restaurants for the viewport.
@@ -213,7 +238,7 @@ export function MapScreen() {
         near: { lat: current.latitude, lng: current.longitude },
         radiusMeters: radiusMetersForRegion(current),
         ethnicity: ethnicities ?? undefined,
-        limit: 200,
+        limit: 100,
       })
         .then((res) => {
           if (foodFetchGen.current !== gen) return;
