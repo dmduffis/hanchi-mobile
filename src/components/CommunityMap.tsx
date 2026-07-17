@@ -19,7 +19,7 @@ type CommunityMapProps = {
   style?: StyleProp<ViewStyle>;
   interactive?: boolean;
   onMarkerPress?: (communityId: string) => void;
-  /** Force remount when filters change so markers actually update */
+  /** When filters change, refresh custom marker bitmaps without remounting the map */
   filterKey?: string;
   selectedId?: string | null;
 };
@@ -42,7 +42,6 @@ export function CommunityMap({
 
   return (
     <MapView
-      key={filterKey}
       style={[styles.map, style]}
       provider={PROVIDER_DEFAULT}
       initialRegion={{
@@ -56,15 +55,16 @@ export function CommunityMap({
       rotateEnabled={interactive}
       pitchEnabled={interactive}
       toolbarEnabled={false}
-      loadingEnabled
-      loadingIndicatorColor={colors.forest}
-      loadingBackgroundColor={colors.surface}
+      // Avoid loadingEnabled — it flashes a blank sheet when the map remounts.
+      // We keep one MapView instance across culture filters.
+      loadingEnabled={false}
     >
       {communities.map((c) => (
         <FlagMarker
-          key={`${filterKey}-${c.id}`}
+          key={c.id}
           community={c}
           selected={c.id === selectedId}
+          refreshToken={filterKey}
           onPress={onMarkerPress}
         />
       ))}
@@ -75,10 +75,12 @@ export function CommunityMap({
 function FlagMarker({
   community,
   selected,
+  refreshToken,
   onPress,
 }: {
   community: Community;
   selected: boolean;
+  refreshToken: string;
   onPress?: (communityId: string) => void;
 }) {
   const [tracksViewChanges, setTracksViewChanges] = useState(true);
@@ -88,7 +90,7 @@ function FlagMarker({
     setTracksViewChanges(true);
     const id = setTimeout(() => setTracksViewChanges(false), 450);
     return () => clearTimeout(id);
-  }, [flag, selected]);
+  }, [flag, selected, refreshToken]);
 
   return (
     <Marker

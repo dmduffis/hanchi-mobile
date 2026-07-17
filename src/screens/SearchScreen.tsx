@@ -1,14 +1,20 @@
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { fetchCommunities } from "../api/communities";
+import { searchAll } from "../api/search";
 import { ListRow, PromoBanner, SearchBar } from "../components";
-import { mockCommunities } from "../data/mockCommunities";
-import { mockDishes } from "../data/mockDishes";
-import { mockRestaurants } from "../data/mockRestaurants";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, typography } from "../theme";
 
@@ -21,44 +27,97 @@ type SearchResult = {
   kind: "community" | "restaurant" | "dish";
 };
 
+function mapLiveResults(
+  communities: {
+    id: string;
+    name: string;
+    neighborhood: string;
+    city: string;
+    heroEmoji: string | null;
+  }[],
+  pois: { id: string; communityId: string; name: string; category: string }[],
+  dishes: {
+    id: string;
+    poiId: string;
+    name: string;
+    poiName?: string;
+  }[],
+): SearchResult[] {
+  const poiCommunity = new Map(pois.map((p) => [p.id, p.communityId]));
+  const fallbackCommunityId = communities[0]?.id ?? "";
+
+  return [
+    ...communities.map((c) => ({
+      id: `c-${c.id}`,
+      title: c.name,
+      subtitle: `${c.neighborhood}${c.city ? ` · ${c.city}` : ""}`,
+      thumbnail: c.heroEmoji ?? "📍",
+      communityId: c.id,
+      kind: "community" as const,
+    })),
+    ...pois.map((p) => ({
+      id: `r-${p.id}`,
+      title: p.name,
+      subtitle: `${p.category} · Place`,
+      thumbnail: "🍽️",
+      communityId: p.communityId,
+      kind: "restaurant" as const,
+    })),
+    ...dishes.map((d) => ({
+      id: `d-${d.id}`,
+      title: d.name,
+      subtitle: d.poiName ? `${d.poiName} · Dish` : "Dish",
+      thumbnail: "🥢",
+      communityId: poiCommunity.get(d.poiId) ?? fallbackCommunityId,
+      kind: "dish" as const,
+    })),
+  ];
+}
+
 export function SearchScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const communityResults: SearchResult[] = mockCommunities.map((c) => ({
-      id: `c-${c.id}`,
-      title: c.name,
-      subtitle: `${c.neighborhood} · ${c.heritage}`,
-      thumbnail: c.emoji,
-      communityId: c.id,
-      kind: "community",
-    }));
-    const restaurantResults: SearchResult[] = mockRestaurants.map((r) => ({
-      id: `r-${r.id}`,
-      title: r.name,
-      subtitle: `${r.communityName} · ${r.cuisine} · Restaurant`,
-      thumbnail: r.emoji,
-      communityId: r.communityId,
-      kind: "restaurant",
-    }));
-    const dishResults: SearchResult[] = mockDishes.map((d) => ({
-      id: `d-${d.id}`,
-      title: d.name,
-      subtitle: `${d.restaurantName} · ${d.communityName}`,
-      thumbnail: d.emoji,
-      communityId: d.communityId,
-      kind: "dish",
-    }));
-    const all = [...communityResults, ...restaurantResults, ...dishResults];
-    if (!q) return all.slice(0, 10);
-    return all.filter(
-      (r) =>
-        r.title.toLowerCase().includes(q) ||
-        r.subtitle.toLowerCase().includes(q),
+  useEffect(() => {
+    let cancelled = false;
+    const handle = setTimeout(
+      async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const q = query.trim();
+          if (!q) {
+            const communities = await fetchCommunities();
+            if (cancelled) return;
+            setResults(mapLiveResults(communities, [], []).slice(0, 10));
+          } else {
+            const data = await searchAll(q);
+            if (cancelled) return;
+            setResults(
+              mapLiveResults(data.communities, data.pois, data.dishes),
+            );
+          }
+        } catch (err) {
+          if (cancelled) return;
+          setResults([]);
+          setError(
+            err instanceof Error ? err.message : "Failed to load search",
+          );
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      },
+      query.trim() ? 250 : 0,
     );
+
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
   }, [query]);
 
   return (
@@ -81,39 +140,54 @@ export function SearchScreen() {
         </View>
       </View>
 
-      <FlatList
-        data={results}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        ListHeaderComponent={
-          <View style={styles.tip}>
-            <PromoBanner
-              text="While you're there — try the weekend market on Main Street"
-              icon="map-pin"
-            />
-            <Text style={styles.resultsLabel}>
-              {query ? `Results for "${query}"` : "Popular near you"}
-            </Text>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <ListRow
-            thumbnail={item.thumbnail}
-            title={item.title}
-            subtitle={item.subtitle}
-            onPress={() =>
-              navigation.navigate("CommunityProfile", {
-                communityId: item.communityId,
-              })
-            }
-          />
-        )}
-        ListEmptyComponent={
+      {loading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator color={colors.ink} />
+        </View>
+      ) : error ? (
+        <View style={styles.centered}>
+          <Text style={styles.error}>{error}</Text>
           <Text style={styles.empty}>
-            No matches. Try a neighborhood or dish name.
+            Set EXPO_PUBLIC_API_URL in .env to your Railway URL, then restart
+            Expo.
           </Text>
-        }
-      />
+        </View>
+      ) : (
+        <FlatList
+          data={results}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          ListHeaderComponent={
+            <View style={styles.tip}>
+              <PromoBanner
+                text="While you're there — try the weekend market on Main Street"
+                icon="map-pin"
+              />
+              <Text style={styles.resultsLabel}>
+                {query ? `Results for "${query}"` : "From the Sinta API"}
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <ListRow
+              thumbnail={item.thumbnail}
+              title={item.title}
+              subtitle={item.subtitle}
+              onPress={() => {
+                if (!item.communityId) return;
+                navigation.navigate("CommunityProfile", {
+                  communityId: item.communityId,
+                });
+              }}
+            />
+          )}
+          ListEmptyComponent={
+            <Text style={styles.empty}>
+              No matches. Try a neighborhood or dish name.
+            </Text>
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -158,5 +232,19 @@ const styles = StyleSheet.create({
     color: colors.gray,
     marginTop: 24,
     textAlign: "center",
+    paddingHorizontal: 24,
+  },
+  error: {
+    fontFamily: typography.bodySemibold,
+    fontSize: 15,
+    color: colors.ink,
+    textAlign: "center",
+    paddingHorizontal: 24,
+  },
+  centered: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
   },
 });
