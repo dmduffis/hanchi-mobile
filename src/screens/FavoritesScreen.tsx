@@ -234,9 +234,6 @@ const styles = StyleSheet.create({
     color: colors.ink,
     textAlign: "center",
   },
-  heartBtn: {
-    padding: 4,
-  },
   centered: {
     flex: 1,
     alignItems: "center",
