@@ -81,23 +81,23 @@ export function FavoritesScreen() {
   };
 
   const onOpen = (item: ApiFavorite) => {
-    if (item.type === "restaurant" || item.type === "dish") {
+    if (item.type === "community") {
+      navigation.navigate("CommunityProfile", {
+        communityId: item.targetId,
+      });
+      return;
+    }
+    if (item.type === "restaurant") {
+      navigation.navigate("RestaurantDetail", {
+        restaurantId: item.targetId,
+      });
+      return;
+    }
+    if (item.type === "dish") {
       const restaurantId = item.restaurantId ?? item.targetId;
-      if (item.type === "restaurant") {
-        navigation.navigate("RestaurantDetail", {
-          restaurantId: item.targetId,
-        });
-        return;
-      }
       if (restaurantId) {
         navigation.navigate("RestaurantDetail", { restaurantId });
-        return;
       }
-    }
-    if (item.communityId) {
-      navigation.navigate("CommunityProfile", {
-        communityId: item.communityId,
-      });
     }
   };
 
@@ -163,7 +163,11 @@ export function FavoritesScreen() {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
-              <Ionicons name="heart-outline" size={36} color={colors.grayLight} />
+              <Ionicons
+                name="heart-outline"
+                size={36}
+                color={colors.grayLight}
+              />
               <Text style={styles.emptyTitle}>No favorites yet</Text>
               <Text style={styles.empty}>
                 Tap the heart on a restaurant or dish while you explore — saved

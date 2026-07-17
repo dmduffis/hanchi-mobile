@@ -30,6 +30,10 @@ export const COMMUNITY_FLAGS: Record<string, string> = {
   "little-senegal": "🇸🇳",
   "little-ukraine": "🇺🇦",
   "little-yemen": "🇾🇪",
+  "little-india-hicksville": "🇮🇳",
+  "little-portugal-mineola": "🇵🇹",
+  "little-el-salvador-brentwood": "🇸🇻",
+  "koreatown-nassau": "🇰🇷",
 };
 
 /**
@@ -67,6 +71,10 @@ const COMMUNITY_FLAGS_PAIR: Record<string, [string] | [string, string]> = {
   "little-senegal": ["🇸🇳"],
   "little-ukraine": ["🇺🇦"],
   "little-yemen": ["🇾🇪"],
+  "little-india-hicksville": ["🇮🇳"],
+  "little-portugal-mineola": ["🇵🇹"],
+  "little-el-salvador-brentwood": ["🇸🇻"],
+  "koreatown-nassau": ["🇰🇷"],
 };
 
 export function getCommunityFlag(communityId: string, fallback = "🏳️"): string {

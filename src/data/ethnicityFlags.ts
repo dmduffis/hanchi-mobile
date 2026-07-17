@@ -53,6 +53,8 @@ export const ETHNICITY_FLAGS: Record<string, string> = {
   french: "🇫🇷",
   spanish: "🇪🇸",
   brazilian: "🇧🇷",
+  portuguese: "🇵🇹",
+  salvadoran: "🇸🇻",
   british: "🇬🇧",
 };
 

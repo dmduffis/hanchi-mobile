@@ -4,6 +4,7 @@ export { CircularFlag } from "./CircularFlag";
 export { CommunityMap } from "./CommunityMap";
 export { FavoriteHeart } from "./FavoriteHeart";
 export { ListRow } from "./ListRow";
+export { PassportStampButton } from "./PassportStampButton";
 export { PrimaryButton } from "./PrimaryButton";
 export { PromoBanner } from "./PromoBanner";
 export { SearchBar } from "./SearchBar";

@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -9,38 +11,38 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useCommunities } from "../api/useCommunities";
-import { fetchUserStamps } from "../api/stamps";
+import { createStamp, fetchUserStamps } from "../api/stamps";
 import { Stamp } from "../components";
-import {
-  mockDishStamps,
-  mockPassportBadges,
-} from "../data/mockPassport";
+import { mockDishStamps, mockPassportBadges } from "../data/mockPassport";
+import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
 
 export function PassportScreen() {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { communities, loading: communitiesLoading } = useCommunities();
   const [earnedIds, setEarnedIds] = useState<Set<string>>(new Set());
   const [loadingStamps, setLoadingStamps] = useState(true);
+  const [stampingId, setStampingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoadingStamps(true);
-      try {
-        const stamps = await fetchUserStamps();
-        if (!cancelled) {
-          setEarnedIds(new Set(stamps.map((s) => s.communityId)));
-        }
-      } catch {
-        if (!cancelled) setEarnedIds(new Set());
-      } finally {
-        if (!cancelled) setLoadingStamps(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+  const loadStamps = useCallback(async () => {
+    setLoadingStamps(true);
+    try {
+      const stamps = await fetchUserStamps();
+      setEarnedIds(new Set(stamps.map((s) => s.communityId)));
+    } catch {
+      // Soft fallback — show empty passport rather than an error screen.
+      setEarnedIds(new Set());
+    } finally {
+      setLoadingStamps(false);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadStamps();
+    }, [loadStamps]),
+  );
 
   const passportStamps = useMemo(
     () =>
@@ -57,6 +59,27 @@ export function PassportScreen() {
   const total = Math.max(passportStamps.length, 1);
   const loading = communitiesLoading || loadingStamps;
 
+  const onStampPress = async (communityId: string, earned: boolean) => {
+    if (earned) {
+      navigation.navigate("CommunityProfile", { communityId });
+      return;
+    }
+    if (stampingId) return;
+    setStampingId(communityId);
+    setEarnedIds((prev) => new Set(prev).add(communityId));
+    try {
+      await createStamp(communityId);
+    } catch {
+      setEarnedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(communityId);
+        return next;
+      });
+    } finally {
+      setStampingId(null);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <ScrollView
@@ -66,11 +89,22 @@ export function PassportScreen() {
         <Text style={styles.title}>Passport</Text>
         {loading ? (
           <ActivityIndicator color={colors.forest} style={{ marginTop: 24 }} />
+        ) : passportStamps.length === 0 ? (
+          <View style={styles.emptyWrap}>
+            <Text style={styles.emptyTitle}>Your passport is ready</Text>
+            <Text style={styles.empty}>
+              Explore enclaves on the map, then tap a blank stamp here — or use
+              Stamp passport on a community page — to start collecting.
+            </Text>
+          </View>
         ) : (
           <>
             <View style={styles.progressHeader}>
               <Text style={styles.progressText}>
                 {earnedCount} of {passportStamps.length} stamped
+              </Text>
+              <Text style={styles.hint}>
+                Tap a blank stamp to collect it · tap a filled one to revisit
               </Text>
               <View style={styles.progressTrack}>
                 <View
@@ -90,11 +124,14 @@ export function PassportScreen() {
                   emoji={stamp.emoji}
                   label={stamp.communityName}
                   earned={stamp.earned}
+                  disabled={stampingId === stamp.id}
+                  onPress={() => void onStampPress(stamp.id, stamp.earned)}
                 />
               ))}
             </View>
 
             <Text style={styles.sectionTitle}>Dish stamps</Text>
+            <Text style={styles.comingSoon}>Coming soon</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -158,6 +195,7 @@ export function PassportScreen() {
     </SafeAreaView>
   );
 }
+
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
@@ -181,7 +219,13 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodySemibold,
     fontSize: 15,
     color: colors.forest,
-    marginBottom: 8,
+    marginBottom: 4,
+  },
+  hint: {
+    fontFamily: typography.body,
+    fontSize: 12,
+    color: colors.gray,
+    marginBottom: 10,
   },
   progressTrack: {
     height: 8,
@@ -200,6 +244,13 @@ const styles = StyleSheet.create({
     color: colors.ink,
     marginBottom: 14,
     marginTop: 8,
+  },
+  comingSoon: {
+    fontFamily: typography.body,
+    fontSize: 12,
+    color: colors.grayLight,
+    marginTop: -8,
+    marginBottom: 10,
   },
   stampGrid: {
     flexDirection: "row",
@@ -289,5 +340,24 @@ const styles = StyleSheet.create({
   },
   muted: {
     color: colors.gray,
+  },
+  emptyWrap: {
+    alignItems: "center",
+    marginTop: 40,
+    gap: 10,
+    paddingHorizontal: 12,
+  },
+  emptyTitle: {
+    fontFamily: typography.display,
+    fontSize: 20,
+    color: colors.ink,
+    textAlign: "center",
+  },
+  empty: {
+    fontFamily: typography.body,
+    fontSize: 14,
+    color: colors.gray,
+    textAlign: "center",
+    lineHeight: 22,
   },
 });

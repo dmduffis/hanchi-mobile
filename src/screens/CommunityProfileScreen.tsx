@@ -19,9 +19,16 @@ import {
   type ApiCommunityDetail,
   type ApiDish,
 } from "../api/communities";
-import { createStamp } from "../api/stamps";
+import { createStamp, fetchUserStamps } from "../api/stamps";
 import { mapApiCommunity } from "../api/mappers";
-import { Badge, Chip, ListRow, PrimaryButton } from "../components";
+import {
+  Badge,
+  Chip,
+  FavoriteHeart,
+  ListRow,
+  PassportStampButton,
+  PrimaryButton,
+} from "../components";
 import { flagsForEthnicities } from "../data/ethnicityFlags";
 import { getInsidersForCommunity } from "../data/mockCommunities";
 import type { RootStackParamList } from "../navigation/types";
@@ -53,13 +60,15 @@ export function CommunityProfileScreen() {
       setLoading(true);
       setError(null);
       try {
-        const [community, communityDishes] = await Promise.all([
+        const [community, communityDishes, stamps] = await Promise.all([
           fetchCommunity(communityId),
           fetchCommunityDishes(communityId),
+          fetchUserStamps().catch(() => []),
         ]);
         if (cancelled) return;
         setDetail(community);
         setDishes(communityDishes);
+        setStamped(stamps.some((s) => s.communityId === communityId));
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load");
@@ -108,11 +117,11 @@ export function CommunityProfileScreen() {
   const onStamp = async () => {
     if (!community || stamping || stamped) return;
     setStamping(true);
+    setStamped(true);
     try {
       await createStamp(community.id);
-      setStamped(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save stamp");
+    } catch {
+      setStamped(false);
     } finally {
       setStamping(false);
     }
@@ -153,7 +162,14 @@ export function CommunityProfileScreen() {
         <Text style={styles.navTitle} numberOfLines={1}>
           {community.name}
         </Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.navActions}>
+          <FavoriteHeart type="community" targetId={community.id} />
+          <PassportStampButton
+            communityId={community.id}
+            initialStamped={stamped}
+            onStampedChange={setStamped}
+          />
+        </View>
       </View>
 
       <ScrollView
@@ -359,6 +375,10 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: "center",
     justifyContent: "center",
+  },
+  navActions: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   navTitle: {
     fontFamily: typography.bodyMedium,

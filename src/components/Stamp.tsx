@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, Pressable, View } from "react-native";
 
 import { colors, typography } from "../theme";
 
@@ -7,6 +7,8 @@ type StampProps = {
   label: string;
   earned?: boolean;
   size?: "md" | "sm";
+  onPress?: () => void;
+  disabled?: boolean;
 };
 
 export function Stamp({
@@ -14,10 +16,23 @@ export function Stamp({
   label,
   earned = false,
   size = "md",
+  onPress,
+  disabled = false,
 }: StampProps) {
   const isSm = size === "sm";
   return (
-    <View style={styles.wrap}>
+    <Pressable
+      onPress={onPress}
+      disabled={disabled || !onPress}
+      style={({ pressed }) => [
+        styles.wrap,
+        pressed && onPress && !disabled && styles.pressed,
+      ]}
+      accessibilityRole={onPress ? "button" : undefined}
+      accessibilityLabel={
+        earned ? `${label}, stamped` : `Stamp ${label} in your passport`
+      }
+    >
       <View
         style={[
           styles.circle,
@@ -41,7 +56,7 @@ export function Stamp({
       >
         {label}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -49,6 +64,9 @@ const styles = StyleSheet.create({
   wrap: {
     alignItems: "center",
     width: 72,
+  },
+  pressed: {
+    opacity: 0.75,
   },
   circle: {
     width: 64,
