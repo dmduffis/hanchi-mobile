@@ -32,6 +32,7 @@ import {
   PrimaryButton,
 } from "../components";
 import { getInsidersForCommunity } from "../data/mockCommunities";
+import { primaryEthnicityEmoji } from "../data/ethnicityFlags";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
 import type { CommunityProfileTab } from "../types";
@@ -353,7 +354,11 @@ export function CommunityProfileScreen() {
                     {poiDishes.map((dish) => (
                       <ListRow
                         key={dish.id}
-                        thumbnail="🥢"
+                        thumbnail={primaryEthnicityEmoji(
+                          dish.ethnicities?.length
+                            ? dish.ethnicities
+                            : poi.ethnicities,
+                        )}
                         title={dish.name}
                         subtitle={dish.description ?? undefined}
                         onPress={() =>

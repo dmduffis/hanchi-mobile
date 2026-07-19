@@ -6,6 +6,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Keyboard,
   Pressable,
   ScrollView,
@@ -18,11 +19,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { fetchCommunityDishes, type ApiDish } from "../api/communities";
 import { searchAll } from "../api/search";
 import { useCommunities } from "../api/useCommunities";
-import { ListRow, PromoBanner, SearchBar } from "../components";
+import { ListRow, PromoBanner, SearchBar, EthnicityFlags } from "../components";
 import { CommunityMap } from "../components/CommunityMap";
 import { getCommunityFlag } from "../data/communityFlags";
 import type { MainTabParamList, RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
+
+const DISH_CARD_WIDTH = 148;
 
 type HomeNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, "Home">,
@@ -72,11 +75,27 @@ export function HomeScreen() {
         return;
       }
       try {
-        const ids = communityIds.split(",").slice(0, 4);
+        const ids = communityIds.split(",").slice(0, 24);
         const batches = await Promise.all(
-          ids.map((id) => fetchCommunityDishes(id)),
+          ids.map((id) => fetchCommunityDishes(id).catch(() => [])),
         );
-        if (!cancelled) setDishes(batches.flat().slice(0, 8));
+        if (!cancelled) {
+          // Prefer variety across communities.
+          const seen = new Set<string>();
+          const picked: ApiDish[] = [];
+          for (const dish of batches.flat()) {
+            const key = dish.communityId ?? dish.poiId;
+            const countForKey = picked.filter(
+              (d) => (d.communityId ?? d.poiId) === key,
+            ).length;
+            if (countForKey >= 2) continue;
+            if (seen.has(dish.id)) continue;
+            seen.add(dish.id);
+            picked.push(dish);
+            if (picked.length >= 16) break;
+          }
+          setDishes(picked);
+        }
       } catch {
         if (!cancelled) setDishes((prev) => (prev.length === 0 ? prev : []));
       }
@@ -251,17 +270,19 @@ export function HomeScreen() {
               />
             </View>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Dishes to try</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.dishRow}
-              >
-                {dishes.length === 0 ? (
-                  <Text style={styles.emptySearch}>No dishes yet</Text>
-                ) : (
-                  dishes.map((dish) => (
+            {dishes.length > 0 ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Dishes to try</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  decelerationRate="fast"
+                  snapToInterval={DISH_CARD_WIDTH + 12}
+                  snapToAlignment="start"
+                  disableIntervalMomentum
+                  contentContainerStyle={styles.dishRow}
+                >
+                  {dishes.map((dish) => (
                     <Pressable
                       key={dish.id}
                       style={styles.dishCard}
@@ -272,38 +293,40 @@ export function HomeScreen() {
                       }
                     >
                       <View style={styles.dishImage}>
-                        <Text style={styles.dishEmoji}>🥢</Text>
+                        {dish.imageUrl ? (
+                          <Image
+                            source={{ uri: dish.imageUrl }}
+                            style={styles.dishPhoto}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <Text style={styles.dishEmoji}>🥢</Text>
+                        )}
+                        {dish.ethnicities?.length ? (
+                          <View style={styles.dishFlagBadge}>
+                            <EthnicityFlags
+                              ethnicities={dish.ethnicities.slice(0, 1)}
+                              size={22}
+                            />
+                          </View>
+                        ) : null}
                       </View>
-                      <Text style={styles.dishName} numberOfLines={1}>
+                      <Text style={styles.dishName} numberOfLines={2}>
                         {dish.name}
                       </Text>
                       <Text style={styles.dishCommunity} numberOfLines={1}>
                         {dish.poiName ?? "Local spot"}
                       </Text>
+                      {dish.priceRange ? (
+                        <Text style={styles.dishPrice} numberOfLines={1}>
+                          {dish.priceRange}
+                        </Text>
+                      ) : null}
                     </Pressable>
-                  ))
-                )}
-              </ScrollView>
-            </View>
-
-            <View style={styles.entryRow}>
-              <Pressable
-                style={styles.entryCard}
-                onPress={() => navigation.navigate("Discover")}
-              >
-                <Feather name="map" size={20} color={colors.forest} />
-                <Text style={styles.entryTitle}>Discover routes</Text>
-                <Text style={styles.entrySub}>Curated walks near you</Text>
-              </Pressable>
-              <Pressable
-                style={styles.entryCard}
-                onPress={() => navigation.navigate("DropIn")}
-              >
-                <Feather name="shuffle" size={20} color={colors.forest} />
-                <Text style={styles.entryTitle}>Drop In</Text>
-                <Text style={styles.entrySub}>Surprise me nearby</Text>
-              </Pressable>
-            </View>
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Nearby communities</Text>
@@ -428,57 +451,55 @@ const styles = StyleSheet.create({
   },
   dishRow: {
     gap: 12,
-    paddingRight: 8,
+    paddingRight: 4,
   },
   dishCard: {
-    width: 120,
+    width: DISH_CARD_WIDTH,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 10,
   },
   dishImage: {
-    width: 120,
-    height: 100,
-    borderRadius: radii.md,
-    backgroundColor: colors.surface,
+    width: "100%",
+    height: 110,
+    borderRadius: radii.sm,
+    backgroundColor: colors.background,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
+    marginBottom: 10,
+    overflow: "hidden",
+  },
+  dishPhoto: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
+  },
+  dishFlagBadge: {
+    position: "absolute",
+    right: 8,
+    bottom: 8,
   },
   dishEmoji: {
-    fontSize: 36,
+    fontSize: 40,
   },
   dishName: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 13,
+    fontFamily: typography.bodySemibold,
+    fontSize: 14,
     color: colors.ink,
+    minHeight: 36,
   },
   dishCommunity: {
     fontFamily: typography.body,
     fontSize: 12,
     color: colors.gray,
-    marginTop: 2,
-  },
-  entryRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 24,
-  },
-  entryCard: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    padding: 16,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  entryTitle: {
-    fontFamily: typography.bodySemibold,
-    fontSize: 15,
-    color: colors.ink,
     marginTop: 4,
   },
-  entrySub: {
-    fontFamily: typography.body,
+  dishPrice: {
+    fontFamily: typography.bodyMedium,
     fontSize: 12,
-    color: colors.gray,
+    color: colors.forest,
+    marginTop: 4,
   },
 });
