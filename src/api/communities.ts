@@ -27,7 +27,11 @@ export type ApiDish = {
   name: string;
   description: string | null;
   priceRange: string | null;
+  imageUrl?: string | null;
   poiName?: string;
+  communityId?: string | null;
+  /** Inherited from the parent restaurant for flags. */
+  ethnicities?: string[];
 };
 
 export function fetchCommunities(params?: {
