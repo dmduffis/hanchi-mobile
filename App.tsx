@@ -8,18 +8,19 @@ import { NavigationContainer } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { useOnboardingGate } from "./src/lib/onboardingStorage";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { colors } from "./src/theme";
 
 SplashScreen.preventAutoHideAsync();
 
 export default function App() {
-  const [hasOnboarded, setHasOnboarded] = useState(false);
+  const { ready, hasOnboarded, completeOnboarding } = useOnboardingGate();
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -27,19 +28,21 @@ export default function App() {
     SourceSerif4_600SemiBold,
   });
 
+  const appReady = (fontsLoaded || !!fontError) && ready;
+
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    if (appReady) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [appReady]);
 
   const onLayoutRootView = useCallback(() => {
-    if (fontsLoaded || fontError) {
+    if (appReady) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [appReady]);
 
-  if (!fontsLoaded && !fontError) {
+  if (!appReady) {
     return null;
   }
 
@@ -51,7 +54,7 @@ export default function App() {
             <StatusBar style="dark" />
             <RootNavigator
               hasOnboarded={hasOnboarded}
-              onOnboarded={() => setHasOnboarded(true)}
+              onOnboarded={completeOnboarding}
             />
           </View>
         </NavigationContainer>

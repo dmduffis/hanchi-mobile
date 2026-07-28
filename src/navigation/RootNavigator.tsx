@@ -15,7 +15,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 type RootNavigatorProps = {
   hasOnboarded: boolean;
-  onOnboarded: () => void;
+  onOnboarded: () => void | Promise<void>;
 };
 
 export function RootNavigator({
