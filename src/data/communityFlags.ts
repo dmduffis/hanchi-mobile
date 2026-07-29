@@ -44,6 +44,13 @@ export const COMMUNITY_FLAGS: Record<string, string> = {
   "little-ethiopia-la": "🇪🇹",
   "little-arabia-anaheim": "🇸🇾",
   "little-saigon-westminster": "🇻🇳",
+  "japantown-sf": "🇯🇵",
+  "calle-24-sf": "🇲🇽",
+  "soma-pilipinas-sf": "🇵🇭",
+  "african-american-arts-sf": "🖤",
+  "american-indian-sf": "🪶",
+  "sunset-chinese-sf": "🇨🇳",
+  "pacific-islander-sf": "🇼🇸",
 };
 
 /**
@@ -95,6 +102,11 @@ export const COMMUNITY_COUNTRY_CODES: Record<string, string> = {
   "little-ethiopia-la": "et",
   "little-arabia-anaheim": "sy",
   "little-saigon-westminster": "vn",
+  "japantown-sf": "jp",
+  "calle-24-sf": "mx",
+  "soma-pilipinas-sf": "ph",
+  "sunset-chinese-sf": "cn",
+  "pacific-islander-sf": "ws",
 };
 
 /**
@@ -146,6 +158,11 @@ const COMMUNITY_FLAGS_PAIR: Record<string, [string] | [string, string]> = {
   "little-ethiopia-la": ["🇪🇹"],
   "little-arabia-anaheim": ["🇸🇾"],
   "little-saigon-westminster": ["🇻🇳"],
+  "japantown-sf": ["🇯🇵"],
+  "calle-24-sf": ["🇲🇽", "🇸🇻"],
+  "soma-pilipinas-sf": ["🇵🇭"],
+  "sunset-chinese-sf": ["🇨🇳"],
+  "pacific-islander-sf": ["🇼🇸", "🇹🇴"],
 };
 
 export function getCommunityFlag(communityId: string, fallback = "🏳️"): string {

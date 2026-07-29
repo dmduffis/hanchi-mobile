@@ -80,6 +80,13 @@ const AFFINITIES: Record<string, CultureFilterId[]> = {
   "little-ethiopia-la": ["african"],
   "little-arabia-anaheim": ["middle-eastern"],
   "little-saigon-westminster": [],
+  "japantown-sf": [],
+  "calle-24-sf": ["latino"],
+  "soma-pilipinas-sf": ["filipino"],
+  "sunset-chinese-sf": ["chinese"],
+  "african-american-arts-sf": ["african"],
+  "pacific-islander-sf": [],
+  "american-indian-sf": [],
 };
 
 function affinitiesFor(community: Community): CultureFilterId[] {
@@ -90,6 +97,17 @@ export function getCommunityAffinities(
   community: Community,
 ): CultureFilterId[] {
   return affinitiesFor(community);
+}
+
+/** Culture chips that have at least one matching community (always includes All). */
+export function availableCultureFiltersForCommunities(
+  communities: Community[],
+): CultureFilter[] {
+  const present = new Set<CultureFilterId>();
+  for (const c of communities) {
+    for (const id of affinitiesFor(c)) present.add(id);
+  }
+  return CULTURE_FILTERS.filter((f) => f.id === "all" || present.has(f.id));
 }
 
 export function getAffinityLabels(community: Community): string[] {
@@ -153,6 +171,11 @@ function haystack(c: Community): string {
     c.neighborhood.includes("Westminster") ||
     c.tags.some((t) => /anaheim|orange county|westminster/i.test(t))
       ? "anaheim orange county oc westminster garden grove saigon"
+      : "",
+    c.neighborhood.includes("San Francisco") ||
+    c.heritage.includes("San Francisco") ||
+    c.tags.some((t) => /san francisco|\bsf\b/i.test(t))
+      ? "san francisco sf bay area mission castro japantown sunset"
       : "",
   ]
     .join(" ")
@@ -285,6 +308,21 @@ export function ethnicitiesForCultureFilter(
   filterId: CultureFilterId,
 ): string[] | null {
   return CULTURE_POI_ETHNICITIES[filterId] ?? null;
+}
+
+/** Culture chips that match ethnicities present on POIs (always includes All). */
+export function availableCultureFiltersForEthnicities(
+  ethnicities: Iterable<string>,
+): CultureFilter[] {
+  const present = new Set<string>();
+  for (const e of ethnicities) present.add(e.toLowerCase());
+
+  return CULTURE_FILTERS.filter((f) => {
+    if (f.id === "all") return true;
+    const ids = CULTURE_POI_ETHNICITIES[f.id];
+    if (!ids?.length) return false;
+    return ids.some((id) => present.has(id));
+  });
 }
 
 export function poiMatchesQuery(

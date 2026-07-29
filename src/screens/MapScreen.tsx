@@ -41,7 +41,7 @@ import {
   getCommunityFlag,
 } from "../data/communityFlags";
 import {
-  CULTURE_FILTERS,
+  availableCultureFiltersForCommunities,
   ethnicitiesForCultureFilter,
   filterCommunities,
   getAffinityLabels,
@@ -146,11 +146,31 @@ export function MapScreen() {
     [communities, culture, query],
   );
 
+  /** Query matches only — used so culture chips stay visible for what's nearby. */
+  const queryMatchedCommunities = useMemo(
+    () => filterCommunities(communities, { culture: "all", query }),
+    [communities, query],
+  );
+
   /** Communities inside the current map viewport (drives pins + carousel). */
   const inViewCommunities = useMemo(
     () => filtered.filter((c) => isCommunityInRegion(c, region)),
     [filtered, region],
   );
+
+  const cultureFilters = useMemo(() => {
+    const source =
+      mode === "list"
+        ? queryMatchedCommunities
+        : queryMatchedCommunities.filter((c) => isCommunityInRegion(c, region));
+    return availableCultureFiltersForCommunities(source);
+  }, [mode, queryMatchedCommunities, region]);
+
+  useEffect(() => {
+    if (culture === "all") return;
+    if (cultureFilters.some((f) => f.id === culture)) return;
+    setCulture("all");
+  }, [culture, cultureFilters]);
 
   const filteredFood = useMemo(
     () => foodPois.filter((p) => poiMatchesQuery(p, query)),
@@ -575,7 +595,7 @@ export function MapScreen() {
             contentContainerStyle={styles.sheetFilters}
             keyboardShouldPersistTaps="handled"
           >
-            {CULTURE_FILTERS.map((f) => (
+            {cultureFilters.map((f) => (
               <Chip
                 key={f.id}
                 label={f.label}
@@ -743,7 +763,7 @@ export function MapScreen() {
             keyboardShouldPersistTaps="handled"
             style={styles.listFiltersScroll}
           >
-            {CULTURE_FILTERS.map((f) => (
+            {cultureFilters.map((f) => (
               <Chip
                 key={f.id}
                 label={f.label}
