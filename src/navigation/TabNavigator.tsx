@@ -1,6 +1,13 @@
-import { Feather } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
+import {
+  IconBook2,
+  IconHeart,
+  IconHome,
+  IconMap,
+  IconUser,
+  type Icon,
+} from "../icons";
 import { FavoritesScreen } from "../screens/FavoritesScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { MapScreen } from "../screens/MapScreen";
@@ -10,6 +17,14 @@ import { colors, typography } from "../theme";
 import type { MainTabParamList } from "./types";
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
+
+const TAB_ICONS: Record<keyof MainTabParamList, Icon> = {
+  Home: IconHome,
+  Map: IconMap,
+  Favorites: IconHeart,
+  Passport: IconBook2,
+  Profile: IconUser,
+};
 
 export function TabNavigator() {
   return (
@@ -29,17 +44,8 @@ export function TabNavigator() {
           fontSize: 11,
         },
         tabBarIcon: ({ color, size }) => {
-          const icons: Record<
-            keyof MainTabParamList,
-            keyof typeof Feather.glyphMap
-          > = {
-            Home: "home",
-            Map: "map",
-            Favorites: "heart",
-            Passport: "award",
-            Profile: "user",
-          };
-          return <Feather name={icons[route.name]} size={size} color={color} />;
+          const TabIcon = TAB_ICONS[route.name];
+          return <TabIcon size={size} color={color} />;
         },
       })}
     >

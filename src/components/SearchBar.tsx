@@ -1,6 +1,6 @@
-import { Feather } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
+import { IconSearch, IconX } from "../icons";
 import { colors, radii, typography } from "../theme";
 
 type SearchBarProps = {
@@ -23,7 +23,7 @@ export function SearchBar({
   if (onPress && !editable) {
     return (
       <Pressable onPress={onPress} style={styles.container}>
-        <Feather name="search" size={18} color={colors.gray} />
+        <IconSearch size={18} color={colors.gray} />
         <Text style={styles.placeholder}>{placeholder}</Text>
       </Pressable>
     );
@@ -31,7 +31,7 @@ export function SearchBar({
 
   return (
     <View style={styles.container}>
-      <Feather name="search" size={18} color={colors.gray} />
+      <IconSearch size={18} color={colors.gray} />
       <TextInput
         style={styles.input}
         placeholder={placeholder}
@@ -48,7 +48,7 @@ export function SearchBar({
           hitSlop={8}
           accessibilityLabel="Clear search"
         >
-          <Feather name="x" size={18} color={colors.grayLight} />
+          <IconX size={18} color={colors.grayLight} />
         </Pressable>
       ) : null}
     </View>

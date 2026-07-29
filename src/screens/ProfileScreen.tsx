@@ -1,4 +1,3 @@
-import { Feather } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
   Modal,
@@ -25,13 +24,21 @@ import {
   INTENT_OPTIONS,
   resolveCultureId,
 } from "../data/userPrefs";
+import {
+  IconBell,
+  IconChevronRight,
+  IconHelpCircle,
+  IconStar,
+  IconUser,
+  type Icon,
+} from "../icons";
 import { colors, radii, typography } from "../theme";
 
-const SETTINGS = [
-  { id: "notifications", label: "Notifications", icon: "bell" as const },
-  { id: "upgrade", label: "Upgrade", icon: "star" as const },
-  { id: "account", label: "Account", icon: "user" as const },
-  { id: "help", label: "Help", icon: "help-circle" as const },
+const SETTINGS: { id: string; label: string; icon: Icon }[] = [
+  { id: "notifications", label: "Notifications", icon: IconBell },
+  { id: "upgrade", label: "Upgrade", icon: IconStar },
+  { id: "account", label: "Account", icon: IconUser },
+  { id: "help", label: "Help", icon: IconHelpCircle },
 ];
 
 export function ProfileScreen() {
@@ -161,15 +168,18 @@ export function ProfileScreen() {
         </View>
 
         <Text style={styles.sectionTitle}>Settings</Text>
-        {SETTINGS.map((item) => (
-          <Pressable key={item.id} style={styles.settingsRow}>
-            <View style={styles.settingsIcon}>
-              <Feather name={item.icon} size={18} color={colors.forest} />
-            </View>
-            <Text style={styles.settingsLabel}>{item.label}</Text>
-            <Feather name="chevron-right" size={18} color={colors.grayLight} />
-          </Pressable>
-        ))}
+        {SETTINGS.map((item) => {
+          const SettingIcon = item.icon;
+          return (
+            <Pressable key={item.id} style={styles.settingsRow}>
+              <View style={styles.settingsIcon}>
+                <SettingIcon size={18} color={colors.forest} />
+              </View>
+              <Text style={styles.settingsLabel}>{item.label}</Text>
+              <IconChevronRight size={18} color={colors.grayLight} />
+            </Pressable>
+          );
+        })}
       </ScrollView>
 
       <Modal

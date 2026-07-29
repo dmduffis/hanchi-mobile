@@ -1,7 +1,7 @@
-import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { IconChevronRight } from "../icons";
 import { colors, typography } from "../theme";
 
 type ListRowProps = {
@@ -44,7 +44,7 @@ export function ListRow({
       </View>
       {rightElement}
       {showChevron && onPress ? (
-        <Feather name="chevron-right" size={18} color={colors.grayLight} />
+        <IconChevronRight size={18} color={colors.grayLight} />
       ) : null}
     </Pressable>
   );

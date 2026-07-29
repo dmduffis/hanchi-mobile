@@ -1,4 +1,3 @@
-import { Feather } from "@expo/vector-icons";
 import type { RouteProp } from "@react-navigation/native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -33,6 +32,7 @@ import {
 } from "../components";
 import { getInsidersForCommunity } from "../data/mockCommunities";
 import { primaryEthnicityEmoji } from "../data/ethnicityFlags";
+import { IconArrowLeft, IconChevronRight } from "../icons";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
 import type { CommunityProfileTab } from "../types";
@@ -183,7 +183,7 @@ export function CommunityProfileScreen() {
           hitSlop={8}
           style={styles.backBtn}
         >
-          <Feather name="arrow-left" size={22} color={colors.ink} />
+          <IconArrowLeft size={22} color={colors.ink} />
         </Pressable>
         <Text style={styles.navTitle} numberOfLines={1}>
           {community.name}
@@ -345,11 +345,7 @@ export function CommunityProfileScreen() {
                         <Text style={styles.restaurantName}>{poi.name}</Text>
                         <Text style={styles.restaurantMeta}>{meta}</Text>
                       </View>
-                      <Feather
-                        name="chevron-right"
-                        size={18}
-                        color={colors.grayLight}
-                      />
+                      <IconChevronRight size={18} color={colors.grayLight} />
                     </Pressable>
                     {poiDishes.map((dish) => (
                       <ListRow

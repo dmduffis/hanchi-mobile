@@ -1,8 +1,8 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet } from "react-native";
 
 import { createStamp, fetchUserStamps } from "../api/stamps";
+import { IconAward, IconAwardFilled } from "../icons";
 import { colors } from "../theme";
 
 type PassportStampButtonProps = {
@@ -83,11 +83,11 @@ export function PassportStampButton({
         stamped ? "Already stamped in passport" : "Stamp passport"
       }
     >
-      <Ionicons
-        name={stamped ? "ribbon" : "ribbon-outline"}
-        size={size}
-        color={stamped ? colors.gold : colors.grayLight}
-      />
+      {stamped ? (
+        <IconAwardFilled size={size} color={colors.gold} />
+      ) : (
+        <IconAward size={size} color={colors.grayLight} />
+      )}
     </Pressable>
   );
 }

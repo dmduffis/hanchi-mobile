@@ -31,6 +31,7 @@ import {
 import { colors, typography } from "../theme";
 import type { Community } from "../types";
 import { CircularFlag } from "./CircularFlag";
+import { MapFlagPin } from "./MapFlagPin";
 
 export type MapRegion = Region;
 
@@ -45,6 +46,11 @@ export type MapRestaurant = {
 export type CommunityMapHandle = {
   fitToCommunities: (list: Community[]) => void;
   fitToRestaurants: (list: MapRestaurant[]) => void;
+  animateToCoordinate: (
+    latitude: number,
+    longitude: number,
+    deltas?: { latitudeDelta?: number; longitudeDelta?: number },
+  ) => void;
 };
 
 export type MapLayer = "enclaves" | "restaurants";
@@ -294,6 +300,18 @@ export const CommunityMap = forwardRef<CommunityMapHandle, CommunityMapProps>(
           animated: true,
         });
       },
+      animateToCoordinate: (latitude, longitude, deltas) => {
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+        mapRef.current?.animateToRegion(
+          {
+            latitude,
+            longitude,
+            latitudeDelta: deltas?.latitudeDelta ?? 0.05,
+            longitudeDelta: deltas?.longitudeDelta ?? 0.05,
+          },
+          450,
+        );
+      },
     }));
 
     const visibleCommunities = useMemo(
@@ -365,6 +383,8 @@ export const CommunityMap = forwardRef<CommunityMapHandle, CommunityMapProps>(
         pitchEnabled={interactive}
         toolbarEnabled={false}
         loadingEnabled={false}
+        showsUserLocation
+        showsMyLocationButton={false}
       >
         {layer === "enclaves"
           ? communityMarkers.map((c) => (
@@ -427,7 +447,7 @@ function FlagMarker({
         latitude: community.latitude,
         longitude: community.longitude,
       }}
-      anchor={{ x: 0.5, y: 0.5 }}
+      anchor={{ x: 0.5, y: 1 }}
       tracksViewChanges={tracksViewChanges}
       onPress={(e) => {
         e.stopPropagation?.();
@@ -435,12 +455,11 @@ function FlagMarker({
       }}
     >
       <View style={styles.markerWrap} collapsable={false} pointerEvents="none">
-        <CircularFlag
+        <MapFlagPin
           countryCode={countryCode}
           flag={flag}
           size={selected ? 40 : 34}
           selected={selected}
-          elevated
         />
       </View>
     </Marker>
@@ -521,7 +540,7 @@ function RestaurantFlagMarker({
         latitude: restaurant.latitude,
         longitude: restaurant.longitude,
       }}
-      anchor={{ x: 0.5, y: 0.5 }}
+      anchor={{ x: 0.5, y: 1 }}
       tracksViewChanges={tracksViewChanges}
       onPress={(e) => {
         e.stopPropagation?.();
@@ -529,12 +548,11 @@ function RestaurantFlagMarker({
       }}
     >
       <View style={styles.markerWrap} collapsable={false} pointerEvents="none">
-        <CircularFlag
+        <MapFlagPin
           countryCode={countryCode}
           flag={flag}
           size={selected ? 24 : 20}
           selected={selected}
-          elevated
         />
       </View>
     </Marker>

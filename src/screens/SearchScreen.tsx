@@ -1,4 +1,3 @@
-import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
@@ -15,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { fetchCommunities } from "../api/communities";
 import { searchAll } from "../api/search";
 import { ListRow, PromoBanner, SearchBar } from "../components";
+import { IconArrowLeft, IconMapPin } from "../icons";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, typography } from "../theme";
 
@@ -131,7 +131,7 @@ export function SearchScreen() {
           hitSlop={8}
           style={styles.backBtn}
         >
-          <Feather name="arrow-left" size={22} color={colors.ink} />
+          <IconArrowLeft size={22} color={colors.ink} />
         </Pressable>
         <View style={styles.searchFlex}>
           <SearchBar
@@ -164,7 +164,7 @@ export function SearchScreen() {
             <View style={styles.tip}>
               <PromoBanner
                 text="While you're there — try the weekend market on Main Street"
-                icon="map-pin"
+                icon={IconMapPin}
               />
               <Text style={styles.resultsLabel}>
                 {query ? `Results for "${query}"` : "From the Sinta API"}

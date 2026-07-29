@@ -1,19 +1,25 @@
-import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { mockNotifications } from "../data/mockPassport";
+import {
+  IconArrowLeft,
+  IconAward,
+  IconBell,
+  IconCoffee,
+  IconMapPin,
+  type Icon,
+} from "../icons";
 import { colors, typography } from "../theme";
 import type { AppNotification } from "../types";
 
-const iconMap: Record<AppNotification["icon"], keyof typeof Feather.glyphMap> =
-  {
-    bell: "bell",
-    "map-pin": "map-pin",
-    award: "award",
-    coffee: "coffee",
-  };
+const iconMap: Record<AppNotification["icon"], Icon> = {
+  bell: IconBell,
+  "map-pin": IconMapPin,
+  award: IconAward,
+  coffee: IconCoffee,
+};
 
 export function NotificationsScreen() {
   const navigation = useNavigation();
@@ -26,7 +32,7 @@ export function NotificationsScreen() {
           hitSlop={8}
           style={styles.backBtn}
         >
-          <Feather name="arrow-left" size={22} color={colors.ink} />
+          <IconArrowLeft size={22} color={colors.ink} />
         </Pressable>
         <Text style={styles.title}>Notifications</Text>
         <View style={{ width: 40 }} />
@@ -36,21 +42,20 @@ export function NotificationsScreen() {
         data={mockNotifications}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <View style={styles.row}>
-            <View style={styles.iconWrap}>
-              <Feather
-                name={iconMap[item.icon]}
-                size={18}
-                color={colors.forest}
-              />
+        renderItem={({ item }) => {
+          const NotificationIcon = iconMap[item.icon];
+          return (
+            <View style={styles.row}>
+              <View style={styles.iconWrap}>
+                <NotificationIcon size={18} color={colors.forest} />
+              </View>
+              <View style={styles.content}>
+                <Text style={styles.message}>{item.message}</Text>
+                <Text style={styles.time}>{item.timestamp}</Text>
+              </View>
             </View>
-            <View style={styles.content}>
-              <Text style={styles.message}>{item.message}</Text>
-              <Text style={styles.time}>{item.timestamp}</Text>
-            </View>
-          </View>
-        )}
+          );
+        }}
       />
     </SafeAreaView>
   );

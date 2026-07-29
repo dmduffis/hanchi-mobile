@@ -1,17 +1,17 @@
-import { Feather } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { IconArrowRight, IconStar, type Icon } from "../icons";
 import { colors, radii, typography } from "../theme";
 
 type PromoBannerProps = {
   text: string;
-  icon?: keyof typeof Feather.glyphMap;
+  icon?: Icon;
   onPress?: () => void;
 };
 
 export function PromoBanner({
   text,
-  icon = "star",
+  icon: BannerIcon = IconStar,
   onPress,
 }: PromoBannerProps) {
   return (
@@ -24,12 +24,10 @@ export function PromoBanner({
       disabled={!onPress}
     >
       <View style={styles.iconWrap}>
-        <Feather name={icon} size={16} color={colors.goldText} />
+        <BannerIcon size={16} color={colors.goldText} />
       </View>
       <Text style={styles.text}>{text}</Text>
-      {onPress ? (
-        <Feather name="arrow-right" size={16} color={colors.goldText} />
-      ) : null}
+      {onPress ? <IconArrowRight size={16} color={colors.goldText} /> : null}
     </Pressable>
   );
 }
