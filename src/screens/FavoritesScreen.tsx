@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useCallback, useMemo, useState } from "react";
@@ -18,6 +17,7 @@ import {
   type ApiFavorite,
 } from "../api/favorites";
 import { Chip, ListRow } from "../components";
+import { IconHeart, IconHeartFilled } from "../icons";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, typography } from "../theme";
 
@@ -114,7 +114,7 @@ export function FavoritesScreen() {
           onPress={() => void onUnfavorite(item)}
           accessibilityLabel="Remove from favorites"
         >
-          <Ionicons name="heart" size={16} color={colors.forest} />
+          <IconHeartFilled size={16} color={colors.forest} />
         </Pressable>
       }
     />
@@ -163,11 +163,7 @@ export function FavoritesScreen() {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
-              <Ionicons
-                name="heart-outline"
-                size={36}
-                color={colors.grayLight}
-              />
+              <IconHeart size={36} color={colors.grayLight} />
               <Text style={styles.emptyTitle}>No favorites yet</Text>
               <Text style={styles.empty}>
                 Tap the heart on a restaurant or dish while you explore — saved

@@ -1,4 +1,3 @@
-import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useEffect, useMemo, useState } from "react";
@@ -14,6 +13,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { fetchRoutes, type ApiRouteSummary } from "../api/routes";
 import { PrimaryButton, PromoBanner } from "../components";
+import {
+  IconArrowLeft,
+  IconAward,
+  IconBolt,
+  IconChevronRight,
+  IconNavigation,
+} from "../icons";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
 
@@ -62,7 +68,7 @@ export function DiscoverScreen() {
           hitSlop={8}
           style={styles.backBtn}
         >
-          <Feather name="arrow-left" size={22} color={colors.ink} />
+          <IconArrowLeft size={22} color={colors.ink} />
         </Pressable>
         <Text style={styles.navTitle}>Discover</Text>
         <View style={{ width: 40 }} />
@@ -82,7 +88,7 @@ export function DiscoverScreen() {
             {aiRoute ? (
               <View style={styles.aiCard}>
                 <View style={styles.aiBadge}>
-                  <Feather name="zap" size={12} color={colors.goldText} />
+                  <IconBolt size={12} color={colors.goldText} />
                   <Text style={styles.aiBadgeText}>AI suggested</Text>
                 </View>
                 <Text style={styles.aiTitle}>{aiRoute.title}</Text>
@@ -100,7 +106,7 @@ export function DiscoverScreen() {
             {curated.map((route) => (
               <Pressable key={route.id} style={styles.routeRow}>
                 <View style={styles.routeIcon}>
-                  <Feather name="navigation" size={18} color={colors.forest} />
+                  <IconNavigation size={18} color={colors.forest} />
                 </View>
                 <View style={styles.routeContent}>
                   <Text style={styles.routeTitle}>{route.title}</Text>
@@ -111,14 +117,14 @@ export function DiscoverScreen() {
                     {route.stopCount ?? 0} stops · {route.type}
                   </Text>
                 </View>
-                <Feather name="chevron-right" size={18} color={colors.grayLight} />
+                <IconChevronRight size={18} color={colors.grayLight} />
               </Pressable>
             ))}
 
             <View style={{ marginTop: 24 }}>
               <PromoBanner
                 text="Seasonal challenge: Taste of Queens — stamp 4 communities by Sunday"
-                icon="award"
+                icon={IconAward}
               />
             </View>
           </>

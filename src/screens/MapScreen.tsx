@@ -1,9 +1,9 @@
-import { Feather, MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   FlatList,
   NativeScrollEvent,
@@ -14,6 +14,7 @@ import {
   Text,
   View,
 } from "react-native";
+import * as Location from "expo-location";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -23,8 +24,7 @@ import { pointToLatLng } from "../api/geo";
 import { fetchPoisNear } from "../api/pois";
 import type { ApiPoi } from "../api/search";
 import { useCommunities } from "../api/useCommunities";
-import { Chip, ListRow, SearchBar } from "../components";
-import { CircularFlag } from "../components/CircularFlag";
+import { Chip, ListRow, MapSheetCard, SearchBar } from "../components";
 import {
   CommunityMap,
   isCommunityInRegion,
@@ -52,14 +52,28 @@ import {
   primaryEthnicityCountryCode,
   primaryEthnicityEmoji,
 } from "../data/ethnicityFlags";
+import {
+  IconList,
+  IconLocate,
+  IconMap,
+  IconToolsKitchen2,
+  IconUsers,
+  IconX,
+} from "../icons";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
 import type { Community } from "../types";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_WIDTH = SCREEN_WIDTH * 0.78;
-const CARD_GAP = 12;
-const CARD_INSET = (SCREEN_WIDTH - CARD_WIDTH) / 2;
+const CARD_WIDTH = SCREEN_WIDTH * 0.7;
+const CARD_GAP = 10;
+const CARD_EDGE = 14;
+
+function formatDistanceMeters(meters?: number | null): string {
+  if (meters == null || !Number.isFinite(meters)) return "Nearby";
+  if (meters < 1000) return `${Math.round(meters)} m away`;
+  return `${(meters / 1000).toFixed(1)} km away`;
+}
 const CAROUSEL_LIMIT = 5;
 
 type BottomMode = "cards" | "list";
@@ -111,6 +125,7 @@ export function MapScreen() {
   const [focusRestaurantId, setFocusRestaurantId] = useState<string | null>(
     null,
   );
+  const [locating, setLocating] = useState(false);
   const listRef = useRef<FlatList<Community | ApiPoi>>(null);
   const mapRef = useRef<CommunityMapHandle>(null);
   const regionRef = useRef<MapRegion>(NYC_REGION);
@@ -388,6 +403,35 @@ export function MapScreen() {
     );
   };
 
+  const goToMyLocation = async () => {
+    if (locating) return;
+    setLocating(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Location needed",
+          "Allow location access to jump back to where you are on the map.",
+        );
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      mapRef.current?.animateToCoordinate(
+        position.coords.latitude,
+        position.coords.longitude,
+      );
+    } catch {
+      Alert.alert(
+        "Couldn't find you",
+        "Check that location services are on, then try again.",
+      );
+    } finally {
+      setLocating(false);
+    }
+  };
+
   const filterLabel =
     culture === "all" && !query.trim()
       ? `${inView.length} in view`
@@ -448,11 +492,11 @@ export function MapScreen() {
             onPress={() => setMode((m) => (m === "list" ? "cards" : "list"))}
             hitSlop={4}
           >
-            <Feather
-              name={mode === "list" ? "map" : "list"}
-              size={18}
-              color={mode === "list" ? colors.white : colors.forest}
-            />
+            {mode === "list" ? (
+              <IconMap size={18} color={colors.white} />
+            ) : (
+              <IconList size={18} color={colors.forest} />
+            )}
           </Pressable>
         </View>
 
@@ -464,8 +508,7 @@ export function MapScreen() {
             ]}
             onPress={() => setLayer("enclaves")}
           >
-            <Feather
-              name="users"
+            <IconUsers
               size={15}
               color={layer === "enclaves" ? colors.white : colors.forest}
             />
@@ -485,8 +528,7 @@ export function MapScreen() {
             ]}
             onPress={() => setLayer("restaurants")}
           >
-            <MaterialIcons
-              name="restaurant"
+            <IconToolsKitchen2
               size={16}
               color={layer === "restaurants" ? colors.white : colors.forest}
             />
@@ -500,39 +542,56 @@ export function MapScreen() {
             </Text>
           </Pressable>
         </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.pills}
-          keyboardShouldPersistTaps="handled"
-        >
-          {CULTURE_FILTERS.map((f) => (
-            <Chip
-              key={f.id}
-              label={f.label}
-              tone="overlay"
-              selected={culture === f.id}
-              onPress={() => setCulture(f.id)}
-            />
-          ))}
-        </ScrollView>
       </SafeAreaView>
+
+      <Pressable
+        style={[
+          styles.locateBtn,
+          mode === "cards"
+            ? { bottom: 250 + Math.max(insets.bottom, 6) }
+            : { top: insets.top + 132 },
+        ]}
+        onPress={goToMyLocation}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Go to my location"
+      >
+        {locating ? (
+          <ActivityIndicator size="small" color={colors.forest} />
+        ) : (
+          <IconLocate size={20} color={colors.forest} />
+        )}
+      </Pressable>
 
       {mode === "cards" ? (
         <View
-          style={[
-            styles.carouselWrap,
-            { paddingBottom: Math.max(insets.bottom, 12) },
-          ]}
+          style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 6) }]}
           pointerEvents="box-none"
         >
-          <View style={styles.carouselLabelRow}>
-            <Text style={styles.carouselLabel}>{filterLabel}</Text>
-            {layer === "restaurants" && foodLoading ? (
+          <View style={styles.sheetGrabber} />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.sheetFilters}
+            keyboardShouldPersistTaps="handled"
+          >
+            {CULTURE_FILTERS.map((f) => (
+              <Chip
+                key={f.id}
+                label={f.label}
+                size="sm"
+                tone="overlay"
+                selected={culture === f.id}
+                onPress={() => setCulture(f.id)}
+              />
+            ))}
+          </ScrollView>
+          {layer === "restaurants" && foodLoading ? (
+            <View style={styles.sheetLoadingRow}>
               <ActivityIndicator size="small" color={colors.forest} />
-            ) : null}
-          </View>
+              <Text style={styles.carouselLabel}>{filterLabel}</Text>
+            </View>
+          ) : null}
           {inView.length === 0 ? (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyTitle}>
@@ -574,56 +633,32 @@ export function MapScreen() {
                 setTimeout(() => scrollCarouselToIndex(index, false), 50);
               }}
               contentContainerStyle={{
-                paddingHorizontal: CARD_INSET,
+                paddingLeft: CARD_EDGE,
+                paddingRight: CARD_EDGE,
                 gap: CARD_GAP,
               }}
               onMomentumScrollEnd={onCardsScrollEnd}
               renderItem={({ item, index }) => {
                 const groups = getAffinityLabels(item);
+                const meta = [item.neighborhood, item.heritage]
+                  .filter(Boolean)
+                  .join(" · ");
+                const detail =
+                  groups[0] ??
+                  (item.station
+                    ? `${item.subwayLines?.slice(0, 2).join(" · ") || "Transit"} · ${item.station}`
+                    : `${poiCountById.get(item.id) ?? 0} spots · ${item.distanceMiles} mi`);
                 return (
-                  <Pressable
-                    style={[
-                      styles.card,
-                      index === activeIndex && styles.cardActive,
-                      { width: CARD_WIDTH },
-                    ]}
+                  <MapSheetCard
+                    width={CARD_WIDTH}
+                    title={item.name}
+                    meta={meta}
+                    detail={detail}
+                    imageUrl={item.imageUrl}
+                    countryCode={getCommunityCountryCode(item.id)}
+                    flag={getCommunityFlag(item.id, item.emoji)}
                     onPress={() => openCommunity(item.id)}
-                  >
-                    <CircularFlag
-                      countryCode={getCommunityCountryCode(item.id)}
-                      flag={getCommunityFlag(item.id, item.emoji)}
-                      size={52}
-                      selected={index === activeIndex}
-                    />
-                    <View style={styles.cardBody}>
-                      <Text style={styles.cardName} numberOfLines={1}>
-                        {item.name}
-                      </Text>
-                      <Text style={styles.cardMeta} numberOfLines={1}>
-                        {item.neighborhood} · {item.heritage}
-                      </Text>
-                      {groups.length > 0 ? (
-                        <View style={styles.cardChips}>
-                          {groups.map((label) => (
-                            <View key={label} style={styles.cardChip}>
-                              <Text style={styles.cardChipText}>{label}</Text>
-                            </View>
-                          ))}
-                        </View>
-                      ) : (
-                        <Text style={styles.cardDistance}>
-                          {item.station
-                            ? `${item.subwayLines?.slice(0, 3).join(" · ") || "Transit"} · ${item.station}`
-                            : `${poiCountById.get(item.id) ?? 0} spots · ${item.distanceMiles} mi`}
-                        </Text>
-                      )}
-                    </View>
-                    <Feather
-                      name="chevron-right"
-                      size={18}
-                      color={colors.grayLight}
-                    />
-                  </Pressable>
+                  />
                 );
               }}
             />
@@ -647,57 +682,30 @@ export function MapScreen() {
                 setTimeout(() => scrollCarouselToIndex(index, false), 50);
               }}
               contentContainerStyle={{
-                paddingHorizontal: CARD_INSET,
+                paddingLeft: CARD_EDGE,
+                paddingRight: CARD_EDGE,
                 gap: CARD_GAP,
               }}
               onMomentumScrollEnd={onCardsScrollEnd}
               renderItem={({ item, index }) => {
                 const rating =
                   item.rating != null && Number.isFinite(item.rating)
-                    ? item.rating.toFixed(1)
+                    ? `★ ${item.rating.toFixed(1)}`
                     : null;
+                const meta = [item.priceLevel, item.category, rating]
+                  .filter(Boolean)
+                  .join(" · ");
                 return (
-                  <Pressable
-                    style={[
-                      styles.card,
-                      index === activeIndex && styles.cardActive,
-                      { width: CARD_WIDTH },
-                    ]}
+                  <MapSheetCard
+                    width={CARD_WIDTH}
+                    title={item.name}
+                    meta={meta}
+                    detail={formatDistanceMeters(item.distanceMeters)}
+                    imageUrl={item.imageUrl}
+                    countryCode={primaryEthnicityCountryCode(item.ethnicities)}
+                    flag={primaryEthnicityEmoji(item.ethnicities)}
                     onPress={() => openRestaurant(item.id)}
-                  >
-                    <CircularFlag
-                      countryCode={primaryEthnicityCountryCode(
-                        item.ethnicities,
-                      )}
-                      flag={primaryEthnicityEmoji(item.ethnicities)}
-                      size={52}
-                      selected={index === activeIndex}
-                    />
-                    <View style={styles.cardBody}>
-                      <Text style={styles.cardName} numberOfLines={1}>
-                        {item.name}
-                      </Text>
-                      <Text style={styles.cardMeta} numberOfLines={1}>
-                        {[
-                          item.category,
-                          item.priceLevel,
-                          rating ? `★ ${rating}` : null,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </Text>
-                      <Text style={styles.cardDistance} numberOfLines={1}>
-                        {item.communityId
-                          ? "Part of a community"
-                          : (item.address ?? "Nearby")}
-                      </Text>
-                    </View>
-                    <Feather
-                      name="chevron-right"
-                      size={18}
-                      color={colors.grayLight}
-                    />
-                  </Pressable>
+                  />
                 );
               }}
             />
@@ -725,9 +733,27 @@ export function MapScreen() {
               onPress={() => setMode("cards")}
               hitSlop={8}
             >
-              <Feather name="x" size={18} color={colors.ink} />
+              <IconX size={18} color={colors.ink} />
             </Pressable>
           </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.sheetFilters}
+            keyboardShouldPersistTaps="handled"
+            style={styles.listFiltersScroll}
+          >
+            {CULTURE_FILTERS.map((f) => (
+              <Chip
+                key={f.id}
+                label={f.label}
+                size="sm"
+                tone="overlay"
+                selected={culture === f.id}
+                onPress={() => setCulture(f.id)}
+              />
+            ))}
+          </ScrollView>
           {layer === "enclaves" ? (
             <FlatList
               data={filtered}
@@ -837,12 +863,6 @@ const styles = StyleSheet.create({
   layerBtnTextActive: {
     color: colors.white,
   },
-  pills: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 4,
-    gap: 8,
-  },
   modeBtn: {
     width: 44,
     height: 44,
@@ -862,41 +882,76 @@ const styles = StyleSheet.create({
     backgroundColor: colors.forest,
     borderColor: colors.forest,
   },
-  carouselWrap: {
+  locateBtn: {
+    position: "absolute",
+    right: 16,
+    zIndex: 25,
+    elevation: 25,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#D6D3CC",
+    shadowColor: "#000",
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  sheet: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
     zIndex: 20,
     elevation: 20,
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingTop: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -3 },
   },
-  carouselLabelRow: {
+  sheetGrabber: {
+    alignSelf: "center",
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    marginBottom: 22,
+  },
+  sheetFilters: {
+    paddingHorizontal: 14,
+    gap: 6,
+    paddingBottom: 16,
+    alignItems: "center",
+  },
+  sheetLoadingRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 10,
-    marginLeft: CARD_INSET,
+    paddingHorizontal: 16,
+    marginBottom: 6,
   },
   carouselLabel: {
-    fontFamily: typography.bodyMedium,
+    fontFamily: typography.body,
     fontSize: 12,
-    color: colors.ink,
-    backgroundColor: "rgba(255,255,255,0.92)",
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radii.full,
-    overflow: "hidden",
+    color: colors.gray,
   },
   emptyCard: {
-    marginHorizontal: CARD_INSET,
-    backgroundColor: colors.white,
+    marginHorizontal: CARD_EDGE,
+    backgroundColor: colors.surface,
     borderRadius: radii.lg,
-    padding: 20,
+    padding: 16,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: "center",
     gap: 6,
+    marginBottom: 4,
   },
   emptyTitle: {
     fontFamily: typography.bodySemibold,
@@ -914,63 +969,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.forest,
     marginTop: 8,
-  },
-  card: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.white,
-    borderRadius: radii.lg,
-    padding: 14,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: "#000",
-    shadowOpacity: 0.16,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
-  },
-  cardActive: {
-    borderColor: colors.gold,
-  },
-  cardBody: {
-    flex: 1,
-  },
-  cardName: {
-    fontFamily: typography.bodySemibold,
-    fontSize: 16,
-    color: colors.ink,
-  },
-  cardMeta: {
-    fontFamily: typography.body,
-    fontSize: 13,
-    color: colors.gray,
-    marginTop: 2,
-  },
-  cardChips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginTop: 6,
-  },
-  cardChip: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.full,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  cardChipText: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 11,
-    color: colors.forest,
-  },
-  cardDistance: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 12,
-    color: colors.forest,
-    marginTop: 4,
   },
   listSheet: {
     position: "absolute",
@@ -1005,6 +1003,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 8,
+  },
+  listFiltersScroll: {
+    marginHorizontal: -20,
+    marginBottom: 4,
   },
   sheetTitle: {
     fontFamily: typography.display,

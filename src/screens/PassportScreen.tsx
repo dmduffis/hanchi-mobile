@@ -11,8 +11,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useCommunities } from "../api/useCommunities";
-import { createStamp, fetchUserStamps } from "../api/stamps";
+import { fetchUserStamps, type ApiStamp } from "../api/stamps";
 import { Stamp } from "../components";
+import { getCommunityFlag } from "../data/communityFlags";
 import { mockDishStamps, mockPassportBadges } from "../data/mockPassport";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
@@ -21,18 +22,22 @@ export function PassportScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { communities, loading: communitiesLoading } = useCommunities();
-  const [earnedIds, setEarnedIds] = useState<Set<string>>(new Set());
+  const [stamps, setStamps] = useState<ApiStamp[]>([]);
   const [loadingStamps, setLoadingStamps] = useState(true);
-  const [stampingId, setStampingId] = useState<string | null>(null);
 
   const loadStamps = useCallback(async () => {
     setLoadingStamps(true);
     try {
-      const stamps = await fetchUserStamps();
-      setEarnedIds(new Set(stamps.map((s) => s.communityId)));
+      const data = await fetchUserStamps();
+      // Newest first
+      setStamps(
+        [...data].sort(
+          (a, b) =>
+            new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime(),
+        ),
+      );
     } catch {
-      // Soft fallback — show empty passport rather than an error screen.
-      setEarnedIds(new Set());
+      setStamps([]);
     } finally {
       setLoadingStamps(false);
     }
@@ -44,41 +49,34 @@ export function PassportScreen() {
     }, [loadStamps]),
   );
 
-  const passportStamps = useMemo(
-    () =>
-      communities.map((c) => ({
-        id: c.id,
-        communityName: c.name,
-        emoji: c.emoji,
-        earned: earnedIds.has(c.id),
-      })),
-    [communities, earnedIds],
-  );
+  const communityById = useMemo(() => {
+    const map = new Map(communities.map((c) => [c.id, c]));
+    return map;
+  }, [communities]);
 
-  const earnedCount = passportStamps.filter((s) => s.earned).length;
-  const total = Math.max(passportStamps.length, 1);
+  const collected = useMemo(() => {
+    return stamps
+      .map((stamp) => {
+        const community = communityById.get(stamp.communityId);
+        const name =
+          stamp.community?.name ?? community?.name ?? "Unknown place";
+        const emoji =
+          community?.emoji ??
+          getCommunityFlag(
+            stamp.communityId,
+            stamp.community?.heroEmoji ?? "📍",
+          );
+        return {
+          id: stamp.communityId,
+          stampId: stamp.id,
+          communityName: name,
+          emoji,
+        };
+      })
+      .filter((s) => s.id);
+  }, [stamps, communityById]);
+
   const loading = communitiesLoading || loadingStamps;
-
-  const onStampPress = async (communityId: string, earned: boolean) => {
-    if (earned) {
-      navigation.navigate("CommunityProfile", { communityId });
-      return;
-    }
-    if (stampingId) return;
-    setStampingId(communityId);
-    setEarnedIds((prev) => new Set(prev).add(communityId));
-    try {
-      await createStamp(communityId);
-    } catch {
-      setEarnedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(communityId);
-        return next;
-      });
-    } finally {
-      setStampingId(null);
-    }
-  };
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -89,43 +87,37 @@ export function PassportScreen() {
         <Text style={styles.title}>Passport</Text>
         {loading ? (
           <ActivityIndicator color={colors.forest} style={{ marginTop: 24 }} />
-        ) : passportStamps.length === 0 ? (
+        ) : collected.length === 0 ? (
           <View style={styles.emptyWrap}>
-            <Text style={styles.emptyTitle}>Your passport is ready</Text>
+            <Text style={styles.emptyTitle}>No stamps yet</Text>
             <Text style={styles.empty}>
-              Explore enclaves on the map, then tap a blank stamp here — or use
-              Stamp passport on a community page — to start collecting.
+              Visit a community and stamp your passport there. Your collected
+              places will show up here.
             </Text>
           </View>
         ) : (
           <>
             <View style={styles.progressHeader}>
               <Text style={styles.progressText}>
-                {earnedCount} of {passportStamps.length} stamped
+                {collected.length} place
+                {collected.length === 1 ? "" : "s"} stamped
               </Text>
-              <Text style={styles.hint}>
-                Tap a blank stamp to collect it · tap a filled one to revisit
-              </Text>
-              <View style={styles.progressTrack}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    { width: `${(earnedCount / total) * 100}%` },
-                  ]}
-                />
-              </View>
+              <Text style={styles.hint}>Tap a stamp to revisit</Text>
             </View>
 
-            <Text style={styles.sectionTitle}>Enclave stamps</Text>
+            <Text style={styles.sectionTitle}>Stamped places</Text>
             <View style={styles.stampGrid}>
-              {passportStamps.map((stamp) => (
+              {collected.map((stamp) => (
                 <Stamp
-                  key={stamp.id}
+                  key={stamp.stampId}
                   emoji={stamp.emoji}
                   label={stamp.communityName}
-                  earned={stamp.earned}
-                  disabled={stampingId === stamp.id}
-                  onPress={() => void onStampPress(stamp.id, stamp.earned)}
+                  earned
+                  onPress={() =>
+                    navigation.navigate("CommunityProfile", {
+                      communityId: stamp.id,
+                    })
+                  }
                 />
               ))}
             </View>
@@ -225,18 +217,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 12,
     color: colors.gray,
-    marginBottom: 10,
-  },
-  progressTrack: {
-    height: 8,
-    backgroundColor: colors.surface,
-    borderRadius: radii.full,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: colors.gold,
-    borderRadius: radii.full,
   },
   sectionTitle: {
     fontFamily: typography.display,

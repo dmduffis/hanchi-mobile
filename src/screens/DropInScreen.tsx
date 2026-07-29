@@ -1,4 +1,3 @@
-import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useState } from "react";
@@ -13,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useCommunities } from "../api/useCommunities";
 import { PrimaryButton } from "../components";
+import { IconX } from "../icons";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, typography } from "../theme";
 
@@ -39,7 +39,7 @@ export function DropInScreen() {
           style={styles.close}
           hitSlop={8}
         >
-          <Feather name="x" size={24} color={colors.white} />
+          <IconX size={24} color={colors.white} />
         </Pressable>
 
         <View style={styles.center}>

@@ -7,6 +7,7 @@ type ChipProps = {
   selected?: boolean;
   onPress?: () => void;
   tone?: "default" | "overlay";
+  size?: "md" | "sm";
 };
 
 export function Chip({
@@ -14,18 +15,27 @@ export function Chip({
   selected = false,
   onPress,
   tone = "default",
+  size = "md",
 }: ChipProps) {
+  const compact = size === "sm";
   return (
     <Pressable
       onPress={onPress}
       style={[
         styles.chip,
+        compact && styles.chipSm,
         tone === "overlay" && styles.overlay,
         selected && styles.selected,
       ]}
       disabled={!onPress}
     >
-      <Text style={[styles.label, selected && styles.labelSelected]}>
+      <Text
+        style={[
+          styles.label,
+          compact && styles.labelSm,
+          selected && styles.labelSelected,
+        ]}
+      >
         {label}
       </Text>
     </Pressable>
@@ -41,13 +51,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  chipSm: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
   overlay: {
     backgroundColor: colors.white,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
-    elevation: 2,
+    elevation: 1,
   },
   selected: {
     backgroundColor: colors.forest,
@@ -57,6 +71,9 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodyMedium,
     fontSize: 13,
     color: colors.ink,
+  },
+  labelSm: {
+    fontSize: 11,
   },
   labelSelected: {
     color: colors.white,

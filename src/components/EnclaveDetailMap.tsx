@@ -16,7 +16,7 @@ import {
   primaryEthnicityEmoji,
 } from "../data/ethnicityFlags";
 import { colors, radii, typography } from "../theme";
-import { CircularFlag } from "./CircularFlag";
+import { MapFlagPin } from "./MapFlagPin";
 
 type EnclavePoi = {
   id: string;
@@ -175,7 +175,7 @@ function RestaurantFlagMarker({
       identifier={id}
       coordinate={coordinate}
       title={name}
-      anchor={{ x: 0.5, y: 0.5 }}
+      anchor={{ x: 0.5, y: 1 }}
       tracksViewChanges={tracksViewChanges}
       onPress={(e) => {
         e.stopPropagation?.();
@@ -183,12 +183,7 @@ function RestaurantFlagMarker({
       }}
     >
       <View style={styles.markerWrap} collapsable={false} pointerEvents="none">
-        <CircularFlag
-          countryCode={countryCode}
-          flag={emoji}
-          size={PIN_SIZE}
-          elevated
-        />
+        <MapFlagPin countryCode={countryCode} flag={emoji} size={PIN_SIZE} />
       </View>
     </Marker>
   );

@@ -1,4 +1,3 @@
-import { Feather } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import {
   Modal,
@@ -12,6 +11,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ONBOARDING_CULTURES, type CultureOption } from "../data/userPrefs";
+import {
+  IconCheck,
+  IconChevronDown,
+  IconChevronUp,
+  IconSearch,
+  IconX,
+} from "../icons";
 import { colors, radii, typography } from "../theme";
 import { CircularFlag } from "./CircularFlag";
 
@@ -92,16 +98,16 @@ export function CultureMultiSelect({
                   size={20}
                 />
                 <Text style={styles.selectedPillLabel}>{culture.label}</Text>
-                <Feather name="x" size={14} color={colors.gray} />
+                <IconX size={14} color={colors.gray} />
               </Pressable>
             ))}
           </View>
         )}
-        <Feather
-          name={open ? "chevron-up" : "chevron-down"}
-          size={20}
-          color={colors.gray}
-        />
+        {open ? (
+          <IconChevronUp size={20} color={colors.gray} />
+        ) : (
+          <IconChevronDown size={20} color={colors.gray} />
+        )}
       </Pressable>
       <Text style={styles.helper}>
         {value.length}/{MAX_CULTURES} selected
@@ -122,7 +128,7 @@ export function CultureMultiSelect({
           </View>
 
           <View style={styles.searchWrap}>
-            <Feather name="search" size={16} color={colors.gray} />
+            <IconSearch size={16} color={colors.gray} />
             <TextInput
               value={query}
               onChangeText={setQuery}
@@ -149,7 +155,7 @@ export function CultureMultiSelect({
                     size={20}
                   />
                   <Text style={styles.selectedPillLabel}>{culture.label}</Text>
-                  <Feather name="x" size={14} color={colors.gray} />
+                  <IconX size={14} color={colors.gray} />
                 </Pressable>
               ))}
             </View>
@@ -180,7 +186,7 @@ export function CultureMultiSelect({
                     style={[styles.check, isSelected && styles.checkSelected]}
                   >
                     {isSelected ? (
-                      <Feather name="check" size={14} color={colors.white} />
+                      <IconCheck size={14} color={colors.white} />
                     ) : null}
                   </View>
                 </Pressable>

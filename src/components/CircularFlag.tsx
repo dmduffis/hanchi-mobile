@@ -17,6 +17,11 @@ type CircularFlagProps = {
   selected?: boolean;
   /** Slightly stronger border for map pins sitting on busy basemap */
   elevated?: boolean;
+  /**
+   * Flag disk only (no white ring / shadow).
+   * Used inside MapFlagPin so the pin owns chrome.
+   */
+  bare?: boolean;
 };
 
 export function CircularFlag({
@@ -25,13 +30,39 @@ export function CircularFlag({
   size = 40,
   selected = false,
   elevated = false,
+  bare = false,
 }: CircularFlagProps) {
-  const border = selected ? 3 : elevated ? 2 : 1.5;
-  const inner = Math.max(size - border * 2, 8);
-  const fontSize = Math.round(size * 0.55);
   const code = countryCode?.toLowerCase();
   const resolvedCode =
     code && VALID_CODES.has(code) ? (code as CountryCode) : null;
+  const fontSize = Math.round(size * 0.55);
+
+  if (bare) {
+    return (
+      <View
+        style={[
+          styles.clip,
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+          },
+        ]}
+      >
+        {resolvedCode ? (
+          <CircleCountryFlag code={resolvedCode} size={size} />
+        ) : (
+          <Text style={[styles.flag, { fontSize, lineHeight: fontSize + 4 }]}>
+            {flag}
+          </Text>
+        )}
+      </View>
+    );
+  }
+
+  const border = selected ? 3 : elevated ? 2 : 1.5;
+  const inner = Math.max(size - border * 2, 8);
+  const innerFont = Math.round(inner * 0.55);
 
   return (
     <View
@@ -61,7 +92,12 @@ export function CircularFlag({
         {resolvedCode ? (
           <CircleCountryFlag code={resolvedCode} size={inner} />
         ) : (
-          <Text style={[styles.flag, { fontSize, lineHeight: fontSize + 4 }]}>
+          <Text
+            style={[
+              styles.flag,
+              { fontSize: innerFont, lineHeight: innerFont + 4 },
+            ]}
+          >
             {flag}
           </Text>
         )}

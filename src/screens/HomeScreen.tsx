@@ -1,4 +1,3 @@
-import { Feather } from "@expo/vector-icons";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
@@ -22,6 +21,7 @@ import { useCommunities } from "../api/useCommunities";
 import { ListRow, PromoBanner, SearchBar, EthnicityFlags } from "../components";
 import { CommunityMap } from "../components/CommunityMap";
 import { getCommunityFlag } from "../data/communityFlags";
+import { IconArrowsMaximize, IconAward, IconBell } from "../icons";
 import type { MainTabParamList, RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
 
@@ -183,7 +183,7 @@ export function HomeScreen() {
               style={styles.iconBtn}
               hitSlop={8}
             >
-              <Feather name="bell" size={20} color={colors.ink} />
+              <IconBell size={20} color={colors.ink} />
             </Pressable>
             <Pressable
               onPress={() => navigation.navigate("Profile")}
@@ -256,7 +256,7 @@ export function HomeScreen() {
                 onPress={() => navigation.navigate("Map")}
               >
                 <View style={styles.mapCta}>
-                  <Feather name="maximize-2" size={14} color={colors.forest} />
+                  <IconArrowsMaximize size={14} color={colors.forest} />
                   <Text style={styles.mapCtaText}>Open map</Text>
                 </View>
               </Pressable>
@@ -265,7 +265,7 @@ export function HomeScreen() {
             <View style={styles.section}>
               <PromoBanner
                 text="Taste of Queens challenge — stamp 4 communities this weekend"
-                icon="award"
+                icon={IconAward}
                 onPress={() => navigation.navigate("Discover")}
               />
             </View>

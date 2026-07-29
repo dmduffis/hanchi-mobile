@@ -20,6 +20,7 @@ export function mapApiCommunity(c: ApiCommunity): Community {
     pullQuote: "",
     pullQuoteAuthor: "",
     emoji: c.heroEmoji ?? "📍",
+    imageUrl: c.imageUrl ?? null,
     latitude: c.latitude ?? 40.72,
     longitude: c.longitude ?? -73.95,
     distanceMiles,

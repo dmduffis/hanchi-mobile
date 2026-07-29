@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet } from "react-native";
 
@@ -7,6 +6,7 @@ import {
   toggleFavorite,
   type FavoriteType,
 } from "../api/favorites";
+import { IconHeart, IconHeartFilled } from "../icons";
 import { colors } from "../theme";
 
 type FavoriteHeartProps = {
@@ -88,11 +88,11 @@ export function FavoriteHeart({
         favorited ? "Remove from favorites" : "Add to favorites"
       }
     >
-      <Ionicons
-        name={favorited ? "heart" : "heart-outline"}
-        size={size}
-        color={favorited ? colors.forest : colors.grayLight}
-      />
+      {favorited ? (
+        <IconHeartFilled size={size} color={colors.forest} />
+      ) : (
+        <IconHeart size={size} color={colors.grayLight} />
+      )}
     </Pressable>
   );
 }

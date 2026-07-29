@@ -1,0 +1,43 @@
+/**
+ * App icon set: Iconscout Unicons (line).
+ * Import from here so screens stay consistent.
+ */
+import type { ComponentType } from "react";
+
+export type IconProps = {
+  color?: string;
+  size?: string | number;
+};
+
+export type Icon = ComponentType<IconProps>;
+
+export { default as IconArrowLeft } from "@iconscout/react-native-unicons/icons/uil-arrow-left";
+export { default as IconArrowRight } from "@iconscout/react-native-unicons/icons/uil-arrow-right";
+export { default as IconArrowsMaximize } from "@iconscout/react-native-unicons/icons/uil-expand-arrows";
+export { default as IconAward } from "@iconscout/react-native-unicons/icons/uil-award";
+export { default as IconAwardFilled } from "@iconscout/react-native-unicons/icons/uil-medal";
+export { default as IconBell } from "@iconscout/react-native-unicons/icons/uil-bell";
+export { default as IconBolt } from "@iconscout/react-native-unicons/icons/uil-bolt";
+export { default as IconBook2 } from "@iconscout/react-native-unicons/icons/uil-book";
+export { default as IconCheck } from "@iconscout/react-native-unicons/icons/uil-check";
+export { default as IconChevronDown } from "@iconscout/react-native-unicons/icons/uil-angle-down";
+export { default as IconChevronRight } from "@iconscout/react-native-unicons/icons/uil-angle-right";
+export { default as IconChevronUp } from "@iconscout/react-native-unicons/icons/uil-angle-up";
+export { default as IconClock } from "@iconscout/react-native-unicons/icons/uil-clock";
+export { default as IconCoffee } from "@iconscout/react-native-unicons/icons/uil-coffee";
+export { default as IconHeart } from "@iconscout/react-native-unicons/icons/uil-heart";
+export { default as IconHeartFilled } from "@iconscout/react-native-unicons/icons/uil-heart-alt";
+export { default as IconHelpCircle } from "@iconscout/react-native-unicons/icons/uil-question-circle";
+export { default as IconHome } from "@iconscout/react-native-unicons/icons/uil-estate";
+export { default as IconImage } from "@iconscout/react-native-unicons/icons/uil-image";
+export { default as IconList } from "@iconscout/react-native-unicons/icons/uil-list-ul";
+export { default as IconLocate } from "@iconscout/react-native-unicons/icons/uil-location-arrow";
+export { default as IconMap } from "@iconscout/react-native-unicons/icons/uil-map";
+export { default as IconMapPin } from "@iconscout/react-native-unicons/icons/uil-map-marker";
+export { default as IconNavigation } from "@iconscout/react-native-unicons/icons/uil-navigator";
+export { default as IconSearch } from "@iconscout/react-native-unicons/icons/uil-search";
+export { default as IconStar } from "@iconscout/react-native-unicons/icons/uil-star";
+export { default as IconToolsKitchen2 } from "@iconscout/react-native-unicons/icons/uil-utensils";
+export { default as IconUser } from "@iconscout/react-native-unicons/icons/uil-user";
+export { default as IconUsers } from "@iconscout/react-native-unicons/icons/uil-users-alt";
+export { default as IconX } from "@iconscout/react-native-unicons/icons/uil-times";

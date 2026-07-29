@@ -1,4 +1,3 @@
-import { Feather } from "@expo/vector-icons";
 import type { RouteProp } from "@react-navigation/native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -18,6 +17,12 @@ import { fetchCommunity, type ApiCommunity } from "../api/communities";
 import { fetchUserFavorites } from "../api/favorites";
 import { fetchPoi, type ApiPoiDetail } from "../api/pois";
 import { Badge, EthnicityFlags, FavoriteHeart, ListRow } from "../components";
+import {
+  IconArrowLeft,
+  IconChevronRight,
+  IconClock,
+  IconMapPin,
+} from "../icons";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
 
@@ -118,7 +123,7 @@ export function RestaurantDetailScreen() {
           hitSlop={8}
           style={styles.backBtn}
         >
-          <Feather name="arrow-left" size={22} color={colors.ink} />
+          <IconArrowLeft size={22} color={colors.ink} />
         </Pressable>
         <Text style={styles.navTitle} numberOfLines={1}>
           {poi.name}
@@ -158,25 +163,25 @@ export function RestaurantDetailScreen() {
             }
             style={styles.communityLink}
           >
-            <Feather name="map-pin" size={14} color={colors.forest} />
+            <IconMapPin size={14} color={colors.forest} />
             <Text style={styles.communityLinkText}>
               {community.name}
               {community.neighborhood ? ` · ${community.neighborhood}` : ""}
             </Text>
-            <Feather name="chevron-right" size={16} color={colors.grayLight} />
+            <IconChevronRight size={16} color={colors.grayLight} />
           </Pressable>
         ) : null}
 
         <View style={styles.infoBlock}>
           {poi.address ? (
             <View style={styles.infoRow}>
-              <Feather name="map-pin" size={16} color={colors.gray} />
+              <IconMapPin size={16} color={colors.gray} />
               <Text style={styles.infoText}>{poi.address}</Text>
             </View>
           ) : null}
           {poi.hours ? (
             <View style={styles.infoRow}>
-              <Feather name="clock" size={16} color={colors.gray} />
+              <IconClock size={16} color={colors.gray} />
               <Text style={styles.infoText}>{poi.hours}</Text>
             </View>
           ) : null}

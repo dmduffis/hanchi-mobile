@@ -8,6 +8,8 @@ export interface Community {
   pullQuote: string;
   pullQuoteAuthor: string;
   emoji: string;
+  /** Community hero / cover photo when available. */
+  imageUrl?: string | null;
   latitude: number;
   longitude: number;
   distanceMiles: number;
