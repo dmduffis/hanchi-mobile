@@ -1,4 +1,5 @@
 import type { Community } from "../types";
+import { WIKI_COMMUNITY_AFFINITIES } from "./generated/wikipediaCommunityMeta";
 
 export type CultureFilterId =
   | "all"
@@ -90,7 +91,13 @@ const AFFINITIES: Record<string, CultureFilterId[]> = {
 };
 
 function affinitiesFor(community: Community): CultureFilterId[] {
-  return AFFINITIES[community.id] ?? [];
+  const local = AFFINITIES[community.id];
+  if (local) return local;
+  const wiki = WIKI_COMMUNITY_AFFINITIES[community.id];
+  if (!wiki?.length) return [];
+  return wiki.filter((id): id is CultureFilterId =>
+    CULTURE_FILTERS.some((f) => f.id === id),
+  );
 }
 
 export function getCommunityAffinities(

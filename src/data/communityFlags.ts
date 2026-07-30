@@ -1,3 +1,8 @@
+import {
+  WIKI_COMMUNITY_COUNTRY_CODES,
+  WIKI_COMMUNITY_FLAGS,
+} from "./generated/wikipediaCommunityMeta";
+
 /** One primary flag per enclave pin — multi-group affinities show as chips on cards. */
 export const COMMUNITY_FLAGS: Record<string, string> = {
   "chinatown-flushing": "🇨🇳",
@@ -166,13 +171,20 @@ const COMMUNITY_FLAGS_PAIR: Record<string, [string] | [string, string]> = {
 };
 
 export function getCommunityFlag(communityId: string, fallback = "🏳️"): string {
-  return COMMUNITY_FLAGS[communityId] ?? fallback;
+  return (
+    COMMUNITY_FLAGS[communityId] ??
+    WIKI_COMMUNITY_FLAGS[communityId] ??
+    fallback
+  );
 }
 
 export function getCommunityCountryCode(
   communityId: string,
 ): string | undefined {
-  return COMMUNITY_COUNTRY_CODES[communityId];
+  return (
+    COMMUNITY_COUNTRY_CODES[communityId] ??
+    WIKI_COMMUNITY_COUNTRY_CODES[communityId]
+  );
 }
 
 /** Up to two flags for restaurant / place labels. */
@@ -182,7 +194,8 @@ export function getCommunityFlags(
 ): string[] {
   const pair = COMMUNITY_FLAGS_PAIR[communityId];
   if (pair?.length) return pair.slice(0, 2);
-  const primary = COMMUNITY_FLAGS[communityId];
+  const primary =
+    COMMUNITY_FLAGS[communityId] ?? WIKI_COMMUNITY_FLAGS[communityId];
   return primary ? [primary] : [fallback];
 }
 
