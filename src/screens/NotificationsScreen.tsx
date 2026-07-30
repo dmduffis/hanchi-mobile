@@ -5,9 +5,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { mockNotifications } from "../data/mockPassport";
 import {
   IconArrowLeft,
-  IconAward,
+  IconAwardFilled,
   IconBell,
-  IconCoffee,
+  IconBolt,
+  IconHeart,
   IconMapPin,
   type Icon,
 } from "../icons";
@@ -17,8 +18,9 @@ import type { AppNotification } from "../types";
 const iconMap: Record<AppNotification["icon"], Icon> = {
   bell: IconBell,
   "map-pin": IconMapPin,
-  award: IconAward,
-  coffee: IconCoffee,
+  award: IconAwardFilled,
+  heart: IconHeart,
+  bolt: IconBolt,
 };
 
 export function NotificationsScreen() {
