@@ -24,7 +24,13 @@ import { pointToLatLng } from "../api/geo";
 import { fetchPoisNear } from "../api/pois";
 import type { ApiPoi } from "../api/search";
 import { useCommunities } from "../api/useCommunities";
-import { Chip, ListRow, MapSheetCard, SearchBar } from "../components";
+import {
+  Chip,
+  CommunityDetailSheet,
+  ListRow,
+  MapSheetCard,
+  SearchBar,
+} from "../components";
 import {
   CommunityMap,
   isCommunityInRegion,
@@ -37,7 +43,6 @@ import {
   type MapRestaurant,
 } from "../components/CommunityMap";
 import {
-  getCommunityCountryCode,
   getCommunityFlag,
 } from "../data/communityFlags";
 import {
@@ -62,7 +67,6 @@ import {
 } from "../icons";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
-import type { Community } from "../types";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.7;
@@ -112,7 +116,7 @@ export function MapScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
-  const { communities, raw, loading, error } = useCommunities();
+  const { communities, loading, error } = useCommunities();
   const [layer, setLayer] = useState<MapLayer>("enclaves");
   const [mode, setMode] = useState<BottomMode>("cards");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -125,8 +129,12 @@ export function MapScreen() {
   const [focusRestaurantId, setFocusRestaurantId] = useState<string | null>(
     null,
   );
+  /** Enclave pin tap — opens single-community detail sheet. */
+  const [focusedCommunityId, setFocusedCommunityId] = useState<string | null>(
+    null,
+  );
   const [locating, setLocating] = useState(false);
-  const listRef = useRef<FlatList<Community | ApiPoi>>(null);
+  const listRef = useRef<FlatList<ApiPoi>>(null);
   const mapRef = useRef<CommunityMapHandle>(null);
   const regionRef = useRef<MapRegion>(NYC_REGION);
   const pendingScrollIndex = useRef<number | null>(null);
@@ -134,12 +142,6 @@ export function MapScreen() {
   const scrollFromMarker = useRef(false);
   const selectedIdRef = useRef<string | null>(null);
   const foodFetchGen = useRef(0);
-
-  const poiCountById = useMemo(() => {
-    const map = new Map<string, number>();
-    raw.forEach((c) => map.set(c.id, c.poiCount ?? 0));
-    return map;
-  }, [raw]);
 
   const filtered = useMemo(
     () => filterCommunities(communities, { culture, query }),
@@ -197,10 +199,6 @@ export function MapScreen() {
   }, [inViewFood]);
 
   const inView = layer === "enclaves" ? inViewCommunities : inViewFood;
-  const carouselCommunities = useMemo(
-    () => inViewCommunities.slice(0, CAROUSEL_LIMIT),
-    [inViewCommunities],
-  );
   const carouselFood = useMemo(() => {
     const focus = focusRestaurantId
       ? inViewFood.find((p) => p.id === focusRestaurantId)
@@ -216,8 +214,7 @@ export function MapScreen() {
       )
       .slice(0, CAROUSEL_LIMIT);
   }, [inViewFood, focusRestaurantId, region.latitude, region.longitude]);
-  const carouselItems =
-    layer === "enclaves" ? carouselCommunities : carouselFood;
+  const carouselItems = carouselFood;
   const filteredKey = useMemo(
     () =>
       layer === "enclaves"
@@ -295,6 +292,7 @@ export function MapScreen() {
     setActiveIndex(0);
     selectedIdRef.current = null;
     setFocusRestaurantId(null);
+    setFocusedCommunityId(null);
     listRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, [culture, query, layer]);
 
@@ -306,8 +304,9 @@ export function MapScreen() {
     }
   }, [inViewFood, focusRestaurantId]);
 
-  // Keep selection stable when the viewport set changes (pan/zoom).
+  // Keep restaurant carousel selection stable when the viewport set changes.
   useEffect(() => {
+    if (layer !== "restaurants") return;
     const keepId = selectedIdRef.current;
     if (keepId) {
       const next = carouselItems.findIndex((item) => item.id === keepId);
@@ -317,11 +316,12 @@ export function MapScreen() {
       }
     }
     setActiveIndex(0);
-  }, [carouselItems]);
+  }, [carouselItems, layer]);
 
   useEffect(() => {
+    if (layer !== "restaurants") return;
     selectedIdRef.current = carouselItems[activeIndex]?.id ?? null;
-  }, [carouselItems, activeIndex]);
+  }, [carouselItems, activeIndex, layer]);
 
   const openCommunity = (communityId: string) => {
     navigation.navigate("CommunityProfile", { communityId });
@@ -350,6 +350,7 @@ export function MapScreen() {
   const scrollToItem = (itemId: string) => {
     if (layer === "restaurants") {
       // Re-anchor carousel to this pin — nearest 10 will recompute with it first.
+      setFocusedCommunityId(null);
       setFocusRestaurantId(itemId);
       scrollFromMarker.current = true;
       selectedIdRef.current = itemId;
@@ -361,29 +362,11 @@ export function MapScreen() {
       return;
     }
 
-    const index = carouselItems.findIndex((item) => item.id === itemId);
-    if (index < 0) {
-      openCommunity(itemId);
-      return;
-    }
-
-    scrollFromMarker.current = true;
+    // Enclave pin → single-community detail sheet (not the multi-card carousel).
+    setFocusRestaurantId(null);
     selectedIdRef.current = itemId;
-
-    if (mode !== "cards") {
-      pendingScrollIndex.current = index;
-      setActiveIndex(index);
-      setMode("cards");
-      return;
-    }
-
-    if (index === activeIndex) {
-      scrollCarouselToIndex(index);
-      scrollFromMarker.current = false;
-      return;
-    }
-
-    setActiveIndex(index);
+    setFocusedCommunityId(itemId);
+    if (mode !== "cards") setMode("cards");
   };
 
   // After pin selects a card, scroll once layout/selection re-render settles.
@@ -457,6 +440,17 @@ export function MapScreen() {
       ? `${inView.length} in view`
       : `${inView.length} in view · ${layer === "enclaves" ? filtered.length : filteredFood.length} match${(layer === "enclaves" ? filtered.length : filteredFood.length) === 1 ? "" : "es"}`;
 
+  const showCommunityDetail =
+    mode === "cards" && layer === "enclaves" && focusedCommunityId != null;
+  const showRestaurantCarousel = mode === "cards" && layer === "restaurants";
+  const showCultureChips =
+    mode === "cards" && !showCommunityDetail && cultureFilters.length > 0;
+
+  const selectedMapId =
+    layer === "enclaves"
+      ? focusedCommunityId
+      : (carouselItems[activeIndex]?.id ?? null);
+
   if (loading) {
     return (
       <View style={[styles.root, styles.loadingWrap]}>
@@ -481,7 +475,7 @@ export function MapScreen() {
         communities={filtered}
         restaurants={mapRestaurants}
         filterKey={`${layer}|${culture}|${query.trim().toLowerCase()}`}
-        selectedId={carouselItems[activeIndex]?.id ?? null}
+        selectedId={selectedMapId}
         onMarkerPress={scrollToItem}
         onRestaurantPress={scrollToItem}
         onRegionChangeComplete={(next) => {
@@ -509,7 +503,10 @@ export function MapScreen() {
           </View>
           <Pressable
             style={[styles.modeBtn, mode === "list" && styles.modeBtnActive]}
-            onPress={() => setMode((m) => (m === "list" ? "cards" : "list"))}
+            onPress={() => {
+              setFocusedCommunityId(null);
+              setMode((m) => (m === "list" ? "cards" : "list"));
+            }}
             hitSlop={4}
           >
             {mode === "list" ? (
@@ -562,14 +559,37 @@ export function MapScreen() {
             </Text>
           </Pressable>
         </View>
+
+        {showCultureChips ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.topFilters}
+            keyboardShouldPersistTaps="handled"
+            style={styles.topFiltersScroll}
+          >
+            {cultureFilters.map((f) => (
+              <Chip
+                key={f.id}
+                label={f.label}
+                size="sm"
+                tone="overlay"
+                selected={culture === f.id}
+                onPress={() => setCulture(f.id)}
+              />
+            ))}
+          </ScrollView>
+        ) : null}
       </SafeAreaView>
 
       <Pressable
         style={[
           styles.locateBtn,
-          mode === "cards"
-            ? { bottom: 250 + Math.max(insets.bottom, 6) }
-            : { top: insets.top + 132 },
+          showCommunityDetail || mode === "list"
+            ? { top: insets.top + (showCultureChips ? 168 : 132) }
+            : showRestaurantCarousel
+              ? { bottom: 250 + Math.max(insets.bottom, 6) }
+              : { bottom: 24 + Math.max(insets.bottom, 6) },
         ]}
         onPress={goToMyLocation}
         hitSlop={8}
@@ -583,46 +603,35 @@ export function MapScreen() {
         )}
       </Pressable>
 
-      {mode === "cards" ? (
+      {showCommunityDetail && focusedCommunityId ? (
+        <CommunityDetailSheet
+          communityId={focusedCommunityId}
+          onClose={() => {
+            setFocusedCommunityId(null);
+            selectedIdRef.current = null;
+          }}
+          onReadMore={openCommunity}
+          onRestaurantPress={openRestaurant}
+        />
+      ) : null}
+
+      {showRestaurantCarousel ? (
         <View
           style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 6) }]}
           pointerEvents="box-none"
         >
           <View style={styles.sheetGrabber} />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.sheetFilters}
-            keyboardShouldPersistTaps="handled"
-          >
-            {cultureFilters.map((f) => (
-              <Chip
-                key={f.id}
-                label={f.label}
-                size="sm"
-                tone="overlay"
-                selected={culture === f.id}
-                onPress={() => setCulture(f.id)}
-              />
-            ))}
-          </ScrollView>
-          {layer === "restaurants" && foodLoading ? (
+          {foodLoading ? (
             <View style={styles.sheetLoadingRow}>
               <ActivityIndicator size="small" color={colors.forest} />
               <Text style={styles.carouselLabel}>{filterLabel}</Text>
             </View>
           ) : null}
-          {inView.length === 0 ? (
+          {inViewFood.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>
-                {layer === "enclaves"
-                  ? "No communities in view"
-                  : "No restaurants in view"}
-              </Text>
+              <Text style={styles.emptyTitle}>No restaurants in view</Text>
               <Text style={styles.emptySub}>
-                {layer === "enclaves"
-                  ? "Pan the map or clear filters to find communities"
-                  : "Pan the map or try another culture filter"}
+                Pan the map or try another culture filter
               </Text>
               <Pressable
                 onPress={() => {
@@ -633,58 +642,9 @@ export function MapScreen() {
                 <Text style={styles.emptyAction}>Clear filters</Text>
               </Pressable>
             </View>
-          ) : layer === "enclaves" ? (
-            <FlatList
-              ref={listRef as React.RefObject<FlatList<Community>>}
-              data={carouselCommunities}
-              keyExtractor={(item) => item.id}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              decelerationRate="fast"
-              snapToInterval={CARD_WIDTH + CARD_GAP}
-              snapToAlignment="start"
-              disableIntervalMomentum
-              getItemLayout={(_, index) => ({
-                length: CARD_WIDTH + CARD_GAP,
-                offset: index * (CARD_WIDTH + CARD_GAP),
-                index,
-              })}
-              onScrollToIndexFailed={({ index }) => {
-                setTimeout(() => scrollCarouselToIndex(index, false), 50);
-              }}
-              contentContainerStyle={{
-                paddingLeft: CARD_EDGE,
-                paddingRight: CARD_EDGE,
-                gap: CARD_GAP,
-              }}
-              onMomentumScrollEnd={onCardsScrollEnd}
-              renderItem={({ item, index }) => {
-                const groups = getAffinityLabels(item);
-                const meta = [item.neighborhood, item.heritage]
-                  .filter(Boolean)
-                  .join(" · ");
-                const detail =
-                  groups[0] ??
-                  (item.station
-                    ? `${item.subwayLines?.slice(0, 2).join(" · ") || "Transit"} · ${item.station}`
-                    : `${poiCountById.get(item.id) ?? 0} spots · ${item.distanceMiles} mi`);
-                return (
-                  <MapSheetCard
-                    width={CARD_WIDTH}
-                    title={item.name}
-                    meta={meta}
-                    detail={detail}
-                    imageUrl={item.imageUrl}
-                    countryCode={getCommunityCountryCode(item.id)}
-                    flag={getCommunityFlag(item.id, item.emoji)}
-                    onPress={() => openCommunity(item.id)}
-                  />
-                );
-              }}
-            />
           ) : (
             <FlatList
-              ref={listRef as React.RefObject<FlatList<ApiPoi>>}
+              ref={listRef}
               data={carouselFood}
               keyExtractor={(item) => item.id}
               horizontal
@@ -707,7 +667,7 @@ export function MapScreen() {
                 gap: CARD_GAP,
               }}
               onMomentumScrollEnd={onCardsScrollEnd}
-              renderItem={({ item, index }) => {
+              renderItem={({ item }) => {
                 const rating =
                   item.rating != null && Number.isFinite(item.rating)
                     ? `★ ${item.rating.toFixed(1)}`
@@ -731,7 +691,9 @@ export function MapScreen() {
             />
           )}
         </View>
-      ) : (
+      ) : null}
+
+      {mode === "list" ? (
         <View
           style={[
             styles.listSheet,
@@ -820,7 +782,7 @@ export function MapScreen() {
             />
           )}
         </View>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -882,6 +844,15 @@ const styles = StyleSheet.create({
   },
   layerBtnTextActive: {
     color: colors.white,
+  },
+  topFiltersScroll: {
+    marginTop: 10,
+  },
+  topFilters: {
+    paddingHorizontal: 16,
+    gap: 6,
+    alignItems: "center",
+    paddingBottom: 4,
   },
   modeBtn: {
     width: 44,

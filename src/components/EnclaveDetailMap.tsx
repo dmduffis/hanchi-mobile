@@ -30,6 +30,8 @@ type EnclaveDetailMapProps = {
   pois: EnclavePoi[];
   onPoiPress?: (poiId: string) => void;
   style?: StyleProp<ViewStyle>;
+  /** Override default map height (useful in compact sheets). */
+  height?: number;
 };
 
 const MAP_HEIGHT = 240;
@@ -40,6 +42,7 @@ export function EnclaveDetailMap({
   pois,
   onPoiPress,
   style,
+  height = MAP_HEIGHT,
 }: EnclaveDetailMapProps) {
   const mapRef = useRef<MapView>(null);
   const didFit = useRef(false);
@@ -97,7 +100,7 @@ export function EnclaveDetailMap({
 
   if (Platform.OS === "web") {
     return (
-      <View style={[styles.fallback, style]}>
+      <View style={[styles.fallback, { height }, style]}>
         <Text style={styles.fallbackTitle}>Enclave map</Text>
         <Text style={styles.fallbackSub}>
           {markers.length > 0
@@ -111,10 +114,10 @@ export function EnclaveDetailMap({
   const initial = fitCoords[0];
 
   return (
-    <View style={[styles.wrap, style]} collapsable={false}>
+    <View style={[styles.wrap, { height }, style]} collapsable={false}>
       <MapView
         ref={mapRef}
-        style={styles.map}
+        style={[styles.map, { height }]}
         provider={PROVIDER_DEFAULT}
         initialRegion={{
           latitude: initial.latitude,

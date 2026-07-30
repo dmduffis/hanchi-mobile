@@ -1,6 +1,7 @@
 export { Badge } from "./Badge";
 export { Chip } from "./Chip";
 export { CircularFlag } from "./CircularFlag";
+export { CommunityDetailSheet } from "./CommunityDetailSheet";
 export { CommunityMap } from "./CommunityMap";
 export { CultureMultiSelect } from "./CultureMultiSelect";
 export { EnclaveDetailMap } from "./EnclaveDetailMap";
