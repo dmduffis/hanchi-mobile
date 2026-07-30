@@ -89,7 +89,8 @@ export interface AppNotification {
   id: string;
   message: string;
   timestamp: string;
-  icon: "bell" | "map-pin" | "award" | "coffee";
+  /** Glyph keyed to meaning of the notification, not a generic default. */
+  icon: "bell" | "map-pin" | "award" | "heart" | "bolt";
 }
 
 export interface DiscoverRoute {

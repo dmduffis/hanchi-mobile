@@ -14,7 +14,6 @@ import {
   Text,
   View,
 } from "react-native";
-import * as Location from "expo-location";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -42,9 +41,7 @@ import {
   type MapRegion,
   type MapRestaurant,
 } from "../components/CommunityMap";
-import {
-  getCommunityFlag,
-} from "../data/communityFlags";
+import { getCommunityFlag } from "../data/communityFlags";
 import {
   availableCultureFiltersForCommunities,
   ethnicitiesForCultureFilter,
@@ -61,17 +58,39 @@ import {
   IconList,
   IconLocate,
   IconMap,
+  IconMinus,
+  IconPlus,
   IconToolsKitchen2,
   IconUsers,
   IconX,
 } from "../icons";
 import type { RootStackParamList } from "../navigation/types";
+import {
+  distanceMeters,
+  METRO_FIT_RADIUS_METERS,
+  resolveMapRegion,
+} from "../lib/userLocation";
 import { colors, radii, typography } from "../theme";
+import type { Community } from "../types";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.7;
 const CARD_GAP = 10;
 const CARD_EDGE = 14;
+
+function communitiesNear(
+  list: Community[],
+  lat: number,
+  lng: number,
+  radiusMeters = METRO_FIT_RADIUS_METERS,
+): Community[] {
+  return list.filter(
+    (c) =>
+      Number.isFinite(c.latitude) &&
+      Number.isFinite(c.longitude) &&
+      distanceMeters(lat, lng, c.latitude, c.longitude) <= radiusMeters,
+  );
+}
 
 function formatDistanceMeters(meters?: number | null): string {
   if (meters == null || !Number.isFinite(meters)) return "Nearby";
@@ -134,6 +153,7 @@ export function MapScreen() {
     null,
   );
   const [locating, setLocating] = useState(false);
+  const [bootRegion, setBootRegion] = useState<MapRegion | null>(null);
   const listRef = useRef<FlatList<ApiPoi>>(null);
   const mapRef = useRef<CommunityMapHandle>(null);
   const regionRef = useRef<MapRegion>(NYC_REGION);
@@ -142,6 +162,51 @@ export function MapScreen() {
   const scrollFromMarker = useRef(false);
   const selectedIdRef = useRef<string | null>(null);
   const foodFetchGen = useRef(0);
+  const didBootLocation = useRef(false);
+  const didFitMetro = useRef(false);
+
+  useEffect(() => {
+    if (didBootLocation.current) return;
+    didBootLocation.current = true;
+    let cancelled = false;
+
+    (async () => {
+      // Prefer live GPS when already allowed; else saved coords; else NYC.
+      const { region } = await resolveMapRegion({ requestPermission: false });
+      if (cancelled) return;
+      regionRef.current = region;
+      setRegion(region);
+      setBootRegion(region);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // After location + community catalog load, frame the whole metro so OC
+  // enclaves (e.g. Little Arabia) aren't clipped when opened near LA proper.
+  useEffect(() => {
+    if (
+      didFitMetro.current ||
+      !bootRegion ||
+      loading ||
+      communities.length === 0
+    ) {
+      return;
+    }
+    const metro = communitiesNear(
+      communities,
+      bootRegion.latitude,
+      bootRegion.longitude,
+    );
+    if (metro.length === 0) return;
+    didFitMetro.current = true;
+    const handle = requestAnimationFrame(() => {
+      mapRef.current?.fitToCommunities(metro);
+    });
+    return () => cancelAnimationFrame(handle);
+  }, [bootRegion, communities, loading]);
 
   const filtered = useMemo(
     () => filterCommunities(communities, { culture, query }),
@@ -410,21 +475,31 @@ export function MapScreen() {
     if (locating) return;
     setLocating(true);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
+      const { region, granted } = await resolveMapRegion({
+        requestPermission: true,
+      });
+      if (!granted) {
         Alert.alert(
           "Location needed",
           "Allow location access to jump back to where you are on the map.",
         );
         return;
       }
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      mapRef.current?.animateToCoordinate(
-        position.coords.latitude,
-        position.coords.longitude,
+      regionRef.current = region;
+      setRegion(region);
+      const metro = communitiesNear(
+        communities,
+        region.latitude,
+        region.longitude,
       );
+      if (metro.length > 0) {
+        mapRef.current?.fitToCommunities(metro);
+      } else {
+        mapRef.current?.animateToCoordinate(region.latitude, region.longitude, {
+          latitudeDelta: region.latitudeDelta,
+          longitudeDelta: region.longitudeDelta,
+        });
+      }
     } catch {
       Alert.alert(
         "Couldn't find you",
@@ -451,7 +526,22 @@ export function MapScreen() {
       ? focusedCommunityId
       : (carouselItems[activeIndex]?.id ?? null);
 
-  if (loading) {
+  const locateOffset =
+    showCommunityDetail || mode === "list"
+      ? { top: insets.top + (showCultureChips ? 168 : 132) }
+      : showRestaurantCarousel
+        ? { bottom: 250 + Math.max(insets.bottom, 6) }
+        : { bottom: 24 + Math.max(insets.bottom, 6) };
+
+  const zoomOffset =
+    "bottom" in locateOffset
+      ? { bottom: (locateOffset.bottom as number) + 56 }
+      : { top: (locateOffset.top as number) + 56 };
+
+  const zoomIn = () => mapRef.current?.zoomBy(0.55);
+  const zoomOut = () => mapRef.current?.zoomBy(1.8);
+
+  if (loading || !bootRegion) {
     return (
       <View style={[styles.root, styles.loadingWrap]}>
         <ActivityIndicator color={colors.forest} />
@@ -474,6 +564,7 @@ export function MapScreen() {
         layer={layer}
         communities={filtered}
         restaurants={mapRestaurants}
+        initialRegion={bootRegion}
         filterKey={`${layer}|${culture}|${query.trim().toLowerCase()}`}
         selectedId={selectedMapId}
         onMarkerPress={scrollToItem}
@@ -582,15 +673,30 @@ export function MapScreen() {
         ) : null}
       </SafeAreaView>
 
+      <View style={[styles.zoomStack, zoomOffset]}>
+        <Pressable
+          style={styles.zoomBtn}
+          onPress={zoomIn}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel="Zoom in"
+        >
+          <IconPlus size={18} color={colors.forest} />
+        </Pressable>
+        <View style={styles.zoomDivider} />
+        <Pressable
+          style={styles.zoomBtn}
+          onPress={zoomOut}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel="Zoom out"
+        >
+          <IconMinus size={18} color={colors.forest} />
+        </Pressable>
+      </View>
+
       <Pressable
-        style={[
-          styles.locateBtn,
-          showCommunityDetail || mode === "list"
-            ? { top: insets.top + (showCultureChips ? 168 : 132) }
-            : showRestaurantCarousel
-              ? { bottom: 250 + Math.max(insets.bottom, 6) }
-              : { bottom: 24 + Math.max(insets.bottom, 6) },
-        ]}
+        style={[styles.locateBtn, locateOffset]}
         onPress={goToMyLocation}
         hitSlop={8}
         accessibilityRole="button"
@@ -890,6 +996,32 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.14,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
+  },
+  zoomStack: {
+    position: "absolute",
+    right: 16,
+    zIndex: 25,
+    elevation: 25,
+    width: 40,
+    borderRadius: 12,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: "#D6D3CC",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 1 },
+  },
+  zoomBtn: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  zoomDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "#D6D3CC",
   },
   sheet: {
     position: "absolute",

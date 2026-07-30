@@ -15,17 +15,34 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { fetchCommunityDishes, type ApiDish } from "../api/communities";
+import {
+  fetchCommunities,
+  fetchCommunityDishes,
+  type ApiCommunity,
+  type ApiDish,
+} from "../api/communities";
+import { mapApiCommunity } from "../api/mappers";
 import { searchAll } from "../api/search";
 import { useCommunities } from "../api/useCommunities";
-import { ListRow, PromoBanner, SearchBar, EthnicityFlags } from "../components";
-import { CommunityMap } from "../components/CommunityMap";
+import { ListRow, SearchBar, EthnicityFlags } from "../components";
+import { CommunityMap, NYC_REGION } from "../components/CommunityMap";
 import { getCommunityFlag } from "../data/communityFlags";
-import { IconArrowsMaximize, IconAward, IconBell } from "../icons";
+import { IconArrowsMaximize, IconBell } from "../icons";
+import { resolveMapRegion } from "../lib/userLocation";
 import type { MainTabParamList, RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
+import type { Community } from "../types";
 
 const DISH_CARD_WIDTH = 148;
+/** Metro-scale radius so "nearby" means the city, not the same block. */
+const NEARBY_RADIUS_METERS = 50_000;
+const NEARBY_LIMIT = 5;
+
+function formatNearbyDistance(miles: number): string {
+  if (miles < 0.1) return "Nearby";
+  if (miles < 10) return `${miles.toFixed(1)} mi`;
+  return `${Math.round(miles)} mi`;
+}
 
 type HomeNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, "Home">,
@@ -51,31 +68,83 @@ function getGreeting(): string {
 
 export function HomeScreen() {
   const navigation = useNavigation<HomeNavigation>();
-  const { communities, raw, loading, error } = useCommunities();
+  const { communities, loading, error } = useCommunities();
   const [query, setQuery] = useState("");
   const [dishes, setDishes] = useState<ApiDish[]>([]);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
-
-  const isSearching = query.trim().length > 0;
-  const nearby = communities.slice(0, 5);
-  const poiCountById = useMemo(() => {
-    const map = new Map<string, number>();
-    raw.forEach((c) => map.set(c.id, c.poiCount ?? 0));
-    return map;
-  }, [raw]);
-
-  const communityIds = useMemo(() => raw.map((c) => c.id).join(","), [raw]);
+  const [peekRegion, setPeekRegion] = useState(NYC_REGION);
+  const [nearby, setNearby] = useState<Community[]>([]);
+  const [nearbyRaw, setNearbyRaw] = useState<ApiCommunity[]>([]);
+  const [nearbyLoading, setNearbyLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!communityIds) {
+      setNearbyLoading(true);
+      try {
+        const { region } = await resolveMapRegion({ requestPermission: false });
+        if (cancelled) return;
+        setPeekRegion(region);
+
+        let data = await fetchCommunities({
+          near: { lat: region.latitude, lng: region.longitude },
+          radiusMeters: NEARBY_RADIUS_METERS,
+        });
+
+        // Sparse area or cold start: fall back to NYC metro density.
+        if (data.length === 0) {
+          data = await fetchCommunities({
+            near: {
+              lat: NYC_REGION.latitude,
+              lng: NYC_REGION.longitude,
+            },
+            radiusMeters: NEARBY_RADIUS_METERS,
+          });
+        }
+
+        if (cancelled) return;
+        setNearbyRaw(data);
+        setNearby(data.slice(0, NEARBY_LIMIT).map(mapApiCommunity));
+      } catch {
+        if (!cancelled) {
+          setNearbyRaw([]);
+          setNearby([]);
+        }
+      } finally {
+        if (!cancelled) setNearbyLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const isSearching = query.trim().length > 0;
+  const poiCountById = useMemo(() => {
+    const map = new Map<string, number>();
+    nearbyRaw.forEach((c) => map.set(c.id, c.poiCount ?? 0));
+    return map;
+  }, [nearbyRaw]);
+
+  const nearbyIds = useMemo(
+    () =>
+      nearbyRaw
+        .slice(0, 24)
+        .map((c) => c.id)
+        .join(","),
+    [nearbyRaw],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!nearbyIds) {
         setDishes((prev) => (prev.length === 0 ? prev : []));
         return;
       }
       try {
-        const ids = communityIds.split(",").slice(0, 24);
+        const ids = nearbyIds.split(",");
         const batches = await Promise.all(
           ids.map((id) => fetchCommunityDishes(id).catch(() => [])),
         );
@@ -103,7 +172,7 @@ export function HomeScreen() {
     return () => {
       cancelled = true;
     };
-  }, [communityIds]);
+  }, [nearbyIds]);
 
   useEffect(() => {
     let cancelled = false;
@@ -183,7 +252,7 @@ export function HomeScreen() {
               style={styles.iconBtn}
               hitSlop={8}
             >
-              <IconBell size={20} color={colors.ink} />
+              <IconBell size={22} color={colors.ink} />
             </Pressable>
             <Pressable
               onPress={() => navigation.navigate("Profile")}
@@ -250,7 +319,11 @@ export function HomeScreen() {
         ) : (
           <>
             <View style={styles.mapPeek}>
-              <CommunityMap communities={communities} interactive={false} />
+              <CommunityMap
+                communities={communities}
+                interactive={false}
+                initialRegion={peekRegion}
+              />
               <Pressable
                 style={styles.mapHitArea}
                 onPress={() => navigation.navigate("Map")}
@@ -260,14 +333,6 @@ export function HomeScreen() {
                   <Text style={styles.mapCtaText}>Open map</Text>
                 </View>
               </Pressable>
-            </View>
-
-            <View style={styles.section}>
-              <PromoBanner
-                text="Taste of Queens challenge — stamp 4 communities this weekend"
-                icon={IconAward}
-                onPress={() => navigation.navigate("Discover")}
-              />
             </View>
 
             {dishes.length > 0 ? (
@@ -330,19 +395,28 @@ export function HomeScreen() {
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Nearby communities</Text>
-              {nearby.map((c) => (
-                <ListRow
-                  key={c.id}
-                  thumbnail={getCommunityFlag(c.id, c.emoji)}
-                  title={c.name}
-                  subtitle={`${c.neighborhood} · ${poiCountById.get(c.id) ?? 0} places · ${c.distanceMiles} mi`}
-                  onPress={() =>
-                    navigation.navigate("CommunityProfile", {
-                      communityId: c.id,
-                    })
-                  }
-                />
-              ))}
+              {nearbyLoading ? (
+                <ActivityIndicator color={colors.forest} />
+              ) : nearby.length === 0 ? (
+                <Text style={styles.emptySearch}>
+                  No communities with restaurants near you yet. Open the map to
+                  explore.
+                </Text>
+              ) : (
+                nearby.map((c) => (
+                  <ListRow
+                    key={c.id}
+                    thumbnail={getCommunityFlag(c.id, c.emoji)}
+                    title={c.name}
+                    subtitle={`${c.neighborhood} · ${poiCountById.get(c.id) ?? 0} places · ${formatNearbyDistance(c.distanceMiles)}`}
+                    onPress={() =>
+                      navigation.navigate("CommunityProfile", {
+                        communityId: c.id,
+                      })
+                    }
+                  />
+                ))
+              )}
             </View>
           </>
         )}

@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { updateMe, type UserIntent } from "../api/users";
 import { CultureMultiSelect, PrimaryButton } from "../components";
 import { INTENT_OPTIONS } from "../data/userPrefs";
+import { resolveMapRegion } from "../lib/userLocation";
 import { colors, radii, typography } from "../theme";
 
 type OnboardingScreenProps = {
@@ -12,7 +13,7 @@ type OnboardingScreenProps = {
 };
 
 export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [intents, setIntents] = useState<UserIntent[]>([]);
   const [cultures, setCultures] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -31,7 +32,10 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     );
   };
 
-  const finish = async (selectedIntents: UserIntent[]) => {
+  const finish = async (
+    selectedIntents: UserIntent[],
+    opts?: { requestLocation?: boolean },
+  ) => {
     if (cultures.length < 1 || cultures.length > 2) return;
     setSaving(true);
     setError(null);
@@ -40,6 +44,9 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
         cultures,
         intents: selectedIntents,
       });
+      if (opts?.requestLocation) {
+        await resolveMapRegion({ requestPermission: true });
+      }
       await onComplete();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn’t save preferences");
@@ -73,7 +80,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
               placeholder="Search and choose up to two"
             />
           </View>
-        ) : (
+        ) : step === 2 ? (
           <View style={styles.middle}>
             <Text style={styles.prompt}>What brings you to Sinta?</Text>
             <Text style={styles.hint}>
@@ -112,6 +119,15 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
               })}
             </View>
           </View>
+        ) : (
+          <View style={styles.middle}>
+            <Text style={styles.prompt}>Find communities near you</Text>
+            <Text style={styles.hint}>
+              Turn on location so the map opens where you are. If you skip,
+              we'll start you in New York — one of the densest places for
+              cultural neighborhoods on Sinta.
+            </Text>
+          </View>
         )}
 
         <View style={styles.bottom}>
@@ -119,6 +135,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
           <View style={styles.dots}>
             <View style={[styles.dot, step === 1 && styles.dotActive]} />
             <View style={[styles.dot, step === 2 && styles.dotActive]} />
+            <View style={[styles.dot, step === 3 && styles.dotActive]} />
           </View>
           {step === 1 ? (
             <PrimaryButton
@@ -126,7 +143,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
               onPress={onContinueCultures}
               disabled={cultures.length < 1}
             />
-          ) : (
+          ) : step === 2 ? (
             <View style={styles.step2Actions}>
               <Pressable
                 onPress={() => setStep(1)}
@@ -137,15 +154,41 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
               </Pressable>
               <View style={styles.finishWrap}>
                 <PrimaryButton
-                  label={
-                    intents.length > 0 ? "Enter Sinta" : "Skip and explore"
-                  }
-                  onPress={() => finish(intents)}
+                  label={intents.length > 0 ? "Continue" : "Skip for now"}
+                  onPress={() => setStep(3)}
+                  loading={saving}
+                />
+              </View>
+            </View>
+          ) : (
+            <View style={styles.step2Actions}>
+              <Pressable
+                onPress={() => setStep(2)}
+                disabled={saving}
+                style={styles.backBtn}
+              >
+                <Text style={styles.backLabel}>Back</Text>
+              </Pressable>
+              <View style={styles.finishWrap}>
+                <PrimaryButton
+                  label="Turn on location"
+                  onPress={() => finish(intents, { requestLocation: true })}
                   loading={saving}
                 />
               </View>
             </View>
           )}
+          {step === 3 ? (
+            <Pressable
+              onPress={() => finish(intents)}
+              disabled={saving}
+              style={styles.skipLocation}
+            >
+              <Text style={styles.skipLocationLabel}>
+                Not now — start in New York
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     </SafeAreaView>
@@ -272,5 +315,14 @@ const styles = StyleSheet.create({
   },
   finishWrap: {
     flex: 1,
+  },
+  skipLocation: {
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  skipLocationLabel: {
+    fontFamily: typography.bodyMedium,
+    fontSize: 14,
+    color: colors.gray,
   },
 });

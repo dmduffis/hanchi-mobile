@@ -67,7 +67,7 @@ export const mockNotifications: AppNotification[] = [
     id: "n1",
     message: "New seasonal challenge: Queens enclaves — stamp 4 this weekend.",
     timestamp: "2h ago",
-    icon: "award",
+    icon: "bolt",
   },
   {
     id: "n2",
@@ -85,13 +85,13 @@ export const mockNotifications: AppNotification[] = [
     id: "n4",
     message: "Your Little Pakistan favorites are nearby — free this weekend?",
     timestamp: "5 days ago",
-    icon: "coffee",
+    icon: "heart",
   },
   {
     id: "n5",
     message: "Drop In found a new spot — try Little Senegal?",
     timestamp: "1 week ago",
-    icon: "coffee",
+    icon: "map-pin",
   },
 ];
 

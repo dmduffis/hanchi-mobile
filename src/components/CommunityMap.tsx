@@ -20,6 +20,7 @@ import MapView, {
   type Region,
 } from "react-native-maps";
 
+import { NYC_REGION } from "../data/mapDefaults";
 import {
   getCommunityCountryCode,
   getCommunityFlag,
@@ -34,6 +35,8 @@ import { CircularFlag } from "./CircularFlag";
 import { MapFlagPin } from "./MapFlagPin";
 
 export type MapRegion = Region;
+
+export { NYC_REGION };
 
 export type MapRestaurant = {
   id: string;
@@ -51,6 +54,8 @@ export type CommunityMapHandle = {
     longitude: number,
     deltas?: { latitudeDelta?: number; longitudeDelta?: number },
   ) => void;
+  /** Multiply current span — factor < 1 zooms in, > 1 zooms out. */
+  zoomBy: (factor: number) => void;
 };
 
 export type MapLayer = "enclaves" | "restaurants";
@@ -66,16 +71,10 @@ type CommunityMapProps = {
   /** When filters change, refresh custom marker bitmaps without remounting the map */
   filterKey?: string;
   selectedId?: string | null;
+  /** First paint region — defaults to NYC when location is unavailable. */
+  initialRegion?: MapRegion;
   /** Fires when the user finishes panning/zooming — use to filter carousel to viewport. */
   onRegionChangeComplete?: (region: MapRegion) => void;
-};
-
-/** Landing view stays on NYC; other metros are on the map but off-screen until you pan. */
-export const NYC_REGION: MapRegion = {
-  latitude: 40.72,
-  longitude: -73.95,
-  latitudeDelta: 0.28,
-  longitudeDelta: 0.28,
 };
 
 /** True if a lat/lng falls inside the map region (with light padding). */
@@ -123,6 +122,10 @@ export function radiusMetersForRegion(region: MapRegion): number {
   const halfW = (region.longitudeDelta / 2) * metersPerDegLng;
   const diagonal = Math.sqrt(halfH * halfH + halfW * halfW);
   return Math.min(Math.max(Math.round(diagonal * 1.15), 800), 40_000);
+}
+
+function clampZoomDelta(delta: number): number {
+  return Math.min(Math.max(delta, 0.004), 2.4);
 }
 
 /** Max individual restaurant pins when zoomed in. */
@@ -262,12 +265,13 @@ export const CommunityMap = forwardRef<CommunityMapHandle, CommunityMapProps>(
       onRestaurantPress,
       filterKey = "all",
       selectedId = null,
+      initialRegion = NYC_REGION,
       onRegionChangeComplete,
     },
     ref,
   ) {
     const mapRef = useRef<MapView>(null);
-    const [region, setRegion] = useState<MapRegion>(NYC_REGION);
+    const [region, setRegion] = useState<MapRegion>(initialRegion);
 
     useImperativeHandle(ref, () => ({
       fitToCommunities: (list: Community[]) => {
@@ -311,6 +315,17 @@ export const CommunityMap = forwardRef<CommunityMapHandle, CommunityMapProps>(
           },
           450,
         );
+      },
+      zoomBy: (factor) => {
+        if (!Number.isFinite(factor) || factor <= 0) return;
+        const next: MapRegion = {
+          ...region,
+          latitudeDelta: clampZoomDelta(region.latitudeDelta * factor),
+          longitudeDelta: clampZoomDelta(region.longitudeDelta * factor),
+        };
+        setRegion(next);
+        mapRef.current?.animateToRegion(next, 220);
+        onRegionChangeComplete?.(next);
       },
     }));
 
@@ -375,7 +390,7 @@ export const CommunityMap = forwardRef<CommunityMapHandle, CommunityMapProps>(
         ref={mapRef}
         style={[styles.map, style]}
         provider={PROVIDER_DEFAULT}
-        initialRegion={NYC_REGION}
+        initialRegion={initialRegion}
         onRegionChangeComplete={handleRegionChangeComplete}
         scrollEnabled={interactive}
         zoomEnabled={interactive}
