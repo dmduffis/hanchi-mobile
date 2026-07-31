@@ -1,8 +1,10 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { CircularFlag } from "./CircularFlag";
+import type { FavoriteType } from "../api/favorites";
 import { IconImage } from "../icons";
 import { colors, typography } from "../theme";
+import { CircularFlag } from "./CircularFlag";
+import { FavoriteHeart } from "./FavoriteHeart";
 
 type MapSheetCardProps = {
   width: number;
@@ -13,6 +15,8 @@ type MapSheetCardProps = {
   countryCode?: string | null;
   flag?: string;
   onPress?: () => void;
+  favoriteType?: FavoriteType;
+  favoriteId?: string;
 };
 
 /**
@@ -27,8 +31,11 @@ export function MapSheetCard({
   countryCode,
   flag,
   onPress,
+  favoriteType,
+  favoriteId,
 }: MapSheetCardProps) {
   const showFlag = Boolean(countryCode || flag);
+  const showFavorite = Boolean(favoriteType && favoriteId);
 
   return (
     <Pressable
@@ -58,6 +65,19 @@ export function MapSheetCard({
               flag={flag}
               size={18}
               elevated
+            />
+          </View>
+        ) : null}
+        {showFavorite ? (
+          <View
+            style={styles.heartBadge}
+            onStartShouldSetResponder={() => true}
+            onTouchEnd={(e) => e.stopPropagation()}
+          >
+            <FavoriteHeart
+              type={favoriteType!}
+              targetId={favoriteId!}
+              size={18}
             />
           </View>
         ) : null}
@@ -111,6 +131,17 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 8,
     bottom: 8,
+  },
+  heartBadge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   body: {
     paddingHorizontal: 10,

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -17,6 +19,7 @@ import {
   CultureMultiSelect,
   PrimaryButton,
 } from "../components";
+import { METRO_PRESETS } from "../data/mapDefaults";
 import {
   cultureCountryCode,
   cultureFlag,
@@ -28,10 +31,18 @@ import {
   IconBell,
   IconChevronRight,
   IconHelpCircle,
+  IconLocate,
+  IconMapPin,
   IconStar,
   IconUser,
   type Icon,
 } from "../icons";
+import {
+  getSavedLocationInfo,
+  resolveMapRegion,
+  setManualMapRegion,
+  type SavedLocationInfo,
+} from "../lib/userLocation";
 import { colors, radii, typography } from "../theme";
 
 const SETTINGS: { id: string; label: string; icon: Icon }[] = [
@@ -46,23 +57,35 @@ export function ProfileScreen() {
   const [placesStamped, setPlacesStamped] = useState(0);
   const [user, setUser] = useState<ApiUser | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const [locationInfo, setLocationInfo] = useState<SavedLocationInfo | null>(
+    null,
+  );
+  const [locationBusy, setLocationBusy] = useState(false);
   const [draftIntents, setDraftIntents] = useState<UserIntent[]>([]);
   const [draftCultures, setDraftCultures] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
+  const refreshLocation = async () => {
+    const info = await getSavedLocationInfo();
+    setLocationInfo(info);
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [me, stampData] = await Promise.all([
+        const [me, stampData, location] = await Promise.all([
           fetchMe(),
           fetchUserStamps(),
+          getSavedLocationInfo(),
         ]);
         if (cancelled) return;
         setUser(me);
         setStamps(stampData.length);
         setPlacesStamped(new Set(stampData.map((s) => s.communityId)).size);
+        setLocationInfo(location);
       } catch {
         if (!cancelled) {
           setUser(null);
@@ -114,9 +137,59 @@ export function ProfileScreen() {
     }
   };
 
+  const useCurrentLocation = async () => {
+    if (locationBusy) return;
+    setLocationBusy(true);
+    try {
+      const { region, granted, label } = await resolveMapRegion({
+        requestPermission: true,
+        forceGps: true,
+      });
+      if (!granted) {
+        Alert.alert(
+          "Location needed",
+          "Allow location access to use where you are on the map and Home.",
+        );
+        return;
+      }
+      setLocationInfo({
+        region,
+        mode: "gps",
+        label: label ?? "Current location",
+      });
+      setLocationOpen(false);
+    } catch {
+      Alert.alert(
+        "Couldn't find you",
+        "Check that location services are on, then try again.",
+      );
+    } finally {
+      setLocationBusy(false);
+    }
+  };
+
+  const pickMetro = async (id: string) => {
+    const metro = METRO_PRESETS.find((m) => m.id === id);
+    if (!metro || locationBusy) return;
+    setLocationBusy(true);
+    try {
+      const info = await setManualMapRegion(metro.region, metro.label);
+      setLocationInfo(info);
+      setLocationOpen(false);
+    } finally {
+      setLocationBusy(false);
+    }
+  };
+
   const displayName = user?.displayName ?? "Alex Rivera";
   const initial = displayName.charAt(0).toUpperCase();
   const cultures = user?.cultures ?? [];
+  const locationSubtitle =
+    locationInfo == null
+      ? "Set where the map opens"
+      : locationInfo.mode === "gps"
+        ? `${locationInfo.label} · Current location`
+        : `${locationInfo.label} · Exploring`;
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -154,6 +227,26 @@ export function ProfileScreen() {
             <Text style={styles.intentLineMuted}>Add 1–2 cultures</Text>
           )}
         </View>
+
+        <Pressable
+          style={styles.prefsCard}
+          onPress={() => {
+            void refreshLocation();
+            setLocationOpen(true);
+          }}
+        >
+          <View style={styles.prefsHeader}>
+            <Text style={styles.prefsTitle}>Map location</Text>
+            <Text style={styles.editLink}>Change</Text>
+          </View>
+          <View style={styles.locationRow}>
+            <View style={styles.settingsIcon}>
+              <IconMapPin size={18} color={colors.forest} />
+            </View>
+            <Text style={styles.locationLabel}>{locationSubtitle}</Text>
+            <IconChevronRight size={18} color={colors.grayLight} />
+          </View>
+        </Pressable>
 
         <View style={styles.stats}>
           <View style={styles.stat}>
@@ -259,6 +352,87 @@ export function ProfileScreen() {
           </View>
         </SafeAreaView>
       </Modal>
+
+      <Modal
+        visible={locationOpen}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setLocationOpen(false)}
+      >
+        <SafeAreaView style={styles.modalSafe}>
+          <View style={styles.modalHeader}>
+            <Pressable
+              onPress={() => setLocationOpen(false)}
+              disabled={locationBusy}
+            >
+              <Text style={styles.modalCancel}>Close</Text>
+            </Pressable>
+            <Text style={styles.modalTitle}>Map location</Text>
+            <View style={{ width: 56 }} />
+          </View>
+
+          <ScrollView
+            contentContainerStyle={styles.modalScroll}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.modalHint}>
+              This is where Home nearby and the map open. Pick a metro to
+              explore, or use where you are.
+            </Text>
+
+            <Pressable
+              style={[styles.intentRow, styles.gpsRow]}
+              onPress={useCurrentLocation}
+              disabled={locationBusy}
+            >
+              <View style={styles.settingsIcon}>
+                {locationBusy ? (
+                  <ActivityIndicator size="small" color={colors.forest} />
+                ) : (
+                  <IconLocate size={18} color={colors.forest} />
+                )}
+              </View>
+              <View style={styles.gpsCopy}>
+                <Text style={styles.intentLabel}>Use my current location</Text>
+                <Text style={styles.modalHintInline}>
+                  Clears any metro override
+                </Text>
+              </View>
+            </Pressable>
+
+            <Text style={[styles.modalSection, { marginTop: 24 }]}>
+              Explore a metro
+            </Text>
+            <View style={styles.intentList}>
+              {METRO_PRESETS.map((metro) => {
+                const selected =
+                  locationInfo?.mode === "manual" &&
+                  locationInfo.label === metro.label;
+                return (
+                  <Pressable
+                    key={metro.id}
+                    onPress={() => pickMetro(metro.id)}
+                    disabled={locationBusy}
+                    style={[
+                      styles.intentRow,
+                      selected && styles.intentRowSelected,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.intentLabel,
+                        selected && styles.intentLabelSelected,
+                      ]}
+                    >
+                      {metro.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -329,6 +503,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  locationLabel: {
+    flex: 1,
+    fontFamily: typography.body,
+    fontSize: 14,
+    color: colors.gray,
   },
   stats: {
     flexDirection: "row",
@@ -427,6 +612,20 @@ const styles = StyleSheet.create({
     color: colors.gray,
     marginBottom: 12,
     lineHeight: 18,
+  },
+  modalHintInline: {
+    fontFamily: typography.body,
+    fontSize: 12,
+    color: colors.grayLight,
+    marginTop: 2,
+  },
+  gpsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  gpsCopy: {
+    flex: 1,
   },
   intentList: {
     gap: 8,

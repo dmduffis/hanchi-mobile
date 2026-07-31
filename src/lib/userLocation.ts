@@ -2,11 +2,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import type { Region } from "react-native-maps";
 
-import { NYC_REGION } from "../data/mapDefaults";
+import { METRO_PRESETS, NYC_REGION } from "../data/mapDefaults";
 
 const LAST_REGION_KEY = "sinta.lastMapRegion";
+const LOCATION_MODE_KEY = "sinta.mapLocationMode";
+const LOCATION_LABEL_KEY = "sinta.mapLocationLabel";
 
 export type MapBootRegion = Region;
+export type MapLocationMode = "gps" | "manual";
 
 /** City-scale zoom when centering on the user. */
 const USER_DELTAS = {
@@ -79,24 +82,144 @@ export async function saveMapRegion(region: MapBootRegion): Promise<void> {
   }
 }
 
+export async function getMapLocationMode(): Promise<MapLocationMode> {
+  try {
+    const value = await AsyncStorage.getItem(LOCATION_MODE_KEY);
+    return value === "manual" ? "manual" : "gps";
+  } catch {
+    return "gps";
+  }
+}
+
+async function setMapLocationMode(mode: MapLocationMode): Promise<void> {
+  try {
+    await AsyncStorage.setItem(LOCATION_MODE_KEY, mode);
+  } catch {
+    // ignore
+  }
+}
+
+export async function getMapLocationLabel(): Promise<string | null> {
+  try {
+    return (await AsyncStorage.getItem(LOCATION_LABEL_KEY)) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function setMapLocationLabel(label: string | null): Promise<void> {
+  try {
+    if (label) await AsyncStorage.setItem(LOCATION_LABEL_KEY, label);
+    else await AsyncStorage.removeItem(LOCATION_LABEL_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+function nearestMetroLabel(region: MapBootRegion): string | null {
+  let best: { label: string; meters: number } | null = null;
+  for (const metro of METRO_PRESETS) {
+    const meters = distanceMeters(
+      region.latitude,
+      region.longitude,
+      metro.region.latitude,
+      metro.region.longitude,
+    );
+    if (!best || meters < best.meters) {
+      best = { label: metro.label, meters };
+    }
+  }
+  // Within ~40 mi of a curated metro → use that name.
+  if (best && best.meters <= 65_000) return best.label;
+  return null;
+}
+
+async function labelForRegion(region: MapBootRegion): Promise<string> {
+  const metro = nearestMetroLabel(region);
+  if (metro) return metro;
+  try {
+    const places = await Location.reverseGeocodeAsync({
+      latitude: region.latitude,
+      longitude: region.longitude,
+    });
+    const place = places[0];
+    if (place) {
+      const city =
+        place.city || place.subregion || place.district || place.region;
+      if (city) return city;
+    }
+  } catch {
+    // ignore reverse-geocode failures
+  }
+  return "Custom location";
+}
+
+export type SavedLocationInfo = {
+  region: MapBootRegion;
+  mode: MapLocationMode;
+  label: string;
+};
+
+/** Current profile/map location for display. */
+export async function getSavedLocationInfo(): Promise<SavedLocationInfo> {
+  const mode = await getMapLocationMode();
+  const saved = await getSavedMapRegion();
+  const region = saved ?? NYC_REGION;
+  const storedLabel = await getMapLocationLabel();
+  const label =
+    storedLabel ??
+    (saved ? await labelForRegion(saved) : "New York") ??
+    "New York";
+  return { region, mode, label };
+}
+
+/** Pin the map to a curated metro (manual override). */
+export async function setManualMapRegion(
+  region: MapBootRegion,
+  label: string,
+): Promise<SavedLocationInfo> {
+  await saveMapRegion(region);
+  await setMapLocationMode("manual");
+  await setMapLocationLabel(label);
+  return { region, mode: "manual", label };
+}
+
 /**
  * Resolve where the map should open.
- * Uses GPS when permission is granted; falls back to NYC for diversity of communities.
+ * Manual profile picks win until the user chooses GPS again.
  */
 export async function resolveMapRegion(opts?: {
   /** When true, prompt the system permission dialog if not yet decided. */
   requestPermission?: boolean;
-}): Promise<{ region: MapBootRegion; granted: boolean }> {
+  /** Force GPS and clear any manual metro override. */
+  forceGps?: boolean;
+}): Promise<{ region: MapBootRegion; granted: boolean; label?: string }> {
+  if (!opts?.forceGps) {
+    const mode = await getMapLocationMode();
+    if (mode === "manual") {
+      const saved = await getSavedMapRegion();
+      if (saved) {
+        const label =
+          (await getMapLocationLabel()) ?? (await labelForRegion(saved));
+        return { region: saved, granted: false, label };
+      }
+    }
+  }
+
   let granted = false;
   try {
-    const permission = opts?.requestPermission
+    const permission = opts?.requestPermission || opts?.forceGps
       ? await Location.requestForegroundPermissionsAsync()
       : await Location.getForegroundPermissionsAsync();
 
     granted = permission.status === "granted";
     if (!granted) {
       const saved = await getSavedMapRegion();
-      return { region: saved ?? NYC_REGION, granted: false };
+      return {
+        region: saved ?? NYC_REGION,
+        granted: false,
+        label: (await getMapLocationLabel()) ?? undefined,
+      };
     }
 
     const position = await Location.getCurrentPositionAsync({
@@ -107,9 +230,16 @@ export async function resolveMapRegion(opts?: {
       position.coords.longitude,
     );
     await saveMapRegion(region);
-    return { region, granted: true };
+    await setMapLocationMode("gps");
+    const label = await labelForRegion(region);
+    await setMapLocationLabel(label);
+    return { region, granted: true, label };
   } catch {
     const saved = await getSavedMapRegion();
-    return { region: saved ?? NYC_REGION, granted };
+    return {
+      region: saved ?? NYC_REGION,
+      granted,
+      label: (await getMapLocationLabel()) ?? undefined,
+    };
   }
 }

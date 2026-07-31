@@ -30,6 +30,24 @@ export function IconBell({ color = "currentColor", size }: IconProps) {
   });
 }
 
+/** Outline heart for not-saved state. */
+export function IconHeart({ color = "currentColor", size }: IconProps) {
+  return createElement(Ionicons, {
+    name: "heart-outline",
+    size: toIconSize(size),
+    color,
+  });
+}
+
+/** Solid filled heart for favorited state. */
+export function IconHeartFilled({ color = "currentColor", size }: IconProps) {
+  return createElement(Ionicons, {
+    name: "heart",
+    size: toIconSize(size),
+    color,
+  });
+}
+
 export { default as IconArrowLeft } from "@iconscout/react-native-unicons/icons/uil-arrow-left";
 export { default as IconArrowRight } from "@iconscout/react-native-unicons/icons/uil-arrow-right";
 export { default as IconArrowsMaximize } from "@iconscout/react-native-unicons/icons/uil-expand-arrows";
@@ -43,8 +61,6 @@ export { default as IconChevronRight } from "@iconscout/react-native-unicons/ico
 export { default as IconChevronUp } from "@iconscout/react-native-unicons/icons/uil-angle-up";
 export { default as IconClock } from "@iconscout/react-native-unicons/icons/uil-clock";
 export { default as IconCoffee } from "@iconscout/react-native-unicons/icons/uil-coffee";
-export { default as IconHeart } from "@iconscout/react-native-unicons/icons/uil-heart";
-export { default as IconHeartFilled } from "@iconscout/react-native-unicons/icons/uil-heart-alt";
 export { default as IconHelpCircle } from "@iconscout/react-native-unicons/icons/uil-question-circle";
 export { default as IconHome } from "@iconscout/react-native-unicons/icons/uil-estate";
 export { default as IconImage } from "@iconscout/react-native-unicons/icons/uil-image";

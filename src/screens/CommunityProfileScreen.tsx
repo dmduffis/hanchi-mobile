@@ -18,7 +18,7 @@ import {
   type ApiCommunityDetail,
   type ApiDish,
 } from "../api/communities";
-import { createStamp, fetchUserStamps } from "../api/stamps";
+import { fetchUserStamps, toggleStamp } from "../api/stamps";
 import { mapApiCommunity } from "../api/mappers";
 import {
   Badge,
@@ -141,13 +141,15 @@ export function CommunityProfileScreen() {
   }, [community?.latitude, community?.longitude]);
 
   const onStamp = async () => {
-    if (!community || stamping || stamped) return;
+    if (!community || stamping) return;
+    const next = !stamped;
     setStamping(true);
-    setStamped(true);
+    setStamped(next);
     try {
-      await createStamp(community.id);
+      const result = await toggleStamp(community.id);
+      setStamped(result.stamped);
     } catch {
-      setStamped(false);
+      setStamped(!next);
     } finally {
       setStamping(false);
     }
@@ -248,15 +250,21 @@ export function CommunityProfileScreen() {
                         restaurantId: r.id,
                       })
                     }
+                    rightElement={
+                      <FavoriteHeart
+                        type="restaurant"
+                        targetId={r.id}
+                        size={18}
+                      />
+                    }
                   />
                 ))}
               </View>
             )}
             <PrimaryButton
-              label={stamped ? "Stamped ✓" : "Stamp passport"}
+              label={stamped ? "Remove stamp" : "Stamp passport"}
               onPress={onStamp}
               loading={stamping}
-              disabled={stamped}
               style={{ marginTop: 8 }}
             />
             <PrimaryButton
@@ -344,6 +352,16 @@ export function CommunityProfileScreen() {
                       <View style={styles.restaurantInfo}>
                         <Text style={styles.restaurantName}>{poi.name}</Text>
                         <Text style={styles.restaurantMeta}>{meta}</Text>
+                      </View>
+                      <View
+                        onStartShouldSetResponder={() => true}
+                        onTouchEnd={(e) => e.stopPropagation()}
+                      >
+                        <FavoriteHeart
+                          type="restaurant"
+                          targetId={poi.id}
+                          size={18}
+                        />
                       </View>
                       <IconChevronRight size={18} color={colors.grayLight} />
                     </Pressable>

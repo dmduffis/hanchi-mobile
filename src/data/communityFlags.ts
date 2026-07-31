@@ -52,6 +52,7 @@ export const COMMUNITY_FLAGS: Record<string, string> = {
   "japantown-sf": "🇯🇵",
   "calle-24-sf": "🇲🇽",
   "soma-pilipinas-sf": "🇵🇭",
+  // US cultural districts (not foreign-country enclaves) — emoji markers, no ISO code.
   "african-american-arts-sf": "🖤",
   "american-indian-sf": "🪶",
   "sunset-chinese-sf": "🇨🇳",
@@ -61,6 +62,7 @@ export const COMMUNITY_FLAGS: Record<string, string> = {
 /**
  * ISO / circle-flags country codes for map pins
  * (HatScripts circle-flags via react-native-circle-flags).
+ * Omit entries for US cultural districts that aren't diaspora country enclaves.
  */
 export const COMMUNITY_COUNTRY_CODES: Record<string, string> = {
   "chinatown-flushing": "cn",
