@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
   stampInkForCommunity,
-  stampPlaceTypeForCommunity,
+  stampMotifForCommunity,
   stampTiltForCommunity,
   stampTitleForCommunity,
 } from "../data/stampPlaceTypes";
@@ -44,7 +44,7 @@ export function Stamp({
   disabled = false,
 }: StampProps) {
   const title = stampTitleForCommunity(name || label || "Place");
-  const placeType = stampPlaceTypeForCommunity(communityId, title);
+  const motif = stampMotifForCommunity(communityId);
   const tilt = stampTiltForCommunity(communityId);
   const ink = earned ? stampInkForCommunity(communityId) : colors.grayLight;
   const code = countryCode?.trim().toUpperCase().slice(0, 2) || "—";
@@ -90,7 +90,7 @@ export function Stamp({
                   {code}
                 </Text>
                 <StampPlaceIcon
-                  type={placeType}
+                  type={motif}
                   color={ink}
                   size={isSm ? 26 : 30}
                 />

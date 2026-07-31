@@ -1,14 +1,40 @@
 /**
- * Place-type motifs for passport stamps (Airbnb-style reuse of a few icons).
- * Icons drawn from Lucide (ISC) — building-2, waves, sun, mountain, trees, landmark.
+ * Stamp face motifs keyed by diaspora country / culture — not the host city.
+ *
+ * Curated motifs use distinctive icons (Phosphor + Material Community Icons).
+ * Everything else uses a small generic pool.
  */
 
-export type StampPlaceType =
-  | "city"
-  | "coastal"
-  | "nature"
-  | "mountains"
+import { getCommunityCountryCode } from "./communityFlags";
+
+export type StampMotif =
+  // Curated — distinctive country associations
+  | "yinYang"
+  | "templeBuddhist"
+  | "om"
+  | "chili"
+  | "pyramid"
+  | "coffee"
+  | "sailboat"
+  | "island"
+  | "guitar"
+  | "mosque"
+  | "noodles"
+  | "rice"
+  | "volcano"
+  | "tipi"
+  // Generic pool
+  | "skyline"
+  | "temple"
+  | "palm"
+  | "waves"
+  | "mountain"
+  | "sun"
+  | "market"
   | "landmark";
+
+/** @deprecated Prefer StampMotif */
+export type StampPlaceType = StampMotif;
 
 /** Monochrome stamp ink colors — one color per stamp. */
 export const STAMP_INK_COLORS = [
@@ -22,63 +48,59 @@ export const STAMP_INK_COLORS = [
   "#5A6B3F", // olive
 ] as const;
 
-/** Explicit overrides when an enclave has a clear vibe. */
-const PLACE_TYPE_BY_ID: Record<string, StampPlaceType> = {
-  "chinatown-flushing": "city",
-  "chinatown-manhattan": "city",
-  "chinatown-sunset-park": "city",
-  "koreatown-manhattan": "city",
-  "koreatown-queens": "city",
-  "koreatown-la": "city",
-  "koreatown-nassau": "city",
-  "little-tokyo-la": "city",
-  "japantown-sf": "city",
-  "little-odessa": "coastal",
-  "little-italy": "city",
-  "little-senegal": "city",
-  "little-ukraine": "city",
-  "little-poland": "city",
-  "little-india": "city",
-  "little-india-hicksville": "city",
-  "little-bangladesh": "city",
-  "little-pakistan": "city",
-  "little-manila": "city",
-  "little-mexico-sunset-park": "city",
-  "little-mexico-port-richmond": "city",
-  "little-colombia": "city",
-  "little-ecuador": "city",
-  "little-dominican-republic": "city",
-  "little-haiti": "coastal",
-  "little-caribbean": "coastal",
-  "little-guyana-queens": "city",
-  "little-guyana-bronx": "city",
-  "little-africa-si": "city",
-  "little-africa-bronx": "city",
-  "little-egypt": "landmark",
-  "little-palestine": "city",
-  "little-yemen": "city",
-  "little-albania": "city",
-  "little-bhod-tibet": "mountains",
-  "little-arabia-dearborn": "city",
-  "little-arabia-anaheim": "city",
-  "little-baghdad-sterling-heights": "city",
-  "little-ethiopia-la": "city",
-  "little-saigon-westminster": "city",
-  "little-portugal-mineola": "city",
-  "little-el-salvador-brentwood": "city",
-  "calle-24-sf": "city",
-  "soma-pilipinas-sf": "city",
-  "sunset-chinese-sf": "city",
-  "pacific-islander-sf": "coastal",
-  "banglatown-hamtramck": "city",
-  "mexicantown-detroit": "city",
-  "thai-town-la": "city",
-  "guyana-gateway": "city",
+/**
+ * Well-known country → distinctive motif.
+ * Countries not listed fall through to the generic pool.
+ */
+const CURATED_BY_COUNTRY: Record<string, StampMotif> = {
+  // East Asia
+  cn: "yinYang",
+  jp: "templeBuddhist",
+  kr: "noodles", // MCI noodles = bowl + chopsticks
+  // SE Asia
+  th: "templeBuddhist",
+  vn: "rice",
+  ph: "island",
+  // South Asia
+  in: "om",
+  np: "mountain",
+  // Latin America
+  mx: "chili",
+  co: "coffee",
+  ec: "volcano",
+  // Africa / Middle East
+  eg: "pyramid",
+  et: "coffee",
+  pk: "mosque",
+  ye: "mosque",
+  lb: "mosque",
+  sy: "mosque",
+  iq: "mosque",
+  ps: "mosque",
+  // Europe / Caribbean
+  pt: "sailboat",
+  jm: "guitar",
 };
 
-// Fix: "market" isn't in StampPlaceType — use city or nature. Use "city" for markets
-// or add market type. I'll use city for markets and map market to city icon, OR add market as alias to city.
-// Better: use landmark for temple-ish and city for markets. Fix the type error - little-india used "market"
+/** Rare per-community overrides when country alone is too coarse. */
+const CURATED_BY_COMMUNITY: Record<string, StampMotif> = {
+  "little-bhod-tibet": "mountain",
+  "pacific-islander-sf": "island",
+  "american-indian-sf": "tipi",
+  "little-caribbean": "guitar",
+  "little-italy": "landmark",
+};
+
+const GENERIC_MOTIFS: StampMotif[] = [
+  "skyline",
+  "temple",
+  "palm",
+  "waves",
+  "mountain",
+  "sun",
+  "market",
+  "landmark",
+];
 
 function hashString(input: string): number {
   let h = 0;
@@ -88,32 +110,22 @@ function hashString(input: string): number {
   return Math.abs(h);
 }
 
-const KEYWORD_TYPES: { re: RegExp; type: StampPlaceType }[] = [
-  { re: /beach|island|coast|harbor|harbour|caribbean|haiti|odessa|pacific/i, type: "coastal" },
-  { re: /tibet|nepal|bhod|mountain|highland/i, type: "mountains" },
-  { re: /park|garden|forest|green/i, type: "nature" },
-  { re: /egypt|temple|church|mosque|cathedral|landmark/i, type: "landmark" },
-  { re: /town|city|street|heights|village|korea|china|japan|india|mexico/i, type: "city" },
-];
+export function stampMotifForCommunity(communityId: string): StampMotif {
+  const byId = CURATED_BY_COMMUNITY[communityId];
+  if (byId) return byId;
 
+  const cc = getCommunityCountryCode(communityId)?.toLowerCase();
+  if (cc && CURATED_BY_COUNTRY[cc]) return CURATED_BY_COUNTRY[cc]!;
+
+  return GENERIC_MOTIFS[hashString(communityId) % GENERIC_MOTIFS.length]!;
+}
+
+/** @deprecated Use stampMotifForCommunity */
 export function stampPlaceTypeForCommunity(
   communityId: string,
-  name = "",
-): StampPlaceType {
-  const fixed = PLACE_TYPE_BY_ID[communityId];
-  if (fixed) return fixed;
-  const hay = `${communityId} ${name}`;
-  for (const { re, type } of KEYWORD_TYPES) {
-    if (re.test(hay)) return type;
-  }
-  const types: StampPlaceType[] = [
-    "city",
-    "coastal",
-    "nature",
-    "mountains",
-    "landmark",
-  ];
-  return types[hashString(communityId) % types.length]!;
+  _name = "",
+): StampMotif {
+  return stampMotifForCommunity(communityId);
 }
 
 export function stampInkForCommunity(communityId: string): string {
@@ -125,7 +137,6 @@ export function stampInkForCommunity(communityId: string): string {
  */
 export function stampTiltForCommunity(communityId: string): number {
   const n = hashString(`tilt:${communityId}`) % 1000;
-  // Map 0–999 → −3.5 … +3.5, skip a dead zone near 0 so most tilt a little.
   const t = (n / 999) * 7 - 3.5;
   if (Math.abs(t) < 0.8) return t >= 0 ? 1.2 : -1.2;
   return Math.round(t * 10) / 10;
@@ -134,7 +145,6 @@ export function stampTiltForCommunity(communityId: string): number {
 /** Display title for stamp face — keep the full community name when it fits. */
 export function stampTitleForCommunity(name: string): string {
   const trimmed = name.trim();
-  // Only compress a few long "X in Y" forms; never drop "Little ".
   const shortened = trimmed
     .replace(/^Chinatown in /i, "Chinatown · ")
     .replace(/^Koreatown in /i, "Koreatown · ")
