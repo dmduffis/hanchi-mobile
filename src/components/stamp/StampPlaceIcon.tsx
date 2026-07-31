@@ -1,23 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import type { ComponentProps, ComponentType } from "react";
-import {
-  BankIcon,
-  BuildingsIcon,
-  ChurchIcon,
-  CoffeeBeanIcon,
-  GuitarIcon,
-  IslandIcon,
-  MosqueIcon,
-  MountainsIcon,
-  SailboatIcon,
-  StorefrontIcon,
-  SunIcon,
-  TipiIcon,
-  TreePalmIcon,
-  WavesIcon,
-  YinYangIcon,
-  type IconProps as PhosphorIconProps,
-} from "phosphor-react-native";
+import type { ComponentProps } from "react";
 
 import type { StampMotif } from "../../data/stampPlaceTypes";
 
@@ -29,41 +11,35 @@ type StampPlaceIconProps = {
 
 type MciName = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
-type MotifSource =
-  | { pack: "phosphor"; Icon: ComponentType<PhosphorIconProps> }
-  | { pack: "mci"; name: MciName };
-
 /**
- * Stamp motifs mix Phosphor + Material Community Icons
- * (via @expo/vector-icons) so well-known places get distinctive glyphs
- * (pyramid, om, Buddhist temple, chili) that Phosphor lacks.
+ * Stamp motifs via Material Community Icons (@expo/vector-icons).
+ * Single pack keeps Expo/Metro imports reliable for the stamp face.
  */
-const MOTIF_ICON: Record<StampMotif, MotifSource> = {
-  // Curated — MCI where Phosphor has no good match
-  pyramid: { pack: "mci", name: "pyramid" },
-  templeBuddhist: { pack: "mci", name: "temple-buddhist-outline" },
-  om: { pack: "mci", name: "om" },
-  chili: { pack: "mci", name: "chili-mild-outline" },
-  noodles: { pack: "mci", name: "noodles" },
-  rice: { pack: "mci", name: "rice" },
-  volcano: { pack: "mci", name: "volcano-outline" },
-  // Curated — Phosphor
-  yinYang: { pack: "phosphor", Icon: YinYangIcon },
-  coffee: { pack: "phosphor", Icon: CoffeeBeanIcon },
-  sailboat: { pack: "phosphor", Icon: SailboatIcon },
-  island: { pack: "phosphor", Icon: IslandIcon },
-  guitar: { pack: "phosphor", Icon: GuitarIcon },
-  mosque: { pack: "phosphor", Icon: MosqueIcon },
-  tipi: { pack: "phosphor", Icon: TipiIcon },
-  // Generic — Phosphor
-  skyline: { pack: "phosphor", Icon: BuildingsIcon },
-  temple: { pack: "phosphor", Icon: ChurchIcon },
-  palm: { pack: "phosphor", Icon: TreePalmIcon },
-  waves: { pack: "phosphor", Icon: WavesIcon },
-  mountain: { pack: "phosphor", Icon: MountainsIcon },
-  sun: { pack: "phosphor", Icon: SunIcon },
-  market: { pack: "phosphor", Icon: StorefrontIcon },
-  landmark: { pack: "phosphor", Icon: BankIcon },
+const MOTIF_ICON: Record<StampMotif, MciName> = {
+  // Curated
+  yinYang: "yin-yang",
+  templeBuddhist: "temple-buddhist-outline",
+  om: "om",
+  chili: "chili-mild-outline",
+  pyramid: "pyramid",
+  coffee: "coffee-outline",
+  sailboat: "sail-boat",
+  island: "island",
+  guitar: "guitar-acoustic",
+  mosque: "mosque-outline",
+  noodles: "noodles",
+  rice: "rice",
+  volcano: "volcano-outline",
+  tipi: "tent",
+  // Generic
+  skyline: "office-building-outline",
+  temple: "church-outline",
+  palm: "palm-tree",
+  waves: "waves",
+  mountain: "image-filter-hdr",
+  sun: "white-balance-sunny",
+  market: "storefront-outline",
+  landmark: "bank-outline",
 };
 
 export function StampPlaceIcon({
@@ -71,12 +47,6 @@ export function StampPlaceIcon({
   color,
   size = 36,
 }: StampPlaceIconProps) {
-  const source = MOTIF_ICON[type];
-  if (source.pack === "mci") {
-    return (
-      <MaterialCommunityIcons name={source.name} size={size} color={color} />
-    );
-  }
-  const Icon = source.Icon;
-  return <Icon size={size} color={color} weight="regular" />;
+  const name = MOTIF_ICON[type] ?? "map-marker-outline";
+  return <MaterialCommunityIcons name={name} size={size} color={color} />;
 }

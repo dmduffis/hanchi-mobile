@@ -27,6 +27,7 @@ import {
   FavoriteHeart,
   FavoriteThumb,
   ListRow,
+  PassportStampButton,
 } from "../components";
 import { getInsidersForCommunity } from "../data/mockCommunities";
 import {
@@ -174,6 +175,7 @@ export function CommunityProfileScreen() {
         </Text>
         <View style={styles.navActions}>
           <FavoriteHeart type="community" targetId={community.id} />
+          <PassportStampButton communityId={community.id} />
         </View>
       </View>
 
