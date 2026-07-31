@@ -18,7 +18,6 @@ import {
   type ApiCommunityDetail,
   type ApiDish,
 } from "../api/communities";
-import { fetchUserStamps, toggleStamp } from "../api/stamps";
 import { mapApiCommunity } from "../api/mappers";
 import {
   Badge,
@@ -28,8 +27,6 @@ import {
   FavoriteHeart,
   FavoriteThumb,
   ListRow,
-  PassportStampButton,
-  PrimaryButton,
 } from "../components";
 import { getInsidersForCommunity } from "../data/mockCommunities";
 import {
@@ -63,8 +60,6 @@ export function CommunityProfileScreen() {
   const [dishes, setDishes] = useState<ApiDish[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [stamping, setStamping] = useState(false);
-  const [stamped, setStamped] = useState(false);
   const [ethnicityFilter, setEthnicityFilter] = useState<string | null>(null);
 
   useEffect(() => {
@@ -74,15 +69,13 @@ export function CommunityProfileScreen() {
       setError(null);
       setEthnicityFilter(null);
       try {
-        const [community, communityDishes, stamps] = await Promise.all([
+        const [community, communityDishes] = await Promise.all([
           fetchCommunity(communityId),
           fetchCommunityDishes(communityId),
-          fetchUserStamps().catch(() => []),
         ]);
         if (cancelled) return;
         setDetail(community);
         setDishes(communityDishes);
-        setStamped(stamps.some((s) => s.communityId === communityId));
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load");
@@ -144,21 +137,6 @@ export function CommunityProfileScreen() {
     };
   }, [community?.latitude, community?.longitude]);
 
-  const onStamp = async () => {
-    if (!community || stamping) return;
-    const next = !stamped;
-    setStamping(true);
-    setStamped(next);
-    try {
-      const result = await toggleStamp(community.id);
-      setStamped(result.stamped);
-    } catch {
-      setStamped(!next);
-    } finally {
-      setStamping(false);
-    }
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={[styles.safe, styles.centered]} edges={["top"]}>
@@ -196,11 +174,6 @@ export function CommunityProfileScreen() {
         </Text>
         <View style={styles.navActions}>
           <FavoriteHeart type="community" targetId={community.id} />
-          <PassportStampButton
-            communityId={community.id}
-            initialStamped={stamped}
-            onStampedChange={setStamped}
-          />
         </View>
       </View>
 
@@ -238,44 +211,6 @@ export function CommunityProfileScreen() {
         {tab === "About" && (
           <View style={styles.tabContent}>
             <Text style={styles.body}>{community.description}</Text>
-            {pois.length > 0 && (
-              <View style={styles.aboutFood}>
-                <Text style={styles.sectionTitle}>
-                  {pois.length} places nearby
-                </Text>
-                {pois.slice(0, 3).map((r) => (
-                  <ListRow
-                    key={r.id}
-                    thumbnail="🍽️"
-                    title={r.name}
-                    subtitle={`${r.category}${r.address ? ` · ${r.address}` : ""}`}
-                    onPress={() =>
-                      navigation.navigate("RestaurantDetail", {
-                        restaurantId: r.id,
-                      })
-                    }
-                    rightElement={
-                      <FavoriteHeart
-                        type="restaurant"
-                        targetId={r.id}
-                        size={18}
-                      />
-                    }
-                  />
-                ))}
-              </View>
-            )}
-            <PrimaryButton
-              label={stamped ? "Remove stamp" : "Stamp passport"}
-              onPress={onStamp}
-              loading={stamping}
-              style={{ marginTop: 8 }}
-            />
-            <PrimaryButton
-              label="See on map"
-              onPress={() => setTab("Food")}
-              style={{ marginTop: 8 }}
-            />
           </View>
         )}
 
@@ -583,9 +518,6 @@ const styles = StyleSheet.create({
   },
   enclaveMap: {
     marginBottom: 16,
-  },
-  aboutFood: {
-    marginTop: 24,
   },
   restaurantBlock: {
     marginBottom: 20,
