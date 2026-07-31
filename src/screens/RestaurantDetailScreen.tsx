@@ -16,7 +16,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { fetchCommunity, type ApiCommunity } from "../api/communities";
 import { fetchUserFavorites } from "../api/favorites";
 import { fetchPoi, type ApiPoiDetail } from "../api/pois";
-import { Badge, EthnicityFlags, FavoriteHeart, ListRow } from "../components";
+import { Badge, CircularFlag, EthnicityFlags, FavoriteHeart, FavoriteThumb, ListRow } from "../components";
+import {
+  primaryEthnicityCountryCode,
+  primaryEthnicityEmoji,
+} from "../data/ethnicityFlags";
 import {
   IconArrowLeft,
   IconChevronRight,
@@ -139,17 +143,29 @@ export function RestaurantDetailScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        {poi.imageUrl ? (
-          <Image
-            source={{ uri: poi.imageUrl }}
-            style={styles.heroImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.heroFallback}>
-            <Text style={styles.heroEmoji}>🍽️</Text>
-          </View>
-        )}
+        <View style={styles.heroWrap}>
+          {poi.imageUrl ? (
+            <Image
+              source={{ uri: poi.imageUrl }}
+              style={styles.heroImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.heroFallback}>
+              <Text style={styles.heroEmoji}>🍽️</Text>
+            </View>
+          )}
+          {poi.ethnicities?.length ? (
+            <View style={styles.heroFlagBadge}>
+              <CircularFlag
+                countryCode={primaryEthnicityCountryCode(poi.ethnicities)}
+                flag={primaryEthnicityEmoji(poi.ethnicities)}
+                size={28}
+                elevated
+              />
+            </View>
+          ) : null}
+        </View>
 
         <Text style={styles.name}>{poi.name}</Text>
         <Text style={styles.meta}>{metaParts.join(" · ")}</Text>
@@ -203,7 +219,23 @@ export function RestaurantDetailScreen() {
           poi.dishes.map((dish) => (
             <ListRow
               key={dish.id}
-              thumbnail="🥢"
+              leading={
+                <FavoriteThumb
+                  kind="dish"
+                  imageUrl={dish.imageUrl}
+                  countryCode={primaryEthnicityCountryCode(
+                    dish.ethnicities?.length
+                      ? dish.ethnicities
+                      : poi.ethnicities,
+                  )}
+                  flag={primaryEthnicityEmoji(
+                    dish.ethnicities?.length
+                      ? dish.ethnicities
+                      : poi.ethnicities,
+                  )}
+                  size={44}
+                />
+              }
               title={dish.name}
               subtitle={dish.description ?? undefined}
               showChevron={false}
@@ -261,20 +293,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 40,
   },
+  heroWrap: {
+    width: "100%",
+    marginBottom: 16,
+    borderRadius: radii.lg,
+    overflow: "hidden",
+    backgroundColor: colors.surface,
+  },
   heroImage: {
     width: "100%",
     height: 200,
-    borderRadius: radii.lg,
-    backgroundColor: colors.surface,
-    marginBottom: 16,
   },
   heroFallback: {
     height: 160,
-    borderRadius: radii.lg,
     backgroundColor: colors.forest,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+  },
+  heroFlagBadge: {
+    position: "absolute",
+    right: 12,
+    bottom: 12,
   },
   heroEmoji: {
     fontSize: 64,
@@ -292,6 +331,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.forest,
     marginTop: 6,
+  },
+  dishActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   communityLink: {
     flexDirection: "row",
@@ -350,10 +394,5 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodyMedium,
     fontSize: 14,
     color: colors.forest,
-  },
-  dishActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
   },
 });

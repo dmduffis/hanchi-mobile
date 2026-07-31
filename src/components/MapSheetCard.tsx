@@ -6,6 +6,11 @@ import { colors, typography } from "../theme";
 import { CircularFlag } from "./CircularFlag";
 import { FavoriteHeart } from "./FavoriteHeart";
 
+/** Shared right-edge inset so flag badge and heart share one vertical axis. */
+const EDGE = 10;
+/** Slot size for flag + heart so their right edges line up. */
+const TRAILING_SLOT = 22;
+
 type MapSheetCardProps = {
   width: number;
   title: string;
@@ -20,7 +25,7 @@ type MapSheetCardProps = {
 };
 
 /**
- * Compact map carousel card: photo + title/meta, sized to sit low in the sheet.
+ * Compact map carousel card: photo (flag only) + title/meta with heart on the right.
  */
 export function MapSheetCard({
   width,
@@ -63,14 +68,31 @@ export function MapSheetCard({
             <CircularFlag
               countryCode={countryCode}
               flag={flag}
-              size={18}
+              size={TRAILING_SLOT}
               elevated
             />
           </View>
         ) : null}
+      </View>
+      <View style={styles.body}>
+        <View style={styles.bodyText}>
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
+          {meta ? (
+            <Text style={styles.meta} numberOfLines={1}>
+              {meta}
+            </Text>
+          ) : null}
+          {detail ? (
+            <Text style={styles.detail} numberOfLines={1}>
+              {detail}
+            </Text>
+          ) : null}
+        </View>
         {showFavorite ? (
           <View
-            style={styles.heartBadge}
+            style={styles.heartWrap}
             onStartShouldSetResponder={() => true}
             onTouchEnd={(e) => e.stopPropagation()}
           >
@@ -80,21 +102,6 @@ export function MapSheetCard({
               size={18}
             />
           </View>
-        ) : null}
-      </View>
-      <View style={styles.body}>
-        <Text style={styles.title} numberOfLines={1}>
-          {title}
-        </Text>
-        {meta ? (
-          <Text style={styles.meta} numberOfLines={1}>
-            {meta}
-          </Text>
-        ) : null}
-        {detail ? (
-          <Text style={styles.detail} numberOfLines={1}>
-            {detail}
-          </Text>
         ) : null}
       </View>
     </Pressable>
@@ -129,25 +136,33 @@ const styles = StyleSheet.create({
   },
   flagBadge: {
     position: "absolute",
-    left: 8,
-    bottom: 8,
-  },
-  heartBadge: {
-    position: "absolute",
-    top: 4,
-    right: 4,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.92)",
+    right: EDGE,
+    bottom: EDGE,
+    width: TRAILING_SLOT,
+    height: TRAILING_SLOT,
     alignItems: "center",
     justifyContent: "center",
   },
   body: {
-    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: EDGE,
+    paddingRight: EDGE,
     paddingTop: 7,
     paddingBottom: 8,
+    gap: 8,
+  },
+  bodyText: {
+    flex: 1,
     gap: 1,
+    minWidth: 0,
+  },
+  heartWrap: {
+    width: TRAILING_SLOT,
+    height: TRAILING_SLOT,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
   },
   title: {
     fontFamily: typography.bodySemibold,

@@ -8,6 +8,7 @@ import {
   FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -28,6 +29,7 @@ import {
   CircularFlag,
   CommunityDetailSheet,
   FavoriteHeart,
+  FavoriteThumb,
   ListRow,
   MapSheetCard,
   SearchBar,
@@ -79,10 +81,11 @@ import {
 import { colors, radii, typography } from "../theme";
 import type { Community } from "../types";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.7;
 const CARD_GAP = 10;
 const CARD_EDGE = 14;
+const RESTAURANT_SHEET_EXPANDED_TOP = Math.round(SCREEN_HEIGHT * 0.28);
 
 function communitiesNear(
   list: Community[],
@@ -159,6 +162,8 @@ export function MapScreen() {
     null,
   );
   const [locating, setLocating] = useState(false);
+  /** Restaurant card sheet pulled up → Favorites-style list. */
+  const [restaurantSheetExpanded, setRestaurantSheetExpanded] = useState(false);
   const [bootRegion, setBootRegion] = useState<MapRegion | null>(null);
   const listRef = useRef<FlatList<ApiPoi>>(null);
   const mapRef = useRef<CommunityMapHandle>(null);
@@ -322,7 +327,41 @@ export function MapScreen() {
       )
       .slice(0, CAROUSEL_LIMIT);
   }, [inViewFood, focusRestaurantId, region.latitude, region.longitude]);
+
+  const restaurantListFood = useMemo(() => {
+    const focus = focusRestaurantId
+      ? inViewFood.find((p) => p.id === focusRestaurantId)
+      : null;
+    const focusCoord = focus ? pointToLatLng(focus.location) : null;
+    const anchorLat = focusCoord?.latitude ?? region.latitude;
+    const anchorLng = focusCoord?.longitude ?? region.longitude;
+    return [...inViewFood].sort(
+      (a, b) =>
+        poiDistSq(a, anchorLat, anchorLng) - poiDistSq(b, anchorLat, anchorLng),
+    );
+  }, [inViewFood, focusRestaurantId, region.latitude, region.longitude]);
+
   const carouselItems = carouselFood;
+
+  useEffect(() => {
+    if (layer !== "restaurants" || mode !== "cards") {
+      setRestaurantSheetExpanded(false);
+    }
+  }, [layer, mode]);
+
+  const restaurantSheetPan = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dy) > 10 && Math.abs(g.dy) > Math.abs(g.dx),
+      onPanResponderRelease: (_, g) => {
+        if (g.dy < -36 || g.vy < -0.6) {
+          setRestaurantSheetExpanded(true);
+        } else if (g.dy > 36 || g.vy > 0.6) {
+          setRestaurantSheetExpanded(false);
+        }
+      },
+    }),
+  ).current;
   const filteredKey = useMemo(
     () =>
       layer === "enclaves"
@@ -571,7 +610,7 @@ export function MapScreen() {
       : (carouselItems[activeIndex]?.id ?? null);
 
   const locateOffset =
-    showCommunityDetail || mode === "list"
+    showCommunityDetail || mode === "list" || restaurantSheetExpanded
       ? { top: insets.top + (showCultureChips ? 168 : 132) }
       : showRestaurantCarousel
         ? { bottom: 250 + Math.max(insets.bottom, 6) }
@@ -767,10 +806,48 @@ export function MapScreen() {
 
       {showRestaurantCarousel ? (
         <View
-          style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 6) }]}
+          style={[
+            styles.sheet,
+            restaurantSheetExpanded && styles.sheetExpanded,
+            restaurantSheetExpanded && {
+              top: RESTAURANT_SHEET_EXPANDED_TOP,
+            },
+            { paddingBottom: Math.max(insets.bottom, 6) },
+          ]}
           pointerEvents="box-none"
         >
-          <View style={styles.sheetGrabber} />
+          <View
+            {...restaurantSheetPan.panHandlers}
+            style={styles.sheetDragZone}
+          >
+            <Pressable
+              onPress={() => setRestaurantSheetExpanded((v) => !v)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={
+                restaurantSheetExpanded
+                  ? "Collapse restaurant list"
+                  : "Expand restaurant list"
+              }
+            >
+              <View style={styles.sheetGrabber} />
+            </Pressable>
+            {restaurantSheetExpanded ? (
+              <View style={styles.sheetHeaderCompact}>
+                <View>
+                  <Text style={styles.sheetTitle}>Restaurants nearby</Text>
+                  <Text style={styles.sheetSub}>{filterLabel}</Text>
+                </View>
+                <Pressable
+                  style={styles.closeListBtn}
+                  onPress={() => setRestaurantSheetExpanded(false)}
+                  hitSlop={8}
+                >
+                  <IconX size={18} color={colors.ink} />
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
           {foodLoading ? (
             <View style={styles.sheetLoadingRow}>
               <ActivityIndicator size="small" color={colors.forest} />
@@ -792,6 +869,52 @@ export function MapScreen() {
                 <Text style={styles.emptyAction}>Clear filters</Text>
               </Pressable>
             </View>
+          ) : restaurantSheetExpanded ? (
+            <FlatList
+              data={restaurantListFood}
+              keyExtractor={(item) => item.id}
+              style={styles.listFlex}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.restaurantListContent}
+              renderItem={({ item }) => {
+                const rating =
+                  item.rating != null && Number.isFinite(item.rating)
+                    ? `★ ${item.rating.toFixed(1)}`
+                    : null;
+                const subtitle = [
+                  item.category,
+                  item.priceLevel,
+                  rating,
+                  formatDistanceMeters(item.distanceMeters),
+                ]
+                  .filter(Boolean)
+                  .join(" · ");
+                return (
+                  <ListRow
+                    leading={
+                      <FavoriteThumb
+                        kind="restaurant"
+                        imageUrl={item.imageUrl}
+                        countryCode={primaryEthnicityCountryCode(
+                          item.ethnicities,
+                        )}
+                        flag={primaryEthnicityEmoji(item.ethnicities)}
+                      />
+                    }
+                    title={item.name}
+                    subtitle={subtitle}
+                    onPress={() => openRestaurant(item.id)}
+                    rightElement={
+                      <FavoriteHeart
+                        type="restaurant"
+                        targetId={item.id}
+                        size={18}
+                      />
+                    }
+                  />
+                );
+              }}
+            />
           ) : (
             <FlatList
               ref={listRef}
@@ -939,12 +1062,13 @@ export function MapScreen() {
               renderItem={({ item }) => (
                 <ListRow
                   leading={
-                    <CircularFlag
+                    <FavoriteThumb
+                      kind="restaurant"
+                      imageUrl={item.imageUrl}
                       countryCode={primaryEthnicityCountryCode(
                         item.ethnicities,
                       )}
                       flag={primaryEthnicityEmoji(item.ethnicities)}
-                      size={40}
                     />
                   }
                   title={item.name}
@@ -1109,11 +1233,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    paddingTop: 14,
+    paddingTop: 8,
     shadowColor: "#000",
     shadowOpacity: 0.12,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: -3 },
+  },
+  sheetExpanded: {
+    zIndex: 30,
+    elevation: 30,
+    paddingHorizontal: 20,
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+  },
+  sheetDragZone: {
+    paddingTop: 6,
+    paddingBottom: 8,
   },
   sheetGrabber: {
     alignSelf: "center",
@@ -1121,7 +1256,16 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     backgroundColor: colors.border,
-    marginBottom: 22,
+    marginBottom: 10,
+  },
+  sheetHeaderCompact: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  restaurantListContent: {
+    paddingBottom: 16,
   },
   sheetFilters: {
     paddingHorizontal: 20,

@@ -26,12 +26,16 @@ import {
   EnclaveDetailMap,
   EthnicityFlags,
   FavoriteHeart,
+  FavoriteThumb,
   ListRow,
   PassportStampButton,
   PrimaryButton,
 } from "../components";
 import { getInsidersForCommunity } from "../data/mockCommunities";
-import { primaryEthnicityEmoji } from "../data/ethnicityFlags";
+import {
+  primaryEthnicityCountryCode,
+  primaryEthnicityEmoji,
+} from "../data/ethnicityFlags";
 import { IconArrowLeft, IconChevronRight } from "../icons";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
@@ -368,11 +372,23 @@ export function CommunityProfileScreen() {
                     {poiDishes.map((dish) => (
                       <ListRow
                         key={dish.id}
-                        thumbnail={primaryEthnicityEmoji(
-                          dish.ethnicities?.length
-                            ? dish.ethnicities
-                            : poi.ethnicities,
-                        )}
+                        leading={
+                          <FavoriteThumb
+                            kind="dish"
+                            imageUrl={dish.imageUrl}
+                            countryCode={primaryEthnicityCountryCode(
+                              dish.ethnicities?.length
+                                ? dish.ethnicities
+                                : poi.ethnicities,
+                            )}
+                            flag={primaryEthnicityEmoji(
+                              dish.ethnicities?.length
+                                ? dish.ethnicities
+                                : poi.ethnicities,
+                            )}
+                            size={44}
+                          />
+                        }
                         title={dish.name}
                         subtitle={dish.description ?? undefined}
                         onPress={() =>
@@ -381,9 +397,16 @@ export function CommunityProfileScreen() {
                           })
                         }
                         rightElement={
-                          dish.priceRange ? (
-                            <Badge label={dish.priceRange} />
-                          ) : undefined
+                          <View style={styles.dishActions}>
+                            {dish.priceRange ? (
+                              <Badge label={dish.priceRange} />
+                            ) : null}
+                            <FavoriteHeart
+                              type="dish"
+                              targetId={dish.id}
+                              size={18}
+                            />
+                          </View>
                         }
                       />
                     ))}
@@ -605,6 +628,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.forest,
     marginTop: 2,
+  },
+  dishActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   restaurantBlurb: {
     fontFamily: typography.body,

@@ -7,6 +7,7 @@ export { CultureMultiSelect } from "./CultureMultiSelect";
 export { EnclaveDetailMap } from "./EnclaveDetailMap";
 export { EthnicityFlags } from "./EthnicityFlags";
 export { FavoriteHeart } from "./FavoriteHeart";
+export { FavoriteThumb } from "./FavoriteThumb";
 export { ListRow } from "./ListRow";
 export { MapFlagPin } from "./MapFlagPin";
 export { MapSheetCard } from "./MapSheetCard";
