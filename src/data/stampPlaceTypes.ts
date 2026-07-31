@@ -1,7 +1,7 @@
 /**
  * Stamp face motifs keyed by diaspora country / culture — not the host city.
  *
- * Curated motifs use distinctive icons (Phosphor + Material Community Icons).
+ * Curated motifs use distinctive Material Community Icons.
  * Everything else uses a small generic pool.
  */
 
