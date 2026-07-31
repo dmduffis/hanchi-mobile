@@ -86,13 +86,6 @@ function RestaurantCard({
             />
           </View>
         ) : null}
-        <View
-          style={styles.restaurantHeartBadge}
-          onStartShouldSetResponder={() => true}
-          onTouchEnd={(e) => e.stopPropagation()}
-        >
-          <FavoriteHeart type="restaurant" targetId={poi.id} size={16} />
-        </View>
       </View>
       <View style={styles.restaurantBody}>
         <Text style={styles.restaurantName} numberOfLines={1}>
@@ -108,6 +101,12 @@ function RestaurantCard({
             {poi.address}
           </Text>
         ) : null}
+      </View>
+      <View
+        onStartShouldSetResponder={() => true}
+        onTouchEnd={(e) => e.stopPropagation()}
+      >
+        <FavoriteHeart type="restaurant" targetId={poi.id} size={18} />
       </View>
       <IconChevronRight size={18} color={colors.grayLight} />
     </Pressable>
@@ -433,17 +432,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: -2,
     bottom: -2,
-  },
-  restaurantHeartBadge: {
-    position: "absolute",
-    top: -4,
-    right: -4,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.94)",
-    alignItems: "center",
-    justifyContent: "center",
   },
   restaurantBody: {
     flex: 1,

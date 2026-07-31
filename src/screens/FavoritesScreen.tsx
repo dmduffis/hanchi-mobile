@@ -11,7 +11,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { fetchUserFavorites, type ApiFavorite } from "../api/favorites";
-import { Chip, FavoriteHeart, ListRow } from "../components";
+import { Chip, FavoriteHeart, FavoriteThumb, ListRow } from "../components";
+import {
+  getCommunityCountryCode,
+  getCommunityFlag,
+} from "../data/communityFlags";
+import {
+  primaryEthnicityCountryCode,
+  primaryEthnicityEmoji,
+} from "../data/ethnicityFlags";
 import { IconHeart } from "../icons";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, typography } from "../theme";
@@ -91,26 +99,53 @@ export function FavoritesScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: ApiFavorite }) => (
-    <ListRow
-      thumbnail={item.emoji}
-      title={item.title}
-      subtitle={`${item.subtitle}${item.savedAt ? ` · Saved ${formatSavedAt(item.savedAt)}` : ""}`}
-      onPress={() => onOpen(item)}
-      rightElement={
-        <FavoriteHeart
-          type={item.type}
-          targetId={item.targetId}
-          size={18}
-          initialFavorited
-          onFavoritedChange={(favorited) => {
-            if (!favorited) void onUnfavorite(item);
-            else void load();
-          }}
-        />
-      }
-    />
-  );
+  const renderItem = ({ item }: { item: ApiFavorite }) => {
+    const communityId =
+      item.type === "community" ? item.targetId : item.communityId;
+
+    const countryCode =
+      item.type === "community"
+        ? getCommunityCountryCode(item.targetId)
+        : (primaryEthnicityCountryCode(item.ethnicities) ??
+          (communityId ? getCommunityCountryCode(communityId) : undefined));
+
+    const flag =
+      item.type === "community"
+        ? getCommunityFlag(item.targetId, item.emoji)
+        : item.ethnicities?.length
+          ? primaryEthnicityEmoji(item.ethnicities)
+          : communityId
+            ? getCommunityFlag(communityId, item.emoji)
+            : item.emoji;
+
+    return (
+      <ListRow
+        leading={
+          <FavoriteThumb
+            kind={item.type}
+            imageUrl={item.imageUrl}
+            countryCode={countryCode}
+            flag={flag}
+          />
+        }
+        title={item.title}
+        subtitle={`${item.subtitle}${item.savedAt ? ` · Saved ${formatSavedAt(item.savedAt)}` : ""}`}
+        onPress={() => onOpen(item)}
+        rightElement={
+          <FavoriteHeart
+            type={item.type}
+            targetId={item.targetId}
+            size={18}
+            initialFavorited
+            onFavoritedChange={(favorited) => {
+              if (!favorited) void onUnfavorite(item);
+              else void load();
+            }}
+          />
+        }
+      />
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>

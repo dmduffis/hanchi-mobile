@@ -12,6 +12,10 @@ export type ApiFavorite = {
   communityId: string;
   restaurantId?: string | null;
   emoji: string;
+  imageUrl?: string | null;
+  ethnicities?: string[];
+  latitude?: number | null;
+  longitude?: number | null;
   savedAt?: string;
   favorited?: boolean;
 };
