@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Dimensions,
   Image,
+  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,8 +22,12 @@ import { Badge } from "./Badge";
 import { EnclaveDetailMap } from "./EnclaveDetailMap";
 import { EthnicityFlags } from "./EthnicityFlags";
 import { FavoriteHeart } from "./FavoriteHeart";
+import { PassportStampButton } from "./PassportStampButton";
 
 const SHORT_DESC_CHARS = 140;
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const DISMISS_DISTANCE = 80;
+const DISMISS_VELOCITY = 0.85;
 
 type CommunityDetailSheetProps = {
   communityId: string;
@@ -123,6 +130,57 @@ export function CommunityDetailSheet({
   const [detail, setDetail] = useState<ApiCommunityDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const translateY = useRef(new Animated.Value(0)).current;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  const dismiss = useCallback(() => {
+    Animated.timing(translateY, {
+      toValue: SCREEN_HEIGHT,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) onCloseRef.current();
+    });
+  }, [translateY]);
+
+  const sheetPan = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        g.dy > 8 && Math.abs(g.dy) > Math.abs(g.dx),
+      onPanResponderMove: (_, g) => {
+        if (g.dy > 0) translateY.setValue(g.dy);
+      },
+      onPanResponderRelease: (_, g) => {
+        if (g.dy > DISMISS_DISTANCE || g.vy > DISMISS_VELOCITY) {
+          Animated.timing(translateY, {
+            toValue: SCREEN_HEIGHT,
+            duration: 180,
+            useNativeDriver: true,
+          }).start(({ finished }) => {
+            if (finished) onCloseRef.current();
+          });
+          return;
+        }
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          bounciness: 4,
+        }).start();
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          bounciness: 4,
+        }).start();
+      },
+    }),
+  ).current;
+
+  useEffect(() => {
+    translateY.setValue(0);
+  }, [communityId, translateY]);
 
   useEffect(() => {
     let cancelled = false;
@@ -168,37 +226,56 @@ export function CommunityDetailSheet({
   }, [community]);
 
   return (
-    <View
-      style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) }]}
+    <Animated.View
+      style={[
+        styles.sheet,
+        {
+          paddingBottom: Math.max(insets.bottom, 12),
+          transform: [{ translateY }],
+        },
+      ]}
     >
-      <View style={styles.grabber} />
-      <View style={styles.header}>
-        <View style={styles.headerText}>
+      <View {...sheetPan.panHandlers} style={styles.dragZone}>
+        <View style={styles.grabber} />
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            {community ? (
+              <>
+                <Text style={styles.title} numberOfLines={2}>
+                  {community.name}
+                </Text>
+                <Text style={styles.neighborhood} numberOfLines={1}>
+                  {community.neighborhood}
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.title}>Community</Text>
+            )}
+          </View>
           {community ? (
-            <>
-              <Text style={styles.title} numberOfLines={2}>
-                {community.name}
-              </Text>
-              <Text style={styles.neighborhood} numberOfLines={1}>
-                {community.neighborhood}
-              </Text>
-            </>
-          ) : (
-            <Text style={styles.title}>Community</Text>
-          )}
+            <View style={styles.headerActions}>
+              <FavoriteHeart
+                type="community"
+                targetId={community.id}
+                size={20}
+              />
+              <PassportStampButton
+                communityId={community.id}
+                size={20}
+                compact
+              />
+            </View>
+          ) : null}
+          <Pressable
+            style={styles.closeBtn}
+            onPress={dismiss}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Close community details"
+          >
+            <IconX size={18} color={colors.ink} />
+          </Pressable>
         </View>
-        {community ? (
-          <FavoriteHeart type="community" targetId={community.id} size={20} />
-        ) : null}
-        <Pressable
-          style={styles.closeBtn}
-          onPress={onClose}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Close community details"
-        >
-          <IconX size={18} color={colors.ink} />
-        </Pressable>
       </View>
 
       {loading ? (
@@ -208,7 +285,7 @@ export function CommunityDetailSheet({
       ) : error || !community ? (
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error ?? "Community not found"}</Text>
-          <Pressable onPress={onClose} style={styles.retryLink}>
+          <Pressable onPress={dismiss} style={styles.retryLink}>
             <Text style={styles.readMore}>Close</Text>
           </Pressable>
         </View>
@@ -279,7 +356,7 @@ export function CommunityDetailSheet({
           )}
         </ScrollView>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -303,6 +380,9 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     shadowOffset: { width: 0, height: -4 },
   },
+  dragZone: {
+    paddingBottom: 4,
+  },
   grabber: {
     alignSelf: "center",
     width: 40,
@@ -320,6 +400,11 @@ const styles = StyleSheet.create({
   },
   headerText: {
     flex: 1,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: -4,
   },
   title: {
     fontFamily: typography.display,

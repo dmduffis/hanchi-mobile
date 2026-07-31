@@ -8,6 +8,8 @@ import { PostageStampIcon } from "./stamp/PostageStampIcon";
 type PassportStampButtonProps = {
   communityId: string;
   size?: number;
+  /** Shrink hit box for dense headers (icon size unchanged). */
+  compact?: boolean;
   /** When provided, skips the initial stamps fetch. */
   initialStamped?: boolean;
   /** Called after stamp state changes. */
@@ -17,6 +19,7 @@ type PassportStampButtonProps = {
 export function PassportStampButton({
   communityId,
   size = 22,
+  compact = false,
   initialStamped,
   onStampedChange,
 }: PassportStampButtonProps) {
@@ -67,9 +70,11 @@ export function PassportStampButton({
     }
   }, [busy, stamped, communityId, onStampedChange]);
 
+  const btnStyle = compact ? styles.btnCompact : styles.btn;
+
   if (loading) {
     return (
-      <Pressable style={styles.btn} disabled>
+      <Pressable style={btnStyle} disabled>
         <ActivityIndicator size="small" color={colors.forest} />
       </Pressable>
     );
@@ -78,8 +83,8 @@ export function PassportStampButton({
   return (
     <Pressable
       onPress={onPress}
-      hitSlop={8}
-      style={({ pressed }) => [styles.btn, pressed && styles.pressed]}
+      hitSlop={compact ? 6 : 8}
+      style={({ pressed }) => [btnStyle, pressed && styles.pressed]}
       disabled={busy}
       accessibilityRole="button"
       accessibilityLabel={
@@ -98,6 +103,13 @@ const styles = StyleSheet.create({
   btn: {
     width: 40,
     height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  btnCompact: {
+    width: 28,
+    height: 40,
+    marginLeft: -8,
     alignItems: "center",
     justifyContent: "center",
   },

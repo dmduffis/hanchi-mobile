@@ -3,6 +3,7 @@ export const colors = {
   forestDark: "#0F2A1F",
   gold: "#F0BF63",
   goldText: "#5C3D14",
+  heart: "#E23B3B",
   background: "#FAFAFA",
   surface: "#F0F0EE",
   ink: "#1B1B18",
