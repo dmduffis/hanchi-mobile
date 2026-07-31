@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet } from "react-native";
 
 import { fetchUserStamps, toggleStamp } from "../api/stamps";
-import { IconAward, IconAwardFilled } from "../icons";
 import { colors } from "../theme";
+import { PostageStampIcon } from "./stamp/PostageStampIcon";
 
 type PassportStampButtonProps = {
   communityId: string;
@@ -86,11 +86,10 @@ export function PassportStampButton({
         stamped ? "Remove stamp from passport" : "Stamp passport"
       }
     >
-      {stamped ? (
-        <IconAwardFilled size={size} color={colors.gold} />
-      ) : (
-        <IconAward size={size} color={colors.grayLight} />
-      )}
+      <PostageStampIcon
+        size={size}
+        color={stamped ? colors.gold : colors.grayLight}
+      />
     </Pressable>
   );
 }

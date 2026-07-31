@@ -13,10 +13,21 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useCommunities } from "../api/useCommunities";
 import { fetchUserStamps, type ApiStamp } from "../api/stamps";
 import { Stamp } from "../components";
-import { getCommunityFlag } from "../data/communityFlags";
-import { mockDishStamps, mockPassportBadges } from "../data/mockPassport";
+import { getCommunityCountryCode } from "../data/communityFlags";
+import { mockPassportBadges } from "../data/mockPassport";
 import type { RootStackParamList } from "../navigation/types";
-import { colors, radii, typography } from "../theme";
+import { colors, typography } from "../theme";
+
+function formatStampMonth(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return "";
+  }
+}
 
 export function PassportScreen() {
   const navigation =
@@ -29,7 +40,6 @@ export function PassportScreen() {
     setLoadingStamps(true);
     try {
       const data = await fetchUserStamps();
-      // Newest first
       setStamps(
         [...data].sort(
           (a, b) =>
@@ -60,17 +70,17 @@ export function PassportScreen() {
         const community = communityById.get(stamp.communityId);
         const name =
           stamp.community?.name ?? community?.name ?? "Unknown place";
-        const emoji =
-          community?.emoji ??
-          getCommunityFlag(
-            stamp.communityId,
-            stamp.community?.heroEmoji ?? "📍",
-          );
+        const neighborhood =
+          stamp.community?.neighborhood ?? community?.neighborhood ?? "";
+        const city = stamp.community?.city ?? "";
+        const subtitle = [neighborhood, city].filter(Boolean).join(", ");
         return {
           id: stamp.communityId,
           stampId: stamp.id,
           communityName: name,
-          emoji,
+          subtitle: subtitle || name,
+          meta: formatStampMonth(stamp.earnedAt),
+          countryCode: getCommunityCountryCode(stamp.communityId),
         };
       })
       .filter((s) => s.id);
@@ -105,13 +115,22 @@ export function PassportScreen() {
               <Text style={styles.hint}>Tap a stamp to revisit</Text>
             </View>
 
-            <Text style={styles.sectionTitle}>Stamped places</Text>
-            <View style={styles.stampGrid}>
+            <Text style={styles.sectionTitle}>Where I&apos;ve been</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.stampRow}
+              style={styles.stampScroll}
+              decelerationRate="fast"
+            >
               {collected.map((stamp) => (
                 <Stamp
                   key={stamp.stampId}
-                  emoji={stamp.emoji}
-                  label={stamp.communityName}
+                  communityId={stamp.id}
+                  name={stamp.communityName}
+                  subtitle={stamp.subtitle}
+                  meta={stamp.meta}
+                  countryCode={stamp.countryCode}
                   earned
                   onPress={() =>
                     navigation.navigate("CommunityProfile", {
@@ -119,36 +138,6 @@ export function PassportScreen() {
                     })
                   }
                 />
-              ))}
-            </View>
-
-            <Text style={styles.sectionTitle}>Dish stamps</Text>
-            <Text style={styles.comingSoon}>Coming soon</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.dishRow}
-            >
-              {mockDishStamps.map((stamp) => (
-                <View
-                  key={stamp.id}
-                  style={[
-                    styles.dishPill,
-                    stamp.earned ? styles.dishPillEarned : styles.dishPillEmpty,
-                  ]}
-                >
-                  <Text style={styles.dishPillEmoji}>
-                    {stamp.earned ? stamp.emoji : "·"}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.dishPillLabel,
-                      !stamp.earned && styles.dishPillLabelEmpty,
-                    ]}
-                  >
-                    {stamp.dishName}
-                  </Text>
-                </View>
               ))}
             </ScrollView>
 
@@ -205,7 +194,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   progressHeader: {
-    marginBottom: 28,
+    marginBottom: 20,
   },
   progressText: {
     fontFamily: typography.bodySemibold,
@@ -225,53 +214,15 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     marginTop: 8,
   },
-  comingSoon: {
-    fontFamily: typography.body,
-    fontSize: 12,
-    color: colors.grayLight,
-    marginTop: -8,
-    marginBottom: 10,
+  stampScroll: {
+    overflow: "visible",
   },
-  stampGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-    marginBottom: 28,
-    justifyContent: "flex-start",
-  },
-  dishRow: {
+  stampRow: {
     gap: 10,
-    marginBottom: 28,
     paddingRight: 8,
-  },
-  dishPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: radii.full,
-    gap: 8,
-    borderWidth: 1,
-  },
-  dishPillEarned: {
-    backgroundColor: colors.forest,
-    borderColor: colors.forest,
-  },
-  dishPillEmpty: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderStyle: "dashed",
-  },
-  dishPillEmoji: {
-    fontSize: 16,
-  },
-  dishPillLabel: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 13,
-    color: colors.white,
-  },
-  dishPillLabelEmpty: {
-    color: colors.grayLight,
+    paddingVertical: 12,
+    marginBottom: 16,
+    overflow: "visible",
   },
   badgeRow: {
     flexDirection: "row",
