@@ -97,7 +97,7 @@ export function FavoriteHeart({
       }
     >
       {favorited ? (
-        <IconHeartFilled size={size} color={colors.forest} />
+        <IconHeartFilled size={size} color={colors.heart} />
       ) : (
         <IconHeart size={size} color={colors.grayLight} />
       )}

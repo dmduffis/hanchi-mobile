@@ -1,17 +1,23 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { fetchUserFavorites, type ApiFavorite } from "../api/favorites";
-import { Chip, FavoriteHeart, FavoriteThumb, ListRow } from "../components";
+import {
+  fetchUserFavorites,
+  toggleFavorite,
+  type ApiFavorite,
+} from "../api/favorites";
+import { Chip, FavoriteThumb, ListRow } from "../components";
 import {
   getCommunityCountryCode,
   getCommunityFlag,
@@ -22,7 +28,7 @@ import {
 } from "../data/ethnicityFlags";
 import { IconHeart } from "../icons";
 import type { RootStackParamList } from "../navigation/types";
-import { colors, typography } from "../theme";
+import { colors, radii, typography } from "../theme";
 
 type Filter = "all" | "community" | "restaurant" | "dish";
 
@@ -45,6 +51,8 @@ export function FavoritesScreen() {
   const [filter, setFilter] = useState<Filter>("all");
   const [items, setItems] = useState<ApiFavorite[]>([]);
   const [loading, setLoading] = useState(true);
+  const swipeRefs = useRef(new Map<string, Swipeable>());
+  const openSwipeKey = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -76,6 +84,11 @@ export function FavoritesScreen() {
         (f) => !(f.type === item.type && f.targetId === item.targetId),
       ),
     );
+    try {
+      await toggleFavorite(item.type, item.targetId);
+    } catch {
+      void load();
+    }
   };
 
   const onOpen = (item: ApiFavorite) => {
@@ -100,6 +113,7 @@ export function FavoritesScreen() {
   };
 
   const renderItem = ({ item }: { item: ApiFavorite }) => {
+    const rowKey = `${item.type}:${item.targetId}`;
     const communityId =
       item.type === "community" ? item.targetId : item.communityId;
 
@@ -118,32 +132,56 @@ export function FavoritesScreen() {
             ? getCommunityFlag(communityId, item.emoji)
             : item.emoji;
 
+    const renderRightActions = () => (
+      <Pressable
+        style={styles.removeAction}
+        onPress={() => {
+          swipeRefs.current.get(rowKey)?.close();
+          void onUnfavorite(item);
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={`Remove ${item.title} from favorites`}
+      >
+        <Text style={styles.removeActionText}>Remove</Text>
+      </Pressable>
+    );
+
     return (
-      <ListRow
-        leading={
-          <FavoriteThumb
-            kind={item.type}
-            imageUrl={item.imageUrl}
-            countryCode={countryCode}
-            flag={flag}
+      <Swipeable
+        ref={(ref) => {
+          if (ref) swipeRefs.current.set(rowKey, ref);
+          else swipeRefs.current.delete(rowKey);
+        }}
+        overshootRight={false}
+        friction={2}
+        rightThreshold={40}
+        renderRightActions={renderRightActions}
+        onSwipeableOpen={() => {
+          if (openSwipeKey.current && openSwipeKey.current !== rowKey) {
+            swipeRefs.current.get(openSwipeKey.current)?.close();
+          }
+          openSwipeKey.current = rowKey;
+        }}
+        onSwipeableClose={() => {
+          if (openSwipeKey.current === rowKey) openSwipeKey.current = null;
+        }}
+      >
+        <View style={styles.rowBg}>
+          <ListRow
+            leading={
+              <FavoriteThumb
+                kind={item.type}
+                imageUrl={item.imageUrl}
+                countryCode={countryCode}
+                flag={flag}
+              />
+            }
+            title={item.title}
+            subtitle={`${item.subtitle}${item.savedAt ? ` · Saved ${formatSavedAt(item.savedAt)}` : ""}`}
+            onPress={() => onOpen(item)}
           />
-        }
-        title={item.title}
-        subtitle={`${item.subtitle}${item.savedAt ? ` · Saved ${formatSavedAt(item.savedAt)}` : ""}`}
-        onPress={() => onOpen(item)}
-        rightElement={
-          <FavoriteHeart
-            type={item.type}
-            targetId={item.targetId}
-            size={18}
-            initialFavorited
-            onFavoritedChange={(favorited) => {
-              if (!favorited) void onUnfavorite(item);
-              else void load();
-            }}
-          />
-        }
-      />
+        </View>
+      </Swipeable>
     );
   };
 
@@ -237,6 +275,22 @@ const styles = StyleSheet.create({
   list: {
     paddingHorizontal: 20,
     paddingBottom: 32,
+  },
+  rowBg: {
+    backgroundColor: colors.background,
+  },
+  removeAction: {
+    backgroundColor: colors.heart,
+    justifyContent: "center",
+    alignItems: "center",
+    width: 96,
+    marginVertical: 4,
+    borderRadius: radii.sm,
+  },
+  removeActionText: {
+    fontFamily: typography.bodySemibold,
+    fontSize: 14,
+    color: colors.white,
   },
   empty: {
     fontFamily: typography.body,
