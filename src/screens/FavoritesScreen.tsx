@@ -4,20 +4,15 @@ import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import {
-  fetchUserFavorites,
-  toggleFavorite,
-  type ApiFavorite,
-} from "../api/favorites";
-import { Chip, ListRow } from "../components";
-import { IconHeart, IconHeartFilled } from "../icons";
+import { fetchUserFavorites, type ApiFavorite } from "../api/favorites";
+import { Chip, FavoriteHeart, ListRow } from "../components";
+import { IconHeart } from "../icons";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, typography } from "../theme";
 
@@ -73,11 +68,6 @@ export function FavoritesScreen() {
         (f) => !(f.type === item.type && f.targetId === item.targetId),
       ),
     );
-    try {
-      await toggleFavorite(item.type, item.targetId);
-    } catch {
-      void load();
-    }
   };
 
   const onOpen = (item: ApiFavorite) => {
@@ -108,14 +98,16 @@ export function FavoritesScreen() {
       subtitle={`${item.subtitle}${item.savedAt ? ` · Saved ${formatSavedAt(item.savedAt)}` : ""}`}
       onPress={() => onOpen(item)}
       rightElement={
-        <Pressable
-          hitSlop={8}
-          style={styles.heartBtn}
-          onPress={() => void onUnfavorite(item)}
-          accessibilityLabel="Remove from favorites"
-        >
-          <IconHeartFilled size={16} color={colors.forest} />
-        </Pressable>
+        <FavoriteHeart
+          type={item.type}
+          targetId={item.targetId}
+          size={18}
+          initialFavorited
+          onFavoritedChange={(favorited) => {
+            if (!favorited) void onUnfavorite(item);
+            else void load();
+          }}
+        />
       }
     />
   );
@@ -166,8 +158,8 @@ export function FavoritesScreen() {
               <IconHeart size={36} color={colors.grayLight} />
               <Text style={styles.emptyTitle}>No favorites yet</Text>
               <Text style={styles.empty}>
-                Tap the heart on a restaurant or dish while you explore — saved
-                spots will show up here.
+                Tap the heart on a community or restaurant while you explore —
+                saved spots will show up here.
               </Text>
             </View>
           }
@@ -210,9 +202,6 @@ const styles = StyleSheet.create({
   list: {
     paddingHorizontal: 20,
     paddingBottom: 32,
-  },
-  heartBtn: {
-    padding: 4,
   },
   empty: {
     fontFamily: typography.body,

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet } from "react-native";
 
-import { createStamp, fetchUserStamps } from "../api/stamps";
+import { fetchUserStamps, toggleStamp } from "../api/stamps";
 import { IconAward, IconAwardFilled } from "../icons";
 import { colors } from "../theme";
 
@@ -10,7 +10,7 @@ type PassportStampButtonProps = {
   size?: number;
   /** When provided, skips the initial stamps fetch. */
   initialStamped?: boolean;
-  /** Called after a successful stamp (or when already stamped is confirmed). */
+  /** Called after stamp state changes. */
   onStampedChange?: (stamped: boolean) => void;
 };
 
@@ -50,15 +50,18 @@ export function PassportStampButton({
   }, [communityId, initialStamped]);
 
   const onPress = useCallback(async () => {
-    if (busy || stamped) return;
+    if (busy) return;
+    const next = !stamped;
     setBusy(true);
-    setStamped(true);
-    onStampedChange?.(true);
+    setStamped(next);
+    onStampedChange?.(next);
     try {
-      await createStamp(communityId);
+      const result = await toggleStamp(communityId);
+      setStamped(result.stamped);
+      onStampedChange?.(result.stamped);
     } catch {
-      setStamped(false);
-      onStampedChange?.(false);
+      setStamped(!next);
+      onStampedChange?.(!next);
     } finally {
       setBusy(false);
     }
@@ -77,10 +80,10 @@ export function PassportStampButton({
       onPress={onPress}
       hitSlop={8}
       style={({ pressed }) => [styles.btn, pressed && styles.pressed]}
-      disabled={busy || stamped}
+      disabled={busy}
       accessibilityRole="button"
       accessibilityLabel={
-        stamped ? "Already stamped in passport" : "Stamp passport"
+        stamped ? "Remove stamp from passport" : "Stamp passport"
       }
     >
       {stamped ? (

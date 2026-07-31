@@ -15,6 +15,8 @@ type FavoriteHeartProps = {
   size?: number;
   /** When provided, skips the initial favorites fetch. */
   initialFavorited?: boolean;
+  /** Fires after a successful toggle (or optimistic update). */
+  onFavoritedChange?: (favorited: boolean) => void;
 };
 
 export function FavoriteHeart({
@@ -22,6 +24,7 @@ export function FavoriteHeart({
   targetId,
   size = 22,
   initialFavorited,
+  onFavoritedChange,
 }: FavoriteHeartProps) {
   const [favorited, setFavorited] = useState(initialFavorited ?? false);
   const [loading, setLoading] = useState(initialFavorited === undefined);
@@ -58,16 +61,21 @@ export function FavoriteHeart({
     if (busy) return;
     setBusy(true);
     const previous = favorited;
-    setFavorited(!previous);
+    const next = !previous;
+    setFavorited(next);
+    onFavoritedChange?.(next);
     try {
       const result = await toggleFavorite(type, targetId);
-      setFavorited(Boolean(result.favorited));
+      const confirmed = Boolean(result.favorited);
+      setFavorited(confirmed);
+      onFavoritedChange?.(confirmed);
     } catch {
       setFavorited(previous);
+      onFavoritedChange?.(previous);
     } finally {
       setBusy(false);
     }
-  }, [busy, favorited, type, targetId]);
+  }, [busy, favorited, type, targetId, onFavoritedChange]);
 
   if (loading) {
     return (

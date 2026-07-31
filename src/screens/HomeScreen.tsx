@@ -1,8 +1,8 @@
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { CompositeNavigationProp } from "@react-navigation/native";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -24,9 +24,17 @@ import {
 import { mapApiCommunity } from "../api/mappers";
 import { searchAll } from "../api/search";
 import { useCommunities } from "../api/useCommunities";
-import { ListRow, SearchBar, EthnicityFlags } from "../components";
+import {
+  CircularFlag,
+  ListRow,
+  SearchBar,
+  EthnicityFlags,
+} from "../components";
 import { CommunityMap, NYC_REGION } from "../components/CommunityMap";
-import { getCommunityFlag } from "../data/communityFlags";
+import {
+  getCommunityCountryCode,
+  getCommunityFlag,
+} from "../data/communityFlags";
 import { IconArrowsMaximize, IconBell } from "../icons";
 import { resolveMapRegion } from "../lib/userLocation";
 import type { MainTabParamList, RootStackParamList } from "../navigation/types";
@@ -78,47 +86,51 @@ export function HomeScreen() {
   const [nearbyRaw, setNearbyRaw] = useState<ApiCommunity[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setNearbyLoading(true);
-      try {
-        const { region } = await resolveMapRegion({ requestPermission: false });
-        if (cancelled) return;
-        setPeekRegion(region);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        setNearbyLoading(true);
+        try {
+          const { region } = await resolveMapRegion({
+            requestPermission: false,
+          });
+          if (cancelled) return;
+          setPeekRegion(region);
 
-        let data = await fetchCommunities({
-          near: { lat: region.latitude, lng: region.longitude },
-          radiusMeters: NEARBY_RADIUS_METERS,
-        });
-
-        // Sparse area or cold start: fall back to NYC metro density.
-        if (data.length === 0) {
-          data = await fetchCommunities({
-            near: {
-              lat: NYC_REGION.latitude,
-              lng: NYC_REGION.longitude,
-            },
+          let data = await fetchCommunities({
+            near: { lat: region.latitude, lng: region.longitude },
             radiusMeters: NEARBY_RADIUS_METERS,
           });
-        }
 
-        if (cancelled) return;
-        setNearbyRaw(data);
-        setNearby(data.slice(0, NEARBY_LIMIT).map(mapApiCommunity));
-      } catch {
-        if (!cancelled) {
-          setNearbyRaw([]);
-          setNearby([]);
+          // Sparse area or cold start: fall back to NYC metro density.
+          if (data.length === 0) {
+            data = await fetchCommunities({
+              near: {
+                lat: NYC_REGION.latitude,
+                lng: NYC_REGION.longitude,
+              },
+              radiusMeters: NEARBY_RADIUS_METERS,
+            });
+          }
+
+          if (cancelled) return;
+          setNearbyRaw(data);
+          setNearby(data.slice(0, NEARBY_LIMIT).map(mapApiCommunity));
+        } catch {
+          if (!cancelled) {
+            setNearbyRaw([]);
+            setNearby([]);
+          }
+        } finally {
+          if (!cancelled) setNearbyLoading(false);
         }
-      } finally {
-        if (!cancelled) setNearbyLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
 
   const isSearching = query.trim().length > 0;
   const poiCountById = useMemo(() => {
@@ -406,7 +418,13 @@ export function HomeScreen() {
                 nearby.map((c) => (
                   <ListRow
                     key={c.id}
-                    thumbnail={getCommunityFlag(c.id, c.emoji)}
+                    leading={
+                      <CircularFlag
+                        countryCode={getCommunityCountryCode(c.id)}
+                        flag={getCommunityFlag(c.id, c.emoji)}
+                        size={40}
+                      />
+                    }
                     title={c.name}
                     subtitle={`${c.neighborhood} · ${poiCountById.get(c.id) ?? 0} places · ${formatNearbyDistance(c.distanceMiles)}`}
                     onPress={() =>

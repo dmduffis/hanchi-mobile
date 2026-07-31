@@ -7,7 +7,10 @@ import { colors, typography } from "../theme";
 type ListRowProps = {
   title: string;
   subtitle?: string;
+  /** Emoji / text thumbnail (ignored when `leading` is set). */
   thumbnail?: string;
+  /** Custom leading node — e.g. CircularFlag. */
+  leading?: React.ReactNode;
   onPress?: () => void;
   rightElement?: React.ReactNode;
   showChevron?: boolean;
@@ -17,6 +20,7 @@ export function ListRow({
   title,
   subtitle,
   thumbnail,
+  leading,
   onPress,
   rightElement,
   showChevron = true,
@@ -27,7 +31,9 @@ export function ListRow({
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
       disabled={!onPress}
     >
-      {thumbnail ? (
+      {leading ? (
+        <View style={styles.leading}>{leading}</View>
+      ) : thumbnail ? (
         <View style={styles.thumb}>
           <Text style={styles.thumbText}>{thumbnail}</Text>
         </View>
@@ -42,7 +48,14 @@ export function ListRow({
           </Text>
         ) : null}
       </View>
-      {rightElement}
+      {rightElement ? (
+        <View
+          onStartShouldSetResponder={() => true}
+          onTouchEnd={(e) => e.stopPropagation()}
+        >
+          {rightElement}
+        </View>
+      ) : null}
       {showChevron && onPress ? (
         <IconChevronRight size={18} color={colors.grayLight} />
       ) : null}
@@ -61,6 +74,10 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
+  },
+  leading: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   thumb: {
     width: 44,

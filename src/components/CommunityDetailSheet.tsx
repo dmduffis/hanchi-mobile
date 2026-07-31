@@ -10,10 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {
-  fetchCommunity,
-  type ApiCommunityDetail,
-} from "../api/communities";
+import { fetchCommunity, type ApiCommunityDetail } from "../api/communities";
 import { mapApiCommunity } from "../api/mappers";
 import type { ApiPoi } from "../api/search";
 import { IconChevronRight, IconX } from "../icons";
@@ -21,6 +18,7 @@ import { colors, radii, typography } from "../theme";
 import { Badge } from "./Badge";
 import { EnclaveDetailMap } from "./EnclaveDetailMap";
 import { EthnicityFlags } from "./EthnicityFlags";
+import { FavoriteHeart } from "./FavoriteHeart";
 
 const SHORT_DESC_CHARS = 140;
 
@@ -56,12 +54,17 @@ function RestaurantCard({
     poi.rating != null && Number.isFinite(poi.rating)
       ? `★ ${poi.rating.toFixed(1)}`
       : null;
-  const meta = [poi.category, poi.priceLevel, rating].filter(Boolean).join(" · ");
+  const meta = [poi.category, poi.priceLevel, rating]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.restaurantCard, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.restaurantCard,
+        pressed && styles.pressed,
+      ]}
     >
       <View style={styles.restaurantImageWrap}>
         {poi.imageUrl ? (
@@ -83,6 +86,13 @@ function RestaurantCard({
             />
           </View>
         ) : null}
+        <View
+          style={styles.restaurantHeartBadge}
+          onStartShouldSetResponder={() => true}
+          onTouchEnd={(e) => e.stopPropagation()}
+        >
+          <FavoriteHeart type="restaurant" targetId={poi.id} size={16} />
+        </View>
       </View>
       <View style={styles.restaurantBody}>
         <Text style={styles.restaurantName} numberOfLines={1}>
@@ -160,10 +170,7 @@ export function CommunityDetailSheet({
 
   return (
     <View
-      style={[
-        styles.sheet,
-        { paddingBottom: Math.max(insets.bottom, 12) },
-      ]}
+      style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) }]}
     >
       <View style={styles.grabber} />
       <View style={styles.header}>
@@ -181,6 +188,9 @@ export function CommunityDetailSheet({
             <Text style={styles.title}>Community</Text>
           )}
         </View>
+        {community ? (
+          <FavoriteHeart type="community" targetId={community.id} size={20} />
+        ) : null}
         <Pressable
           style={styles.closeBtn}
           onPress={onClose}
@@ -423,6 +433,17 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: -2,
     bottom: -2,
+  },
+  restaurantHeartBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.94)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   restaurantBody: {
     flex: 1,

@@ -1,6 +1,6 @@
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -25,7 +25,9 @@ import type { ApiPoi } from "../api/search";
 import { useCommunities } from "../api/useCommunities";
 import {
   Chip,
+  CircularFlag,
   CommunityDetailSheet,
+  FavoriteHeart,
   ListRow,
   MapSheetCard,
   SearchBar,
@@ -41,7 +43,10 @@ import {
   type MapRegion,
   type MapRestaurant,
 } from "../components/CommunityMap";
-import { getCommunityFlag } from "../data/communityFlags";
+import {
+  getCommunityCountryCode,
+  getCommunityFlag,
+} from "../data/communityFlags";
 import {
   availableCultureFiltersForCommunities,
   ethnicitiesForCultureFilter,
@@ -67,6 +72,7 @@ import {
 import type { RootStackParamList } from "../navigation/types";
 import {
   distanceMeters,
+  getSavedLocationInfo,
   METRO_FIT_RADIUS_METERS,
   resolveMapRegion,
 } from "../lib/userLocation";
@@ -163,7 +169,8 @@ export function MapScreen() {
   const selectedIdRef = useRef<string | null>(null);
   const foodFetchGen = useRef(0);
   const didBootLocation = useRef(false);
-  const didFitMetro = useRef(false);
+  const appliedLocationKey = useRef<string | null>(null);
+  const fittedLocationKey = useRef<string | null>(null);
 
   useEffect(() => {
     if (didBootLocation.current) return;
@@ -177,6 +184,7 @@ export function MapScreen() {
       regionRef.current = region;
       setRegion(region);
       setBootRegion(region);
+      appliedLocationKey.current = `boot:${region.latitude.toFixed(3)},${region.longitude.toFixed(3)}`;
     })();
 
     return () => {
@@ -184,24 +192,59 @@ export function MapScreen() {
     };
   }, []);
 
+  // Re-frame when Profile changes map location while this screen is revisited.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        const info = await getSavedLocationInfo();
+        if (cancelled) return;
+        const key = `${info.mode}:${info.region.latitude.toFixed(3)},${info.region.longitude.toFixed(3)}`;
+        if (appliedLocationKey.current === key) return;
+        appliedLocationKey.current = key;
+        fittedLocationKey.current = key;
+        regionRef.current = info.region;
+        setRegion(info.region);
+        setBootRegion(info.region);
+        const metro = communitiesNear(
+          communities,
+          info.region.latitude,
+          info.region.longitude,
+        );
+        if (metro.length > 0) {
+          mapRef.current?.fitToCommunities(metro);
+        } else {
+          mapRef.current?.animateToCoordinate(
+            info.region.latitude,
+            info.region.longitude,
+            {
+              latitudeDelta: info.region.latitudeDelta,
+              longitudeDelta: info.region.longitudeDelta,
+            },
+          );
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [communities]),
+  );
+
   // After location + community catalog load, frame the whole metro so OC
   // enclaves (e.g. Little Arabia) aren't clipped when opened near LA proper.
   useEffect(() => {
-    if (
-      didFitMetro.current ||
-      !bootRegion ||
-      loading ||
-      communities.length === 0
-    ) {
+    if (!bootRegion || loading || communities.length === 0) {
       return;
     }
+    const key = appliedLocationKey.current;
+    if (!key || fittedLocationKey.current === key) return;
     const metro = communitiesNear(
       communities,
       bootRegion.latitude,
       bootRegion.longitude,
     );
     if (metro.length === 0) return;
-    didFitMetro.current = true;
+    fittedLocationKey.current = key;
     const handle = requestAnimationFrame(() => {
       mapRef.current?.fitToCommunities(metro);
     });
@@ -477,6 +520,7 @@ export function MapScreen() {
     try {
       const { region, granted } = await resolveMapRegion({
         requestPermission: true,
+        forceGps: true,
       });
       if (!granted) {
         Alert.alert(
@@ -790,6 +834,8 @@ export function MapScreen() {
                     imageUrl={item.imageUrl}
                     countryCode={primaryEthnicityCountryCode(item.ethnicities)}
                     flag={primaryEthnicityEmoji(item.ethnicities)}
+                    favoriteType="restaurant"
+                    favoriteId={item.id}
                     onPress={() => openRestaurant(item.id)}
                   />
                 );
@@ -846,6 +892,7 @@ export function MapScreen() {
             <FlatList
               data={filtered}
               keyExtractor={(item) => item.id}
+              style={styles.listFlex}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.listContent}
               ListEmptyComponent={
@@ -855,10 +902,23 @@ export function MapScreen() {
               }
               renderItem={({ item }) => (
                 <ListRow
-                  thumbnail={getCommunityFlag(item.id, item.emoji)}
+                  leading={
+                    <CircularFlag
+                      countryCode={getCommunityCountryCode(item.id)}
+                      flag={getCommunityFlag(item.id, item.emoji)}
+                      size={40}
+                    />
+                  }
                   title={item.name}
                   subtitle={`${item.neighborhood} · ${getAffinityLabels(item).join(" · ") || item.heritage}`}
                   onPress={() => openCommunity(item.id)}
+                  rightElement={
+                    <FavoriteHeart
+                      type="community"
+                      targetId={item.id}
+                      size={18}
+                    />
+                  }
                 />
               )}
             />
@@ -866,6 +926,7 @@ export function MapScreen() {
             <FlatList
               data={filteredFood}
               keyExtractor={(item) => item.id}
+              style={styles.listFlex}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.listContent}
               ListEmptyComponent={
@@ -877,12 +938,27 @@ export function MapScreen() {
               }
               renderItem={({ item }) => (
                 <ListRow
-                  thumbnail={primaryEthnicityEmoji(item.ethnicities)}
+                  leading={
+                    <CircularFlag
+                      countryCode={primaryEthnicityCountryCode(
+                        item.ethnicities,
+                      )}
+                      flag={primaryEthnicityEmoji(item.ethnicities)}
+                      size={40}
+                    />
+                  }
                   title={item.name}
                   subtitle={[item.category, item.priceLevel]
                     .filter(Boolean)
                     .join(" · ")}
                   onPress={() => openRestaurant(item.id)}
+                  rightElement={
+                    <FavoriteHeart
+                      type="restaurant"
+                      targetId={item.id}
+                      size={18}
+                    />
+                  }
                 />
               )}
             />
@@ -1048,9 +1124,9 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
   sheetFilters: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 20,
     gap: 6,
-    paddingBottom: 16,
+    paddingVertical: 4,
     alignItems: "center",
   },
   sheetLoadingRow: {
@@ -1129,7 +1205,10 @@ const styles = StyleSheet.create({
   },
   listFiltersScroll: {
     marginHorizontal: -20,
-    marginBottom: 4,
+    marginBottom: 8,
+    flexGrow: 0,
+    flexShrink: 0,
+    minHeight: 40,
   },
   sheetTitle: {
     fontFamily: typography.display,
@@ -1152,5 +1231,8 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 16,
+  },
+  listFlex: {
+    flex: 1,
   },
 });

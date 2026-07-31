@@ -85,7 +85,8 @@ const AFFINITIES: Record<string, CultureFilterId[]> = {
   "calle-24-sf": ["latino"],
   "soma-pilipinas-sf": ["filipino"],
   "sunset-chinese-sf": ["chinese"],
-  "african-american-arts-sf": ["african"],
+  // US cultural districts — not foreign-country / diaspora enclaves.
+  "african-american-arts-sf": [],
   "pacific-islander-sf": [],
   "american-indian-sf": [],
 };
