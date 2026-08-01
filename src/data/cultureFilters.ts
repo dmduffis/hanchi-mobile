@@ -229,6 +229,39 @@ function haystack(c: Community): string {
     c.tags.some((t) => /dallas|dfw|plano|frisco|irving|richardson|carrollton|oak cliff/i.test(t))
       ? "dallas fort worth dfw plano frisco irving richardson carrollton"
       : "",
+    c.neighborhood.includes("Connecticut") ||
+    c.neighborhood.includes("New Haven") ||
+    c.neighborhood.includes("Hartford") ||
+    c.neighborhood.includes("Bridgeport") ||
+    c.neighborhood.includes("New Britain") ||
+    c.neighborhood.includes("Danbury") ||
+    c.neighborhood.includes("Stamford") ||
+    c.tags.some((t) =>
+      /connecticut|\bct\b|new haven|hartford|bridgeport|new britain|danbury|stamford|wooster|fair haven/i.test(
+        t,
+      ),
+    )
+      ? "connecticut ct new haven hartford bridgeport new britain danbury stamford wooster"
+      : "",
+    c.neighborhood.includes("Miami") ||
+    c.neighborhood.includes("Hialeah") ||
+    c.neighborhood.includes("Sweetwater") ||
+    c.neighborhood.includes("Doral") ||
+    c.neighborhood.includes("Westchester") ||
+    c.tags.some((t) =>
+      /miami|hialeah|little havana|little haiti|sweetwater|doral|allapattah|calle ocho/i.test(
+        t,
+      ),
+    )
+      ? "miami florida hialeah little havana little haiti sweetwater doral allapattah"
+      : "",
+    c.neighborhood.includes("Orlando") ||
+    c.neighborhood.includes("Kissimmee") ||
+    c.tags.some((t) =>
+      /orlando|kissimmee|mills 50|pine hills|azalea park|central florida/i.test(t),
+    )
+      ? "orlando kissimmee mills 50 pine hills azalea park central florida"
+      : "",
   ]
     .join(" ")
     .toLowerCase();
