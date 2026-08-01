@@ -68,10 +68,16 @@ const CURATED_BY_COUNTRY: Record<string, StampMotif> = {
   mx: "chili",
   co: "coffee",
   ec: "volcano",
-  // Africa / Middle East
+  cu: "palm",
+  ni: "volcano",
+  do: "palm",
+  ve: "palm",
+  pr: "palm",
+  // Africa / Middle East / Caribbean
   eg: "pyramid",
   et: "coffee",
   ng: "market",
+  ht: "palm",
   pk: "mosque",
   ye: "mosque",
   lb: "mosque",

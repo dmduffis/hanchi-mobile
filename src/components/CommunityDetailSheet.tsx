@@ -19,6 +19,7 @@ import type { ApiPoi } from "../api/search";
 import { IconChevronRight, IconX } from "../icons";
 import { colors, radii, typography } from "../theme";
 import { Badge } from "./Badge";
+import { Chip } from "./Chip";
 import { EnclaveDetailMap } from "./EnclaveDetailMap";
 import { EthnicityFlags } from "./EthnicityFlags";
 import { FavoriteHeart } from "./FavoriteHeart";
@@ -28,6 +29,13 @@ const SHORT_DESC_CHARS = 140;
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const DISMISS_DISTANCE = 80;
 const DISMISS_VELOCITY = 0.85;
+
+function ethnicityLabel(id: string): string {
+  return id
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
 type CommunityDetailSheetProps = {
   communityId: string;
@@ -130,6 +138,7 @@ export function CommunityDetailSheet({
   const [detail, setDetail] = useState<ApiCommunityDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [ethnicityFilter, setEthnicityFilter] = useState<string | null>(null);
   const translateY = useRef(new Animated.Value(0)).current;
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -187,6 +196,7 @@ export function CommunityDetailSheet({
     setLoading(true);
     setError(null);
     setDetail(null);
+    setEthnicityFilter(null);
     fetchCommunity(communityId)
       .then((res) => {
         if (!cancelled) setDetail(res);
@@ -210,6 +220,23 @@ export function CommunityDetailSheet({
     () => truncateDescription(community?.description ?? ""),
     [community?.description],
   );
+
+  const ethnicityOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    pois.forEach((p) => {
+      (p.ethnicities ?? []).forEach((id) => {
+        counts.set(id, (counts.get(id) ?? 0) + 1);
+      });
+    });
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([id]) => id);
+  }, [pois]);
+
+  const visiblePois = useMemo(() => {
+    if (!ethnicityFilter) return pois;
+    return pois.filter((p) => (p.ethnicities ?? []).includes(ethnicityFilter));
+  }, [pois, ethnicityFilter]);
 
   const mapCentroid = useMemo(() => {
     if (!community) return null;
@@ -329,7 +356,7 @@ export function CommunityDetailSheet({
           <EnclaveDetailMap
             key={community.id}
             centroid={mapCentroid}
-            pois={pois}
+            pois={visiblePois}
             onPoiPress={onRestaurantPress}
             height={160}
             style={styles.map}
@@ -337,16 +364,47 @@ export function CommunityDetailSheet({
 
           <Text style={styles.sectionTitle}>
             {pois.length > 0
-              ? `${pois.length} restaurant${pois.length === 1 ? "" : "s"}`
+              ? `${visiblePois.length}${
+                  ethnicityFilter ? ` of ${pois.length}` : ""
+                } restaurant${visiblePois.length === 1 ? "" : "s"}`
               : "Restaurants"}
           </Text>
+
+          {ethnicityOptions.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chipRow}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Chip
+                label="All"
+                selected={ethnicityFilter === null}
+                onPress={() => setEthnicityFilter(null)}
+              />
+              {ethnicityOptions.map((id) => (
+                <Chip
+                  key={id}
+                  label={ethnicityLabel(id)}
+                  selected={ethnicityFilter === id}
+                  onPress={() =>
+                    setEthnicityFilter(id === ethnicityFilter ? null : id)
+                  }
+                />
+              ))}
+            </ScrollView>
+          ) : null}
 
           {pois.length === 0 ? (
             <Text style={styles.emptyRestaurants}>
               No restaurants listed for this community yet.
             </Text>
+          ) : visiblePois.length === 0 ? (
+            <Text style={styles.emptyRestaurants}>
+              No restaurants match this filter.
+            </Text>
           ) : (
-            pois.map((poi) => (
+            visiblePois.map((poi) => (
               <RestaurantCard
                 key={poi.id}
                 poi={poi}
@@ -477,6 +535,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: colors.ink,
     marginBottom: 10,
+  },
+  chipRow: {
+    gap: 8,
+    marginBottom: 12,
+    paddingRight: 4,
   },
   emptyRestaurants: {
     fontFamily: typography.body,

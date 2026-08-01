@@ -111,4 +111,34 @@ export const METRO_PRESETS: MetroPreset[] = [
       longitudeDelta: 0.55,
     },
   },
+  {
+    id: "connecticut",
+    label: "Connecticut",
+    region: {
+      latitude: 41.35,
+      longitude: -72.95,
+      latitudeDelta: 0.75,
+      longitudeDelta: 0.9,
+    },
+  },
+  {
+    id: "miami",
+    label: "Miami",
+    region: {
+      latitude: 25.79,
+      longitude: -80.28,
+      latitudeDelta: 0.35,
+      longitudeDelta: 0.35,
+    },
+  },
+  {
+    id: "orlando",
+    label: "Orlando",
+    region: {
+      latitude: 28.45,
+      longitude: -81.4,
+      latitudeDelta: 0.45,
+      longitudeDelta: 0.45,
+    },
+  },
 ];
