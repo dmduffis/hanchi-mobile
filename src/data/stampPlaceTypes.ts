@@ -79,6 +79,9 @@ const CURATED_BY_COUNTRY: Record<string, StampMotif> = {
   ps: "mosque",
   // Europe / Caribbean
   pt: "sailboat",
+  it: "landmark",
+  gr: "landmark",
+  pl: "landmark",
   jm: "guitar",
 };
 

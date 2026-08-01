@@ -185,6 +185,15 @@ function haystack(c: Community): string {
     c.tags.some((t) => /san francisco|\bsf\b/i.test(t))
       ? "san francisco sf bay area mission castro japantown sunset"
       : "",
+    c.neighborhood.includes("Chicago") ||
+    c.heritage.includes("Chicago") ||
+    c.tags.some((t) =>
+      /chicago|bridgeview|pilsen|argyle|devon|bolingbrook|humboldt|avondale/i.test(
+        t,
+      ),
+    )
+      ? "chicago chicagoland illinois uptown pilsen little village bolingbrook"
+      : "",
   ]
     .join(" ")
     .toLowerCase();
