@@ -123,6 +123,14 @@ export const COMMUNITY_FLAGS: Record<string, string> = {
   "pine-hills-orlando": "🇯🇲",
   "azalea-park-orlando": "🇨🇴",
   "kissimmee-orlando": "🇵🇷",
+  "cedar-riverside-minneapolis": "🇸🇴",
+  "little-mekong-stpaul": "🇱🇦",
+  "hmongtown-stpaul": "🇱🇦",
+  "lake-street-minneapolis": "🇲🇽",
+  "eat-street-minneapolis": "🇻🇳",
+  "district-del-sol-stpaul": "🇲🇽",
+  "central-ave-minneapolis": "🇲🇽",
+  "brooklyn-park-minneapolis": "🇱🇦",
 };
 
 /**
@@ -246,6 +254,14 @@ export const COMMUNITY_COUNTRY_CODES: Record<string, string> = {
   "pine-hills-orlando": "jm",
   "azalea-park-orlando": "co",
   "kissimmee-orlando": "pr",
+  "cedar-riverside-minneapolis": "so",
+  "little-mekong-stpaul": "la",
+  "hmongtown-stpaul": "la",
+  "lake-street-minneapolis": "mx",
+  "eat-street-minneapolis": "vn",
+  "district-del-sol-stpaul": "mx",
+  "central-ave-minneapolis": "mx",
+  "brooklyn-park-minneapolis": "la",
 };
 
 /**
@@ -368,6 +384,14 @@ const COMMUNITY_FLAGS_PAIR: Record<string, [string] | [string, string]> = {
   "pine-hills-orlando": ["🇯🇲"],
   "azalea-park-orlando": ["🇨🇴"],
   "kissimmee-orlando": ["🇵🇷"],
+  "cedar-riverside-minneapolis": ["🇸🇴"],
+  "little-mekong-stpaul": ["🇱🇦", "🇻🇳"],
+  "hmongtown-stpaul": ["🇱🇦"],
+  "lake-street-minneapolis": ["🇲🇽"],
+  "eat-street-minneapolis": ["🇻🇳"],
+  "district-del-sol-stpaul": ["🇲🇽"],
+  "central-ave-minneapolis": ["🇲🇽"],
+  "brooklyn-park-minneapolis": ["🇱🇦", "🇻🇳"],
 };
 
 export function getCommunityFlag(communityId: string, fallback = "🏳️"): string {

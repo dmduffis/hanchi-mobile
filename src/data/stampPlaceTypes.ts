@@ -61,6 +61,9 @@ const CURATED_BY_COUNTRY: Record<string, StampMotif> = {
   th: "templeBuddhist",
   vn: "rice",
   ph: "island",
+  la: "rice",
+  // Horn of Africa
+  so: "market",
   // South Asia
   in: "om",
   np: "mountain",

@@ -141,4 +141,14 @@ export const METRO_PRESETS: MetroPreset[] = [
       longitudeDelta: 0.45,
     },
   },
+  {
+    id: "minnesota",
+    label: "Twin Cities",
+    region: {
+      latitude: 44.97,
+      longitude: -93.2,
+      latitudeDelta: 0.35,
+      longitudeDelta: 0.4,
+    },
+  },
 ];
