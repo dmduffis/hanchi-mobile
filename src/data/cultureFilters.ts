@@ -194,6 +194,41 @@ function haystack(c: Community): string {
     )
       ? "chicago chicagoland illinois uptown pilsen little village bolingbrook"
       : "",
+    c.neighborhood.includes("Houston") ||
+    c.tags.some((t) => /houston|bellaire|hillcroft|alief|sugar land|katy/i.test(t))
+      ? "houston texas bellaire hillcroft alief sugar land katy"
+      : "",
+    c.neighborhood.includes("Seattle") ||
+    c.neighborhood.includes("Bellevue") ||
+    c.neighborhood.includes("Kent") ||
+    c.neighborhood.includes("Redmond") ||
+    c.tags.some((t) => /seattle|bellevue|kent|redmond|white center|beacon hill/i.test(t))
+      ? "seattle eastside bellevue kent redmond white center beacon hill"
+      : "",
+    c.neighborhood.includes("Boston") ||
+    c.neighborhood.includes("Quincy") ||
+    c.neighborhood.includes("Malden") ||
+    c.neighborhood.includes("Somerville") ||
+    c.neighborhood.includes("Watertown") ||
+    c.tags.some((t) => /boston|quincy|malden|somerville|watertown|east boston/i.test(t))
+      ? "boston massachusetts quincy malden somerville watertown"
+      : "",
+    c.neighborhood.includes("Washington, D.C.") ||
+    c.neighborhood.includes("Silver Spring") ||
+    c.neighborhood.includes("Falls Church") ||
+    c.neighborhood.includes("Annandale") ||
+    c.tags.some((t) => /washington|d\.?c\.?|silver spring|falls church|annandale|eden center/i.test(t))
+      ? "washington dc district columbia silver spring falls church annandale"
+      : "",
+    c.neighborhood.includes("Dallas") ||
+    c.neighborhood.includes("Plano") ||
+    c.neighborhood.includes("Frisco") ||
+    c.neighborhood.includes("Irving") ||
+    c.neighborhood.includes("Richardson") ||
+    c.neighborhood.includes("Carrollton") ||
+    c.tags.some((t) => /dallas|dfw|plano|frisco|irving|richardson|carrollton|oak cliff/i.test(t))
+      ? "dallas fort worth dfw plano frisco irving richardson carrollton"
+      : "",
   ]
     .join(" ")
     .toLowerCase();

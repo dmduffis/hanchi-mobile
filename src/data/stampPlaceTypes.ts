@@ -71,18 +71,22 @@ const CURATED_BY_COUNTRY: Record<string, StampMotif> = {
   // Africa / Middle East
   eg: "pyramid",
   et: "coffee",
+  ng: "market",
   pk: "mosque",
   ye: "mosque",
   lb: "mosque",
   sy: "mosque",
   iq: "mosque",
   ps: "mosque",
-  // Europe / Caribbean
+  // Europe / Caribbean / Caucasus / Latin
   pt: "sailboat",
   it: "landmark",
   gr: "landmark",
   pl: "landmark",
   jm: "guitar",
+  am: "mountain",
+  br: "palm",
+  sv: "chili",
 };
 
 /** Rare per-community overrides when country alone is too coarse. */

@@ -61,4 +61,54 @@ export const METRO_PRESETS: MetroPreset[] = [
       longitudeDelta: 0.55,
     },
   },
+  {
+    id: "houston",
+    label: "Greater Houston",
+    region: {
+      latitude: 29.72,
+      longitude: -95.5,
+      latitudeDelta: 0.55,
+      longitudeDelta: 0.55,
+    },
+  },
+  {
+    id: "seattle",
+    label: "Seattle / Eastside",
+    region: {
+      latitude: 47.55,
+      longitude: -122.25,
+      latitudeDelta: 0.45,
+      longitudeDelta: 0.45,
+    },
+  },
+  {
+    id: "boston",
+    label: "Greater Boston",
+    region: {
+      latitude: 42.35,
+      longitude: -71.08,
+      latitudeDelta: 0.35,
+      longitudeDelta: 0.35,
+    },
+  },
+  {
+    id: "dc",
+    label: "Washington, D.C.",
+    region: {
+      latitude: 38.9,
+      longitude: -77.08,
+      latitudeDelta: 0.4,
+      longitudeDelta: 0.4,
+    },
+  },
+  {
+    id: "dallas",
+    label: "Dallas–Fort Worth",
+    region: {
+      latitude: 32.9,
+      longitude: -96.85,
+      latitudeDelta: 0.55,
+      longitudeDelta: 0.55,
+    },
+  },
 ];
