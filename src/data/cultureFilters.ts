@@ -262,6 +262,17 @@ function haystack(c: Community): string {
     )
       ? "orlando kissimmee mills 50 pine hills azalea park central florida"
       : "",
+    c.neighborhood.includes("Minneapolis") ||
+    c.neighborhood.includes("Saint Paul") ||
+    c.neighborhood.includes("Brooklyn Park") ||
+    c.neighborhood.includes("Frogtown") ||
+    c.tags.some((t) =>
+      /minnesota|minneapolis|saint paul|st paul|twin cities|hmong|cedar-riverside|little mekong|brooklyn park/i.test(
+        t,
+      ),
+    )
+      ? "minnesota minneapolis saint paul st paul twin cities hmong cedar riverside little mekong"
+      : "",
   ]
     .join(" ")
     .toLowerCase();
