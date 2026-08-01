@@ -4,6 +4,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -183,9 +184,15 @@ export function CommunityProfileScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.hero}>
-          <Text style={styles.heroEmoji}>{community.emoji}</Text>
-        </View>
+        {community.imageUrl ? (
+          <View style={styles.hero}>
+            <Image
+              source={{ uri: community.imageUrl }}
+              style={styles.heroImage}
+              resizeMode="cover"
+            />
+          </View>
+        ) : null}
         <Text style={styles.name}>{community.name}</Text>
         <Text style={styles.neighborhood}>{community.neighborhood}</Text>
         <View style={styles.tags}>
@@ -411,15 +418,15 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   hero: {
-    height: 160,
+    height: 180,
     borderRadius: radii.lg,
-    backgroundColor: colors.forest,
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: colors.surface,
+    overflow: "hidden",
     marginBottom: 16,
   },
-  heroEmoji: {
-    fontSize: 64,
+  heroImage: {
+    width: "100%",
+    height: "100%",
   },
   name: {
     fontFamily: typography.display,
