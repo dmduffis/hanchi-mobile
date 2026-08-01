@@ -16,7 +16,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { fetchCommunity, type ApiCommunity } from "../api/communities";
 import { fetchUserFavorites } from "../api/favorites";
 import { fetchPoi, type ApiPoiDetail } from "../api/pois";
-import { Badge, CircularFlag, EthnicityFlags, FavoriteHeart, FavoriteThumb, ListRow } from "../components";
+import {
+  Badge,
+  CircularFlag,
+  FavoriteHeart,
+  FavoriteThumb,
+  ListRow,
+  PhotoPlaceholder,
+} from "../components";
 import {
   primaryEthnicityCountryCode,
   primaryEthnicityEmoji,
@@ -151,9 +158,7 @@ export function RestaurantDetailScreen() {
               resizeMode="cover"
             />
           ) : (
-            <View style={styles.heroFallback}>
-              <Text style={styles.heroEmoji}>🍽️</Text>
-            </View>
+            <PhotoPlaceholder height={200} />
           )}
           {poi.ethnicities?.length ? (
             <View style={styles.heroFlagBadge}>
@@ -188,25 +193,22 @@ export function RestaurantDetailScreen() {
           </Pressable>
         ) : null}
 
-        <View style={styles.infoBlock}>
-          {poi.address ? (
-            <View style={styles.infoRow}>
-              <IconMapPin size={16} color={colors.gray} />
-              <Text style={styles.infoText}>{poi.address}</Text>
-            </View>
-          ) : null}
-          {poi.hours ? (
-            <View style={styles.infoRow}>
-              <IconClock size={16} color={colors.gray} />
-              <Text style={styles.infoText}>{poi.hours}</Text>
-            </View>
-          ) : null}
-          <EthnicityFlags
-            ethnicities={poi.ethnicities}
-            size={22}
-            style={styles.flags}
-          />
-        </View>
+        {poi.address || poi.hours ? (
+          <View style={styles.infoBlock}>
+            {poi.address ? (
+              <View style={styles.infoRow}>
+                <IconMapPin size={16} color={colors.gray} />
+                <Text style={styles.infoText}>{poi.address}</Text>
+              </View>
+            ) : null}
+            {poi.hours ? (
+              <View style={styles.infoRow}>
+                <IconClock size={16} color={colors.gray} />
+                <Text style={styles.infoText}>{poi.hours}</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
         <Text style={styles.sectionTitle}>
           {poi.dishes.length > 0
@@ -304,27 +306,15 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 200,
   },
-  heroFallback: {
-    height: 160,
-    backgroundColor: colors.forest,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   heroFlagBadge: {
     position: "absolute",
     right: 12,
     bottom: 12,
   },
-  heroEmoji: {
-    fontSize: 64,
-  },
   name: {
     fontFamily: typography.display,
     fontSize: 28,
     color: colors.ink,
-  },
-  flags: {
-    marginTop: 8,
   },
   meta: {
     fontFamily: typography.bodyMedium,
