@@ -248,19 +248,36 @@ function haystack(c: Community): string {
     c.neighborhood.includes("Sweetwater") ||
     c.neighborhood.includes("Doral") ||
     c.neighborhood.includes("Westchester") ||
+    c.neighborhood.includes("Kendall") ||
+    c.neighborhood.includes("Pompano") ||
+    c.neighborhood.includes("Deerfield") ||
     c.tags.some((t) =>
-      /miami|hialeah|little havana|little haiti|sweetwater|doral|allapattah|calle ocho/i.test(
+      /miami|hialeah|little havana|little haiti|sweetwater|doral|allapattah|calle ocho|kendall|pompano|broward/i.test(
         t,
       ),
     )
-      ? "miami florida hialeah little havana little haiti sweetwater doral allapattah"
+      ? "miami florida hialeah little havana little haiti sweetwater doral allapattah kendall pompano broward"
       : "",
     c.neighborhood.includes("Orlando") ||
     c.neighborhood.includes("Kissimmee") ||
+    c.neighborhood.includes("Apopka") ||
     c.tags.some((t) =>
-      /orlando|kissimmee|mills 50|pine hills|azalea park|central florida/i.test(t),
+      /orlando|kissimmee|mills 50|pine hills|azalea park|central florida|kirkman|apopka|i-drive/i.test(
+        t,
+      ),
     )
-      ? "orlando kissimmee mills 50 pine hills azalea park central florida"
+      ? "orlando kissimmee mills 50 pine hills azalea park central florida kirkman apopka"
+      : "",
+    c.neighborhood.includes("Tampa") ||
+    c.neighborhood.includes("Tarpon Springs") ||
+    c.neighborhood.includes("Ybor") ||
+    c.tags.some((t) => /tampa|ybor|tarpon springs|west tampa/i.test(t))
+      ? "tampa ybor tarpon springs west tampa florida"
+      : "",
+    c.neighborhood.includes("Jacksonville") ||
+    c.neighborhood.includes("Baymeadows") ||
+    c.tags.some((t) => /jacksonville|baymeadows/i.test(t))
+      ? "jacksonville baymeadows florida"
       : "",
     c.neighborhood.includes("Minneapolis") ||
     c.neighborhood.includes("Saint Paul") ||

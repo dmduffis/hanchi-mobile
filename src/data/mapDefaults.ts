@@ -123,22 +123,42 @@ export const METRO_PRESETS: MetroPreset[] = [
   },
   {
     id: "miami",
-    label: "Miami",
+    label: "Greater Miami",
     region: {
-      latitude: 25.79,
-      longitude: -80.28,
-      latitudeDelta: 0.35,
-      longitudeDelta: 0.35,
+      latitude: 26.05,
+      longitude: -80.25,
+      latitudeDelta: 0.7,
+      longitudeDelta: 0.55,
     },
   },
   {
     id: "orlando",
-    label: "Orlando",
+    label: "Greater Orlando",
     region: {
-      latitude: 28.45,
-      longitude: -81.4,
-      latitudeDelta: 0.45,
-      longitudeDelta: 0.45,
+      latitude: 28.48,
+      longitude: -81.42,
+      latitudeDelta: 0.55,
+      longitudeDelta: 0.55,
+    },
+  },
+  {
+    id: "tampa",
+    label: "Tampa Bay",
+    region: {
+      latitude: 28.05,
+      longitude: -82.55,
+      latitudeDelta: 0.55,
+      longitudeDelta: 0.55,
+    },
+  },
+  {
+    id: "jacksonville",
+    label: "Jacksonville",
+    region: {
+      latitude: 30.22,
+      longitude: -81.57,
+      latitudeDelta: 0.35,
+      longitudeDelta: 0.35,
     },
   },
   {
