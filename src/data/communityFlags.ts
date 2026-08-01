@@ -57,6 +57,19 @@ export const COMMUNITY_FLAGS: Record<string, string> = {
   "american-indian-sf": "🪶",
   "sunset-chinese-sf": "🇨🇳",
   "pacific-islander-sf": "🇼🇸",
+  "chinatown-chicago": "🇨🇳",
+  "argyle-chicago": "🇻🇳",
+  "devon-avenue-chicago": "🇮🇳",
+  "little-village-chicago": "🇲🇽",
+  "pilsen-chicago": "🇲🇽",
+  "bridgeview-chicago": "🇵🇸",
+  "albany-park-chicago": "🇰🇷",
+  "greektown-chicago": "🇬🇷",
+  "little-italy-chicago": "🇮🇹",
+  "humboldt-park-chicago": "🇵🇷",
+  "polish-village-chicago": "🇵🇱",
+  "ukrainian-village-chicago": "🇺🇦",
+  "bolingbrook-chicago": "🇵🇰",
 };
 
 /**
@@ -114,6 +127,19 @@ export const COMMUNITY_COUNTRY_CODES: Record<string, string> = {
   "soma-pilipinas-sf": "ph",
   "sunset-chinese-sf": "cn",
   "pacific-islander-sf": "ws",
+  "chinatown-chicago": "cn",
+  "argyle-chicago": "vn",
+  "devon-avenue-chicago": "in",
+  "little-village-chicago": "mx",
+  "pilsen-chicago": "mx",
+  "bridgeview-chicago": "ps",
+  "albany-park-chicago": "kr",
+  "greektown-chicago": "gr",
+  "little-italy-chicago": "it",
+  "humboldt-park-chicago": "pr",
+  "polish-village-chicago": "pl",
+  "ukrainian-village-chicago": "ua",
+  "bolingbrook-chicago": "pk",
 };
 
 /**
@@ -170,6 +196,19 @@ const COMMUNITY_FLAGS_PAIR: Record<string, [string] | [string, string]> = {
   "soma-pilipinas-sf": ["🇵🇭"],
   "sunset-chinese-sf": ["🇨🇳"],
   "pacific-islander-sf": ["🇼🇸", "🇹🇴"],
+  "chinatown-chicago": ["🇨🇳"],
+  "argyle-chicago": ["🇻🇳"],
+  "devon-avenue-chicago": ["🇮🇳", "🇵🇰"],
+  "little-village-chicago": ["🇲🇽"],
+  "pilsen-chicago": ["🇲🇽"],
+  "bridgeview-chicago": ["🇵🇸", "🇱🇧"],
+  "albany-park-chicago": ["🇰🇷"],
+  "greektown-chicago": ["🇬🇷"],
+  "little-italy-chicago": ["🇮🇹"],
+  "humboldt-park-chicago": ["🇵🇷"],
+  "polish-village-chicago": ["🇵🇱"],
+  "ukrainian-village-chicago": ["🇺🇦"],
+  "bolingbrook-chicago": ["🇵🇰"],
 };
 
 export function getCommunityFlag(communityId: string, fallback = "🏳️"): string {

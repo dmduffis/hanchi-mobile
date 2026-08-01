@@ -51,4 +51,14 @@ export const METRO_PRESETS: MetroPreset[] = [
       longitudeDelta: 0.35,
     },
   },
+  {
+    id: "chicago",
+    label: "Greater Chicago",
+    region: {
+      latitude: 41.85,
+      longitude: -87.75,
+      latitudeDelta: 0.55,
+      longitudeDelta: 0.55,
+    },
+  },
 ];
