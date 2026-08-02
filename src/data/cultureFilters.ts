@@ -186,6 +186,12 @@ const AFFINITIES: Record<string, CultureFilterId[]> = {
   "japantown-sf": ["japanese"],
   "calle-24-sf": ["mexican", "salvadoran", "peruvian"],
   "soma-pilipinas-sf": ["filipino"],
+  "excelsior-district-san-francisco-california": [
+    "guatemalan",
+    "salvadoran",
+    "mexican",
+    "filipino",
+  ],
   "sunset-chinese-sf": ["chinese"],
   // US cultural districts — not foreign-country / diaspora enclaves.
   "african-american-arts-sf": [],

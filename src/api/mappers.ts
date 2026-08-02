@@ -14,10 +14,10 @@ export function mapApiCommunity(c: ApiCommunity): Community {
     id: c.id,
     name: c.name,
     neighborhood: c.neighborhood,
-    // Prefer description for culture signals — city alone ("Boston") hides
-    // Brazilian / Armenian / etc. from map client-side search.
     heritage: c.city || c.neighborhood,
-    tags: [c.city, c.description].filter((t): t is string => !!t),
+    // City only as a badge — never put the about blurb in tags (it duplicated
+    // the description block on detail screens).
+    tags: c.city ? [c.city] : [],
     description: c.description,
     pullQuote: "",
     pullQuoteAuthor: "",

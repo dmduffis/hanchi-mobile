@@ -17,8 +17,8 @@ import { pointToLatLng, type LatLng } from "../api/geo";
 import { mapApiCommunity } from "../api/mappers";
 import type { ApiPoi } from "../api/search";
 import { IconArrowsMaximize, IconChevronRight, IconX } from "../icons";
+import { displayDescription, displayNeighborhood } from "../lib/communityCopy";
 import { colors, radii, typography } from "../theme";
-import { Badge } from "./Badge";
 import { Chip } from "./Chip";
 import { EnclaveDetailMap } from "./EnclaveDetailMap";
 import { EthnicityFlags } from "./EthnicityFlags";
@@ -56,6 +56,9 @@ function truncateDescription(text: string): {
   truncated: boolean;
 } {
   const trimmed = text.trim();
+  if (!trimmed) {
+    return { short: "", truncated: false };
+  }
   if (trimmed.length <= SHORT_DESC_CHARS) {
     return { short: trimmed, truncated: false };
   }
@@ -227,9 +230,16 @@ export function CommunityDetailSheet({
   const community = detail ? mapApiCommunity(detail) : null;
   const pois = detail?.pois ?? [];
   const { short, truncated } = useMemo(
-    () => truncateDescription(community?.description ?? ""),
+    () => truncateDescription(displayDescription(community?.description ?? "")),
     [community?.description],
   );
+  const neighborhoodLine = community
+    ? displayNeighborhood(
+        community.name,
+        community.neighborhood,
+        community.heritage,
+      )
+    : "";
 
   const ethnicityOptions = useMemo(() => {
     const counts = new Map<string, number>();
@@ -274,9 +284,11 @@ export function CommunityDetailSheet({
               <Text style={styles.title} numberOfLines={2}>
                 {community.name}
               </Text>
-              <Text style={styles.neighborhood} numberOfLines={1}>
-                {community.neighborhood}
-              </Text>
+              {neighborhoodLine ? (
+                <Text style={styles.neighborhood} numberOfLines={1}>
+                  {neighborhoodLine}
+                </Text>
+              ) : null}
             </>
           ) : (
             <Text style={styles.title}>Community</Text>
@@ -295,7 +307,7 @@ export function CommunityDetailSheet({
           accessibilityRole="button"
           accessibilityLabel="Close community details"
         >
-          <IconX size={18} color={colors.ink} />
+          <IconX size={16} color={colors.ink} />
         </Pressable>
       </View>
 
@@ -320,14 +332,6 @@ export function CommunityDetailSheet({
             bounces
             nestedScrollEnabled
           >
-            {community.tags.length > 0 ? (
-              <View style={styles.tags}>
-                {community.tags.slice(0, 4).map((tag) => (
-                  <Badge key={tag} label={tag} />
-                ))}
-              </View>
-            ) : null}
-
             {short ? (
               <View style={styles.aboutBlock}>
                 <Text style={styles.bodyText}>{short}</Text>
@@ -353,7 +357,7 @@ export function CommunityDetailSheet({
 
             <View style={styles.mapWrap}>
               <EnclaveDetailMap
-                key={community.id}
+                key={`${community.id}|${visiblePois.map((p) => p.id).join(",")}`}
                 centroid={mapCentroid}
                 pois={visiblePois}
                 onPoiPress={onRestaurantPress}
@@ -476,27 +480,35 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     paddingHorizontal: 20,
-    gap: 12,
-    marginBottom: 8,
+    gap: 8,
+    marginBottom: 16,
   },
   headerText: {
     flex: 1,
+    paddingBottom: 4,
   },
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
-    marginLeft: -4,
+    gap: 8,
+    height: 36,
+    paddingHorizontal: 10,
+    backgroundColor: colors.white,
+    borderRadius: radii.full,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
   },
   title: {
     fontFamily: typography.display,
     fontSize: 24,
+    lineHeight: 28,
     color: colors.ink,
   },
   neighborhood: {
     fontFamily: typography.body,
     fontSize: 14,
     color: colors.gray,
-    marginTop: 2,
+    marginTop: 4,
   },
   closeBtn: {
     width: 36,
@@ -532,12 +544,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 40,
-  },
-  tags: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginBottom: 12,
   },
   aboutBlock: {
     marginBottom: 16,

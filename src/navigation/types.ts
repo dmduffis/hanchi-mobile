@@ -10,6 +10,14 @@ export type MainTabParamList = {
         query?: string;
         showResults?: boolean;
         focusSearch?: boolean;
+        /** Open restaurants layer scoped to a community (sheet/profile expand). */
+        expandRestaurants?: {
+          communityId: string;
+          communityName: string;
+          latitude: number;
+          longitude: number;
+          restaurantCoords?: { latitude: number; longitude: number }[];
+        };
       }
     | undefined;
   Favorites: undefined;
