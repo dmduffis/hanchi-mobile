@@ -37,6 +37,9 @@ export function CircularFlag({
     code && VALID_CODES.has(code) ? (code as CountryCode) : null;
   const fontSize = Math.round(size * 0.55);
 
+  const emoji = flag?.trim() ?? "";
+  const showEmoji = !resolvedCode && emoji.length > 0;
+
   if (bare) {
     return (
       <View
@@ -46,16 +49,18 @@ export function CircularFlag({
             width: size,
             height: size,
             borderRadius: size / 2,
+            backgroundColor:
+              resolvedCode || showEmoji ? undefined : colors.forest,
           },
         ]}
       >
         {resolvedCode ? (
           <CircleCountryFlag code={resolvedCode} size={size} />
-        ) : (
+        ) : showEmoji ? (
           <Text style={[styles.flag, { fontSize, lineHeight: fontSize + 4 }]}>
-            {flag}
+            {emoji}
           </Text>
-        )}
+        ) : null}
       </View>
     );
   }
@@ -86,21 +91,23 @@ export function CircularFlag({
             width: inner,
             height: inner,
             borderRadius: inner / 2,
+            backgroundColor:
+              resolvedCode || showEmoji ? undefined : colors.forest,
           },
         ]}
       >
         {resolvedCode ? (
           <CircleCountryFlag code={resolvedCode} size={inner} />
-        ) : (
+        ) : showEmoji ? (
           <Text
             style={[
               styles.flag,
               { fontSize: innerFont, lineHeight: innerFont + 4 },
             ]}
           >
-            {flag}
+            {emoji}
           </Text>
-        )}
+        ) : null}
       </View>
     </View>
   );
