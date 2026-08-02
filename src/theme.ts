@@ -1,20 +1,20 @@
 export const colors = {
   /** Primary interactive (chips, CTAs, active tabs). */
-  forest: "#163A2B",
-  forestDark: "#0F2A1F",
+  forest: "#7C3AED",
+  forestDark: "#5B21B6",
   gold: "#F9BF30",
-  goldText: "#171922",
+  goldText: "#1A1A2E",
   /** Favorites — restrained warm red, less candy than palette rose. */
   heart: "#C84B4B",
   /** Playful accent kept for rare highlights (not primary UI). */
   accent: "#F6643C",
   blue: "#0057A6",
   background: "#FFFFFF",
-  surface: "#F3F2F0",
-  ink: "#171922",
-  gray: "#5C5F6A",
-  grayLight: "#8B8E99",
-  border: "#E6E4DF",
+  surface: "#F5F5F7",
+  ink: "#1A1A2E",
+  gray: "#6B7280",
+  grayLight: "#9CA3AF",
+  border: "#E8E8ED",
   white: "#FFFFFF",
 };
 
@@ -41,8 +41,8 @@ export const spacing = {
 };
 
 export const radii = {
-  sm: 8,
-  md: 12,
-  lg: 16,
+  sm: 10,
+  md: 14,
+  lg: 20,
   full: 999,
 };

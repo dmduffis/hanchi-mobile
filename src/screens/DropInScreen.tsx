@@ -1,17 +1,11 @@
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useCommunities } from "../api/useCommunities";
-import { PrimaryButton } from "../components";
+import { PrimaryButton, Skeleton } from "../components";
 import { IconX } from "../icons";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, typography } from "../theme";
@@ -22,9 +16,7 @@ export function DropInScreen() {
   const { communities, loading, error } = useCommunities();
   const [index, setIndex] = useState(0);
   const community =
-    communities.length > 0
-      ? communities[index % communities.length]
-      : null;
+    communities.length > 0 ? communities[index % communities.length] : null;
 
   const tryAnother = () => {
     if (communities.length === 0) return;
@@ -44,7 +36,13 @@ export function DropInScreen() {
 
         <View style={styles.center}>
           {loading ? (
-            <ActivityIndicator color={colors.gold} />
+            <View style={styles.dropSkeleton}>
+              <Skeleton width={80} height={12} />
+              <Skeleton circle={72} style={{ marginTop: 20 }} />
+              <Skeleton width={180} height={22} style={{ marginTop: 20 }} />
+              <Skeleton width={140} height={14} style={{ marginTop: 10 }} />
+              <Skeleton width={100} height={12} style={{ marginTop: 8 }} />
+            </View>
           ) : error || !community ? (
             <Text style={styles.meta}>{error ?? "No communities yet"}</Text>
           ) : (
@@ -95,6 +93,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 32,
     paddingBottom: 60,
+  },
+  dropSkeleton: {
+    alignItems: "center",
+    width: "100%",
   },
   label: {
     fontFamily: typography.bodyMedium,

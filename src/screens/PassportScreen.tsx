@@ -1,18 +1,12 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useCallback, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useCommunities } from "../api/useCommunities";
 import { fetchUserStamps, type ApiStamp } from "../api/stamps";
-import { Stamp } from "../components";
+import { SkeletonPassport, Stamp } from "../components";
 import { getCommunityCountryCode } from "../data/communityFlags";
 import { mockPassportBadges } from "../data/mockPassport";
 import type { RootStackParamList } from "../navigation/types";
@@ -101,7 +95,7 @@ export function PassportScreen() {
           </Text>
         </View>
         {loading ? (
-          <ActivityIndicator color={colors.forest} style={{ marginTop: 24 }} />
+          <SkeletonPassport />
         ) : collected.length === 0 ? (
           <View style={styles.emptyWrap}>
             <Text style={styles.emptyTitle}>No stamps yet</Text>
@@ -162,7 +156,12 @@ export function PassportScreen() {
                     badge.earned && styles.badgeIconEarned,
                   ]}
                 >
-                  <Text style={styles.badgeIconText}>
+                  <Text
+                    style={[
+                      styles.badgeIconText,
+                      badge.earned && styles.badgeIconTextEarned,
+                    ]}
+                  >
                     {badge.earned ? "★" : "○"}
                   </Text>
                 </View>
@@ -231,14 +230,14 @@ const styles = StyleSheet.create({
     height: 24,
     paddingHorizontal: 6,
     borderRadius: 12,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.forest,
     alignItems: "center",
     justifyContent: "center",
   },
   countText: {
     fontFamily: typography.bodySemibold,
     fontSize: 12,
-    color: colors.goldText,
+    color: colors.white,
   },
   stampScroll: {
     overflow: "visible",
@@ -271,11 +270,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   badgeIconEarned: {
-    backgroundColor: colors.gold,
+    backgroundColor: colors.forest,
   },
   badgeIconText: {
     fontSize: 16,
-    color: colors.goldText,
+    color: colors.grayLight,
+  },
+  badgeIconTextEarned: {
+    color: colors.white,
   },
   badgeContent: {
     flex: 1,

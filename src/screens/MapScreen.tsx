@@ -47,6 +47,7 @@ import {
   PriceRatingRow,
   SearchBar,
   SearchResultsPanel,
+  SkeletonMapBoot,
 } from "../components";
 import {
   CommunityMap,
@@ -1245,8 +1246,8 @@ export function MapScreen() {
 
   if (loading || !bootRegion) {
     return (
-      <View style={[styles.root, styles.loadingWrap]}>
-        <ActivityIndicator color={colors.forest} />
+      <View style={styles.root}>
+        <SkeletonMapBoot />
       </View>
     );
   }
@@ -1294,6 +1295,7 @@ export function MapScreen() {
               key={`map-search-${searchFocusKey}`}
               value={query}
               autoFocus={searchAutoFocus}
+              elevated
               placeholder="Search communities, dishes…"
               onFocus={() => {
                 if (query.trim()) setResultsOpen(true);

@@ -4,7 +4,6 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   Keyboard,
   Pressable,
@@ -26,10 +25,12 @@ import { searchAll } from "../api/search";
 import { useCommunities } from "../api/useCommunities";
 import {
   CircularFlag,
+  EthnicityFlags,
   ListRow,
   SearchBar,
   SearchResultsPanel,
-  EthnicityFlags,
+  SkeletonHome,
+  SkeletonListRows,
 } from "../components";
 import { CommunityMap, NYC_REGION } from "../components/CommunityMap";
 import {
@@ -272,9 +273,7 @@ export function HomeScreen() {
         />
 
         {loading ? (
-          <View style={styles.centered}>
-            <ActivityIndicator color={colors.forest} />
-          </View>
+          <SkeletonHome />
         ) : error ? (
           <Text style={styles.emptySearch}>{error}</Text>
         ) : isSearching ? (
@@ -381,7 +380,7 @@ export function HomeScreen() {
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Nearby communities</Text>
               {nearbyLoading ? (
-                <ActivityIndicator color={colors.forest} />
+                <SkeletonListRows count={4} />
               ) : nearby.length === 0 ? (
                 <Text style={styles.emptySearch}>
                   No communities near you yet.

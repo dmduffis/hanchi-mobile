@@ -1,18 +1,11 @@
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { fetchRoutes, type ApiRouteSummary } from "../api/routes";
-import { PrimaryButton, PromoBanner } from "../components";
+import { PrimaryButton, PromoBanner, SkeletonListRows } from "../components";
 import {
   IconArrowLeft,
   IconAward,
@@ -40,7 +33,9 @@ export function DiscoverScreen() {
         if (!cancelled) setRoutes(data);
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load routes");
+          setError(
+            err instanceof Error ? err.message : "Failed to load routes",
+          );
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -79,7 +74,9 @@ export function DiscoverScreen() {
         showsVerticalScrollIndicator={false}
       >
         {loading ? (
-          <ActivityIndicator color={colors.forest} style={{ marginTop: 40 }} />
+          <View style={{ marginTop: 24 }}>
+            <SkeletonListRows count={5} />
+          </View>
         ) : error ? (
           <Text style={styles.routeSub}>{error}</Text>
         ) : (
@@ -96,9 +93,13 @@ export function DiscoverScreen() {
                   {aiRoute.description ?? "A suggested walk through the city."}
                 </Text>
                 <Text style={styles.aiMeta}>
-                  {aiRoute.stopCount ?? 0} stops · {aiRoute.type.replace("_", " ")}
+                  {aiRoute.stopCount ?? 0} stops ·{" "}
+                  {aiRoute.type.replace("_", " ")}
                 </Text>
-                <PrimaryButton label="Start this route" style={{ marginTop: 16 }} />
+                <PrimaryButton
+                  label="Start this route"
+                  style={{ marginTop: 16 }}
+                />
               </View>
             ) : null}
 
