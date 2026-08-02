@@ -341,8 +341,14 @@ export function MapScreen() {
       return;
     }
     if (suppressAutoLocationFit.current) return;
-    // Deep-link focus from Home search owns the camera instead.
-    if (route.params?.focusCommunityId || route.params?.query) return;
+    // Deep-link focus from Home search / Open map owns the camera instead.
+    if (
+      route.params?.focusCommunityId ||
+      route.params?.query ||
+      route.params?.openAt
+    ) {
+      return;
+    }
     const key = appliedLocationKey.current;
     if (!key || fittedLocationKey.current === key) return;
     const metro = communitiesNear(
@@ -362,6 +368,7 @@ export function MapScreen() {
     loading,
     route.params?.focusCommunityId,
     route.params?.query,
+    route.params?.openAt,
     moveCamera,
   ]);
 
@@ -372,15 +379,91 @@ export function MapScreen() {
     const showResults = route.params?.showResults === true;
     const focusSearch = route.params?.focusSearch === true;
     const expand = route.params?.expandRestaurants;
-    if (!focusId && !incomingQuery && !showResults && !focusSearch && !expand) {
+    const openAt = route.params?.openAt;
+    if (
+      !focusId &&
+      !incomingQuery &&
+      !showResults &&
+      !focusSearch &&
+      !expand &&
+      !openAt
+    ) {
       return;
     }
     if (loading || !bootRegion) return;
-    if ((focusId || incomingQuery) && communities.length === 0) return;
+    if ((focusId || incomingQuery || openAt) && communities.length === 0) {
+      return;
+    }
 
-    const key = `${focusId ?? ""}|${incomingQuery ?? ""}|${showResults}|${focusSearch}|${expand?.communityId ?? ""}`;
+    const key = `${focusId ?? ""}|${incomingQuery ?? ""}|${showResults}|${focusSearch}|${expand?.communityId ?? ""}|${openAt?.token ?? ""}`;
     if (appliedFocusKey.current === key) return;
     appliedFocusKey.current = key;
+
+    const clearRouteParams = () => {
+      navigation.setParams({
+        focusCommunityId: undefined,
+        query: undefined,
+        showResults: undefined,
+        focusSearch: undefined,
+        expandRestaurants: undefined,
+        openAt: undefined,
+      });
+    };
+
+    // Home “Open map”: match the peek camera and drop stale community/food focus.
+    if (openAt) {
+      suppressAutoLocationFit.current = false;
+      setFocusedCommunityId(null);
+      setFoodCommunityFilter(null);
+      setFoodEthnicityFilter(null);
+      setFocusRestaurantId(null);
+      setRestaurantSheetExpanded(false);
+      selectedIdRef.current = null;
+      setQuery("");
+      setResultsOpen(false);
+      setGlobalResults([]);
+      setSearchKind("all");
+      setCulture("all");
+      setMode("cards");
+      setLayer("enclaves");
+
+      const nextRegion = {
+        latitude: openAt.latitude,
+        longitude: openAt.longitude,
+        latitudeDelta: openAt.latitudeDelta,
+        longitudeDelta: openAt.longitudeDelta,
+      };
+      regionRef.current = nextRegion;
+      setRegion(nextRegion);
+      setBootRegion(nextRegion);
+
+      const metro = communitiesNear(
+        communities,
+        openAt.latitude,
+        openAt.longitude,
+      );
+      fittedLocationKey.current = appliedLocationKey.current;
+      const applyHomeCamera = () => {
+        moveCamera(() => {
+          if (metro.length > 0) {
+            mapRef.current?.fitToCommunities(metro);
+            return;
+          }
+          mapRef.current?.animateToCoordinate(
+            openAt.latitude,
+            openAt.longitude,
+            {
+              latitudeDelta: openAt.latitudeDelta,
+              longitudeDelta: openAt.longitudeDelta,
+            },
+          );
+        });
+      };
+      requestAnimationFrame(applyHomeCamera);
+      setTimeout(applyHomeCamera, 400);
+      clearRouteParams();
+      return;
+    }
 
     suppressAutoLocationFit.current = true;
 
@@ -427,13 +510,7 @@ export function MapScreen() {
       requestAnimationFrame(applyExpandCamera);
       setTimeout(applyExpandCamera, 400);
 
-      navigation.setParams({
-        focusCommunityId: undefined,
-        query: undefined,
-        showResults: undefined,
-        focusSearch: undefined,
-        expandRestaurants: undefined,
-      });
+      clearRouteParams();
       return;
     }
 
@@ -477,19 +554,14 @@ export function MapScreen() {
       });
     }
 
-    navigation.setParams({
-      focusCommunityId: undefined,
-      query: undefined,
-      showResults: undefined,
-      focusSearch: undefined,
-      expandRestaurants: undefined,
-    });
+    clearRouteParams();
   }, [
     route.params?.focusCommunityId,
     route.params?.query,
     route.params?.showResults,
     route.params?.focusSearch,
     route.params?.expandRestaurants,
+    route.params?.openAt,
     communities,
     loading,
     bootRegion,
