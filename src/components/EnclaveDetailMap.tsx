@@ -45,7 +45,8 @@ export function EnclaveDetailMap({
   height = MAP_HEIGHT,
 }: EnclaveDetailMapProps) {
   const mapRef = useRef<MapView>(null);
-  const didFit = useRef(false);
+  const mapReady = useRef(false);
+  const lastFitKey = useRef("");
 
   const markers = useMemo(() => {
     const out: {
@@ -81,18 +82,35 @@ export function EnclaveDetailMap({
     return [];
   }, [markers, centroid]);
 
+  const fitKey = useMemo(
+    () =>
+      fitCoords
+        .map((c) => `${c.latitude.toFixed(5)},${c.longitude.toFixed(5)}`)
+        .join("|"),
+    [fitCoords],
+  );
+
   const hasMapContent = fitCoords.length > 0;
 
-  const fitMap = useCallback(() => {
-    if (fitCoords.length === 0 || didFit.current) return;
-    didFit.current = true;
-    requestAnimationFrame(() => {
-      mapRef.current?.fitToCoordinates(fitCoords, {
-        edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
-        animated: false,
+  const fitMap = useCallback(
+    (animated: boolean) => {
+      if (fitCoords.length === 0 || !mapReady.current) return;
+      if (lastFitKey.current === fitKey) return;
+      lastFitKey.current = fitKey;
+      const pad = Math.max(24, Math.round(height * 0.12));
+      requestAnimationFrame(() => {
+        mapRef.current?.fitToCoordinates(fitCoords, {
+          edgePadding: { top: pad, right: pad, bottom: pad, left: pad },
+          animated,
+        });
       });
-    });
-  }, [fitCoords]);
+    },
+    [fitCoords, fitKey, height],
+  );
+
+  useEffect(() => {
+    fitMap(false);
+  }, [fitMap]);
 
   if (!hasMapContent) {
     return null;
@@ -111,7 +129,7 @@ export function EnclaveDetailMap({
     );
   }
 
-  const initial = fitCoords[0];
+  const initial = fitCoords[0]!;
 
   return (
     <View style={[styles.wrap, { height }, style]} collapsable={false}>
@@ -125,7 +143,12 @@ export function EnclaveDetailMap({
           latitudeDelta: 0.045,
           longitudeDelta: 0.045,
         }}
-        onMapReady={fitMap}
+        onMapReady={() => {
+          mapReady.current = true;
+          // Allow a fresh fit after the native map is ready.
+          lastFitKey.current = "";
+          fitMap(false);
+        }}
         scrollEnabled
         zoomEnabled
         rotateEnabled={false}
@@ -200,6 +223,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
+    overflow: "hidden",
   },
   map: {
     width: "100%",

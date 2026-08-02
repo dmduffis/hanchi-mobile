@@ -19,6 +19,7 @@ import {
   type ApiCommunityDetail,
   type ApiDish,
 } from "../api/communities";
+import { pointToLatLng } from "../api/geo";
 import { mapApiCommunity } from "../api/mappers";
 import {
   Badge,
@@ -35,7 +36,8 @@ import {
   primaryEthnicityCountryCode,
   primaryEthnicityEmoji,
 } from "../data/ethnicityFlags";
-import { IconArrowLeft, IconChevronRight } from "../icons";
+import { IconArrowLeft, IconArrowsMaximize, IconChevronRight } from "../icons";
+import { displayDescription, displayNeighborhood } from "../lib/communityCopy";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
 import type { CommunityProfileTab } from "../types";
@@ -166,17 +168,16 @@ export function CommunityProfileScreen() {
       <View style={styles.nav}>
         <Pressable
           onPress={() => navigation.goBack()}
-          hitSlop={8}
+          hitSlop={12}
           style={styles.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
-          <IconArrowLeft size={22} color={colors.ink} />
+          <IconArrowLeft size={24} color={colors.ink} />
         </Pressable>
-        <Text style={styles.navTitle} numberOfLines={1}>
-          {community.name}
-        </Text>
         <View style={styles.navActions}>
-          <FavoriteHeart type="community" targetId={community.id} />
-          <PassportStampButton communityId={community.id} />
+          <FavoriteHeart type="community" targetId={community.id} size={20} />
+          <PassportStampButton communityId={community.id} size={20} compact />
         </View>
       </View>
 
@@ -193,12 +194,21 @@ export function CommunityProfileScreen() {
             />
           </View>
         ) : null}
-        <Text style={styles.name}>{community.name}</Text>
-        <Text style={styles.neighborhood}>{community.neighborhood}</Text>
-        <View style={styles.tags}>
-          {community.tags.map((tag) => (
-            <Badge key={tag} label={tag} />
-          ))}
+        <View style={styles.titleBlock}>
+          <Text style={styles.name}>{community.name}</Text>
+          {displayNeighborhood(
+            community.name,
+            community.neighborhood,
+            community.heritage,
+          ) ? (
+            <Text style={styles.neighborhood}>
+              {displayNeighborhood(
+                community.name,
+                community.neighborhood,
+                community.heritage,
+              )}
+            </Text>
+          ) : null}
         </View>
 
         <View style={styles.tabBar}>
@@ -219,26 +229,83 @@ export function CommunityProfileScreen() {
 
         {tab === "About" && (
           <View style={styles.tabContent}>
-            <Text style={styles.body}>{community.description}</Text>
+            {displayDescription(community.description) ? (
+              <Text style={styles.body}>
+                {displayDescription(community.description)}
+              </Text>
+            ) : community.heritage ? (
+              <Text style={styles.body}>{community.heritage}</Text>
+            ) : null}
           </View>
         )}
 
         {tab === "Food" && (
           <View style={styles.tabContent}>
-            <EnclaveDetailMap
-              key={community.id}
-              centroid={mapCentroid}
-              pois={visiblePois}
-              onPoiPress={(restaurantId) =>
-                navigation.navigate("RestaurantDetail", { restaurantId })
-              }
-              style={styles.enclaveMap}
-            />
-            <Text style={styles.foodIntro}>
-              {visiblePois.length}
-              {ethnicityFilter ? ` of ${pois.length}` : ""} places ·{" "}
-              {dishes.length} dishes to try
+            {visiblePois.some((p) => pointToLatLng(p.location)) ||
+            mapCentroid ? (
+              <View style={styles.mapWrap}>
+                <EnclaveDetailMap
+                  key={`${community.id}|${visiblePois.map((p) => p.id).join(",")}`}
+                  centroid={mapCentroid}
+                  pois={visiblePois}
+                  onPoiPress={(restaurantId) =>
+                    navigation.navigate("RestaurantDetail", { restaurantId })
+                  }
+                  height={160}
+                />
+                <Pressable
+                  style={styles.expandBtn}
+                  onPress={() => {
+                    const restaurantCoords = visiblePois
+                      .map((p) => pointToLatLng(p.location))
+                      .filter(
+                        (c): c is { latitude: number; longitude: number } =>
+                          c != null,
+                      );
+                    const center = mapCentroid ??
+                      restaurantCoords[0] ?? {
+                        latitude: community.latitude,
+                        longitude: community.longitude,
+                      };
+                    if (
+                      !Number.isFinite(center.latitude) ||
+                      !Number.isFinite(center.longitude)
+                    ) {
+                      return;
+                    }
+                    navigation.navigate("MainTabs", {
+                      screen: "Map",
+                      params: {
+                        expandRestaurants: {
+                          communityId: community.id,
+                          communityName: community.name,
+                          latitude: center.latitude,
+                          longitude: center.longitude,
+                          restaurantCoords,
+                        },
+                      },
+                    });
+                  }}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Show restaurants on map"
+                >
+                  <IconArrowsMaximize size={16} color={colors.forest} />
+                </Pressable>
+              </View>
+            ) : null}
+            <Text style={styles.sectionTitle}>
+              {pois.length > 0
+                ? `${visiblePois.length}${
+                    ethnicityFilter ? ` of ${pois.length}` : ""
+                  } restaurant${visiblePois.length === 1 ? "" : "s"}`
+                : "Restaurants"}
             </Text>
+            {dishes.length > 0 ? (
+              <Text style={styles.foodIntro}>
+                {dishes.length} dish{dishes.length === 1 ? "" : "es"} to try
+              </Text>
+            ) : null}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -393,28 +460,36 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingTop: 4,
+    paddingBottom: 12,
+    minHeight: 48,
   },
   backBtn: {
     width: 40,
     height: 40,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 20,
+    backgroundColor: colors.white,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
   },
   navActions: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
+    height: 40,
+    paddingHorizontal: 10,
+    backgroundColor: colors.white,
+    borderRadius: radii.full,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
   },
-  navTitle: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 15,
-    color: colors.ink,
-    flex: 1,
-    textAlign: "center",
-  },
+
   scroll: {
     paddingHorizontal: 20,
+    paddingTop: 4,
     paddingBottom: 40,
   },
   hero: {
@@ -428,26 +503,24 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
+  titleBlock: {
+    marginBottom: 20,
+  },
   name: {
     fontFamily: typography.display,
-    fontSize: 32,
+    fontSize: 24,
+    lineHeight: 28,
     color: colors.ink,
   },
   neighborhood: {
     fontFamily: typography.body,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.gray,
     marginTop: 4,
   },
-  tags: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginTop: 12,
-  },
   tabBar: {
     flexDirection: "row",
-    marginTop: 24,
+    marginTop: 4,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -471,6 +544,33 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     paddingTop: 20,
+  },
+  mapWrap: {
+    marginBottom: 18,
+  },
+  expandBtn: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 34,
+    height: 34,
+    borderRadius: radii.full,
+    backgroundColor: colors.white,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 3,
+  },
+  sectionTitle: {
+    fontFamily: typography.display,
+    fontSize: 18,
+    color: colors.ink,
+    marginBottom: 6,
   },
   body: {
     fontFamily: typography.body,
@@ -524,9 +624,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.gray,
     marginBottom: 12,
-  },
-  enclaveMap: {
-    marginBottom: 16,
   },
   restaurantBlock: {
     marginBottom: 20,

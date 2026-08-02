@@ -156,7 +156,7 @@ export const WIKI_COMMUNITY_FLAGS: Record<string, string> = {
   "ellicott-city-maryland": "🇵🇰",
   "etobicoke-toronto-ontario": "🇮🇳",
   "eveleth-minnesota": "🇸🇮",
-  "excelsior-district-san-francisco-california": "🇾🇪",
+  "excelsior-district-san-francisco-california": "🇬🇹",
   "fairfax-county-virginia": "🇻🇳",
   "fall-river-massachusetts": "🇵🇹",
   "farmington-hills-michigan": "🇮🇳",
@@ -658,7 +658,7 @@ export const WIKI_COMMUNITY_COUNTRY_CODES: Record<string, string> = {
   "ellicott-city-maryland": "pk",
   "etobicoke-toronto-ontario": "in",
   "eveleth-minnesota": "si",
-  "excelsior-district-san-francisco-california": "ye",
+  "excelsior-district-san-francisco-california": "gt",
   "fairfax-county-virginia": "vn",
   "fall-river-massachusetts": "pt",
   "farmington-hills-michigan": "in",
@@ -1423,7 +1423,7 @@ export const WIKI_COMMUNITY_AFFINITIES: Record<string, string[]> = {
     "european"
   ],
   "excelsior-district-san-francisco-california": [
-    "middle-eastern"
+    "latino"
   ],
   "fall-river-massachusetts": [
     "european"

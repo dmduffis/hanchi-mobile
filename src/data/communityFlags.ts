@@ -60,6 +60,7 @@ export const COMMUNITY_FLAGS: Record<string, string> = {
   "japantown-sf": "🇯🇵",
   "calle-24-sf": "🇲🇽",
   "soma-pilipinas-sf": "🇵🇭",
+  "excelsior-district-san-francisco-california": "🇬🇹",
   // US cultural districts (not foreign-country enclaves) — emoji markers, no ISO code.
   "african-american-arts-sf": "🖤",
   "american-indian-sf": "🪶",
@@ -211,6 +212,7 @@ export const COMMUNITY_COUNTRY_CODES: Record<string, string> = {
   "japantown-sf": "jp",
   "calle-24-sf": "mx",
   "soma-pilipinas-sf": "ph",
+  "excelsior-district-san-francisco-california": "gt",
   "sunset-chinese-sf": "cn",
   "pacific-islander-sf": "ws",
   "chinatown-chicago": "cn",

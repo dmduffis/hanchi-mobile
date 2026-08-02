@@ -25,6 +25,8 @@ export const ETHNICITY_FLAGS: Record<string, string> = {
   jamaican: "🇯🇲",
   haitian: "🇭🇹",
   guyanese: "🇬🇾",
+  trinidadian: "🇹🇹",
+  /** Generic Yelp label — prefer specific Caribbean tags when present. */
   caribbean: "🇯🇲",
   senegalese: "🇸🇳",
   ghanaian: "🇬🇭",
@@ -89,6 +91,7 @@ export const ETHNICITY_COUNTRY_CODES: Record<string, string> = {
   jamaican: "jm",
   haitian: "ht",
   guyanese: "gy",
+  trinidadian: "tt",
   caribbean: "jm",
   senegalese: "sn",
   ghanaian: "gh",
@@ -129,15 +132,32 @@ export type EthnicityFlag = {
   emoji: string;
 };
 
+/** Broad labels that should not win over a more specific culture on the same POI. */
+const GENERIC_ETHNICITIES = new Set([
+  "caribbean",
+  "middle_eastern",
+  "west_african",
+]);
+
+function orderedEthnicitiesForFlags(
+  ethnicities: string[] | null | undefined,
+): string[] {
+  if (!ethnicities?.length) return [];
+  const specific = ethnicities.filter((id) => !GENERIC_ETHNICITIES.has(id));
+  const generic = ethnicities.filter((id) => GENERIC_ETHNICITIES.has(id));
+  return specific.length > 0 ? [...specific, ...generic] : ethnicities;
+}
+
 /** Up to 2 ethnicity flag descriptors for a restaurant. */
 export function ethnicityFlagsFor(
   ethnicities: string[] | null | undefined,
 ): EthnicityFlag[] {
-  if (!ethnicities?.length) return [];
+  const ordered = orderedEthnicitiesForFlags(ethnicities);
+  if (!ordered.length) return [];
   const out: EthnicityFlag[] = [];
   const seen = new Set<string>();
 
-  for (const id of ethnicities) {
+  for (const id of ordered) {
     const emoji = ETHNICITY_FLAGS[id];
     if (!emoji) continue;
     const countryCode = ETHNICITY_COUNTRY_CODES[id];
@@ -154,8 +174,7 @@ export function ethnicityFlagsFor(
 export function primaryEthnicityCountryCode(
   ethnicities: string[] | null | undefined,
 ): string | undefined {
-  if (!ethnicities?.length) return undefined;
-  for (const id of ethnicities) {
+  for (const id of orderedEthnicitiesForFlags(ethnicities)) {
     const code = ETHNICITY_COUNTRY_CODES[id];
     if (code) return code;
   }
@@ -166,8 +185,7 @@ export function primaryEthnicityCountryCode(
 export function primaryEthnicityEmoji(
   ethnicities: string[] | null | undefined,
 ): string {
-  if (!ethnicities?.length) return "🍽️";
-  for (const id of ethnicities) {
+  for (const id of orderedEthnicitiesForFlags(ethnicities)) {
     const emoji = ETHNICITY_FLAGS[id];
     if (emoji) return emoji;
   }

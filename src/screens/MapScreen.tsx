@@ -365,21 +365,77 @@ export function MapScreen() {
     moveCamera,
   ]);
 
-  // Home portal / deep-link → Map search or a specific community.
+  // Home portal / deep-link → Map search, community sheet, or expand restaurants.
   useEffect(() => {
     const focusId = route.params?.focusCommunityId;
     const incomingQuery = route.params?.query?.trim();
     const showResults = route.params?.showResults === true;
     const focusSearch = route.params?.focusSearch === true;
-    if (!focusId && !incomingQuery && !showResults && !focusSearch) return;
+    const expand = route.params?.expandRestaurants;
+    if (!focusId && !incomingQuery && !showResults && !focusSearch && !expand) {
+      return;
+    }
     if (loading || !bootRegion) return;
     if ((focusId || incomingQuery) && communities.length === 0) return;
 
-    const key = `${focusId ?? ""}|${incomingQuery ?? ""}|${showResults}|${focusSearch}`;
+    const key = `${focusId ?? ""}|${incomingQuery ?? ""}|${showResults}|${focusSearch}|${expand?.communityId ?? ""}`;
     if (appliedFocusKey.current === key) return;
     appliedFocusKey.current = key;
 
     suppressAutoLocationFit.current = true;
+
+    if (expand) {
+      setFocusedCommunityId(null);
+      selectedIdRef.current = null;
+      setQuery("");
+      setResultsOpen(false);
+      setGlobalResults([]);
+      setSearchKind("all");
+      setCulture("all");
+      setFoodEthnicityFilter(null);
+      setFoodCommunityFilter({
+        id: expand.communityId,
+        name: expand.communityName,
+      });
+      setMode("cards");
+      setLayer("restaurants");
+      skipSearchFlyTo.current = true;
+      fittedLocationKey.current = appliedLocationKey.current;
+      const coords = expand.restaurantCoords ?? [];
+      const applyExpandCamera = () => {
+        moveCamera(() => {
+          if (coords.length > 0) {
+            mapRef.current?.fitToRestaurants(
+              coords.map((c, i) => ({
+                id: `expand-${i}`,
+                name: "",
+                latitude: c.latitude,
+                longitude: c.longitude,
+              })),
+            );
+            return;
+          }
+          mapRef.current?.animateToCoordinate(
+            expand.latitude,
+            expand.longitude,
+            { latitudeDelta: 0.018, longitudeDelta: 0.018 },
+          );
+        });
+      };
+      // Immediate + delayed — tab switch from profile often mounts after the
+      // first rAF, so a second fit keeps the camera matched to the mini-map.
+      requestAnimationFrame(applyExpandCamera);
+      setTimeout(applyExpandCamera, 400);
+
+      navigation.setParams({
+        focusCommunityId: undefined,
+        query: undefined,
+        showResults: undefined,
+        focusSearch: undefined,
+        expandRestaurants: undefined,
+      });
+      return;
+    }
 
     if (focusSearch) {
       setSearchFocusKey((k) => k + 1);
@@ -426,12 +482,14 @@ export function MapScreen() {
       query: undefined,
       showResults: undefined,
       focusSearch: undefined,
+      expandRestaurants: undefined,
     });
   }, [
     route.params?.focusCommunityId,
     route.params?.query,
     route.params?.showResults,
     route.params?.focusSearch,
+    route.params?.expandRestaurants,
     communities,
     loading,
     bootRegion,
