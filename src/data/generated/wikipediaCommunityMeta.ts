@@ -224,7 +224,7 @@ export const WIKI_COMMUNITY_FLAGS: Record<string, string> = {
   "katy-texas": "🇮🇳",
   "kent-washington": "🇮🇳",
   "kimballton-iowa": "🇩🇰",
-  "kiryas-joel-new-york-near-monroe-new-york": "✡️",
+  "kiryas-joel-new-york-near-monroe-new-york": "",
   "koreatown-ellicott-city-maryland": "🇰🇷",
   "koreatown-la": "🇰🇷",
   "lackawanna-new-york": "🇾🇪",

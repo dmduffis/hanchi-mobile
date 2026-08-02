@@ -64,8 +64,8 @@ export const COMMUNITY_FLAGS: Record<string, string> = {
   // US cultural districts (not foreign-country enclaves) — emoji markers, no ISO code.
   "african-american-arts-sf": "🖤",
   "american-indian-sf": "🪶",
-  // Hasidic Satmar village — Star of David, not the Israeli flag.
-  "kiryas-joel-new-york-near-monroe-new-york": "✡️",
+  // Hasidic village — Jewish identity, no nation / religious pin glyph.
+  "kiryas-joel-new-york-near-monroe-new-york": "",
   "sunset-chinese-sf": "🇨🇳",
   "pacific-islander-sf": "🇼🇸",
   "chinatown-chicago": "🇨🇳",
@@ -443,11 +443,10 @@ const COMMUNITY_FLAGS_PAIR: Record<string, [string] | [string, string]> = {
 };
 
 export function getCommunityFlag(communityId: string, fallback = "🏳️"): string {
-  return (
-    COMMUNITY_FLAGS[communityId] ??
-    WIKI_COMMUNITY_FLAGS[communityId] ??
-    fallback
-  );
+  if (Object.prototype.hasOwnProperty.call(COMMUNITY_FLAGS, communityId)) {
+    return COMMUNITY_FLAGS[communityId];
+  }
+  return WIKI_COMMUNITY_FLAGS[communityId] ?? fallback;
 }
 
 export function getCommunityCountryCode(
@@ -470,8 +469,14 @@ export function getCommunityFlags(
 ): string[] {
   const pair = COMMUNITY_FLAGS_PAIR[communityId];
   if (pair?.length) return pair.slice(0, 2);
-  const primary =
-    COMMUNITY_FLAGS[communityId] ?? WIKI_COMMUNITY_FLAGS[communityId];
+  // Curated empty string = plain pin (no nation / religious glyph).
+  if (
+    Object.prototype.hasOwnProperty.call(COMMUNITY_FLAGS, communityId) &&
+    !COMMUNITY_FLAGS[communityId]
+  ) {
+    return [];
+  }
+  const primary = getCommunityFlag(communityId, fallback);
   return primary ? [primary] : [fallback];
 }
 
