@@ -52,9 +52,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   chipSm: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    minHeight: 32,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    minHeight: 30,
     justifyContent: "center",
   },
   overlay: {
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   },
   labelSm: {
     fontSize: 12,
-    lineHeight: 16,
+    lineHeight: 15,
   },
   labelSelected: {
     color: colors.white,

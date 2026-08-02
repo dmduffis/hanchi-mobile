@@ -13,6 +13,8 @@ type FavoriteHeartProps = {
   type: FavoriteType;
   targetId: string;
   size?: number;
+  /** Outline circle around the heart. */
+  circled?: boolean;
   /** When provided, skips the initial favorites fetch. */
   initialFavorited?: boolean;
   /** Fires after a successful toggle (or optimistic update). */
@@ -23,6 +25,7 @@ export function FavoriteHeart({
   type,
   targetId,
   size = 22,
+  circled = false,
   initialFavorited,
   onFavoritedChange,
 }: FavoriteHeartProps) {
@@ -72,11 +75,20 @@ export function FavoriteHeart({
     }
   }, [busy, favorited, type, targetId, onFavoritedChange]);
 
+  const diameter = circled ? Math.max(size + 16, 36) : undefined;
+
   return (
     <Pressable
       onPress={onPress}
-      hitSlop={8}
-      style={({ pressed }) => [styles.btn, pressed && styles.pressed]}
+      hitSlop={circled ? 4 : 10}
+      style={({ pressed }) => [
+        styles.btn,
+        circled && styles.circled,
+        circled && diameter != null
+          ? { width: diameter, height: diameter, borderRadius: diameter / 2 }
+          : null,
+        pressed && styles.pressed,
+      ]}
       disabled={busy}
       accessibilityRole="button"
       accessibilityLabel={
@@ -94,10 +106,13 @@ export function FavoriteHeart({
 
 const styles = StyleSheet.create({
   btn: {
-    width: 40,
-    height: 40,
     alignItems: "center",
     justifyContent: "center",
+  },
+  circled: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
   },
   pressed: {
     opacity: 0.7,

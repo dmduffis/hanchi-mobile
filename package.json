@@ -3,8 +3,7 @@
   "main": "expo/AppEntry.js",
   "version": "1.0.0",
   "dependencies": {
-    "@expo-google-fonts/inter": "^0.4.2",
-    "@expo-google-fonts/source-serif-4": "^0.4.1",
+    "@expo-google-fonts/poppins": "^0.4.1",
     "@expo/vector-icons": "^15.0.2",
     "@google/design.md": "^0.4.0",
     "@iconscout/react-native-unicons": "^2.2.2",

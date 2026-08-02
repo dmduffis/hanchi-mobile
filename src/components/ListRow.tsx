@@ -2,7 +2,7 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { IconChevronRight } from "../icons";
-import { colors, typography } from "../theme";
+import { colors, listTitle, typography } from "../theme";
 
 type ListRowProps = {
   title: string;
@@ -12,7 +12,12 @@ type ListRowProps = {
   /** Custom leading node — e.g. CircularFlag. */
   leading?: React.ReactNode;
   onPress?: () => void;
+  /** Trailing control (e.g. heart). */
   rightElement?: React.ReactNode;
+  /** Renders under title/subtitle (e.g. price badge). */
+  belowElement?: React.ReactNode;
+  /** Vertical alignment for the trailing slot. */
+  rightAlign?: "center" | "top";
   showChevron?: boolean;
 };
 
@@ -23,12 +28,18 @@ export function ListRow({
   leading,
   onPress,
   rightElement,
+  belowElement,
+  rightAlign = "center",
   showChevron = true,
 }: ListRowProps) {
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.row,
+        rightAlign === "top" && styles.rowTop,
+        pressed && styles.pressed,
+      ]}
       disabled={!onPress}
     >
       {leading ? (
@@ -47,9 +58,19 @@ export function ListRow({
             {subtitle}
           </Text>
         ) : null}
+        {belowElement ? (
+          <View
+            style={styles.below}
+            onStartShouldSetResponder={() => true}
+            onTouchEnd={(e) => e.stopPropagation()}
+          >
+            {belowElement}
+          </View>
+        ) : null}
       </View>
       {rightElement ? (
         <View
+          style={styles.right}
           onStartShouldSetResponder={() => true}
           onTouchEnd={(e) => e.stopPropagation()}
         >
@@ -71,6 +92,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
     gap: 12,
+  },
+  rowTop: {
+    alignItems: "flex-start",
   },
   pressed: {
     opacity: 0.7,
@@ -95,16 +119,22 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    minWidth: 0,
   },
   title: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 16,
-    color: colors.ink,
+    ...listTitle,
   },
   subtitle: {
     fontFamily: typography.body,
     fontSize: 13,
     color: colors.gray,
     marginTop: 2,
+  },
+  below: {
+    marginTop: 8,
+    alignSelf: "flex-start",
+  },
+  right: {
+    flexShrink: 0,
   },
 });

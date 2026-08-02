@@ -17,30 +17,20 @@ import { fetchCommunity, type ApiCommunity } from "../api/communities";
 import { fetchUserFavorites } from "../api/favorites";
 import { fetchPoi, type ApiPoiDetail } from "../api/pois";
 import {
-  Badge,
   CircularFlag,
   FavoriteHeart,
   FavoriteThumb,
   ListRow,
   PhotoPlaceholder,
+  PriceRatingRow,
 } from "../components";
 import {
   primaryEthnicityCountryCode,
   primaryEthnicityEmoji,
 } from "../data/ethnicityFlags";
-import {
-  IconArrowLeft,
-  IconChevronRight,
-  IconClock,
-  IconMapPin,
-} from "../icons";
+import { IconArrowLeft, IconClock, IconMapPin, IconUsers } from "../icons";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
-
-function formatRating(rating: number | null | undefined): string | null {
-  if (rating == null || !Number.isFinite(rating)) return null;
-  return rating.toFixed(1);
-}
 
 export function RestaurantDetailScreen() {
   const navigation =
@@ -119,13 +109,6 @@ export function RestaurantDetailScreen() {
     );
   }
 
-  const ratingLabel = formatRating(poi.rating);
-  const metaParts = [
-    poi.category,
-    poi.priceLevel,
-    ratingLabel ? `★ ${ratingLabel}` : null,
-  ].filter(Boolean);
-
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <View style={styles.nav}>
@@ -173,27 +156,9 @@ export function RestaurantDetailScreen() {
         </View>
 
         <Text style={styles.name}>{poi.name}</Text>
-        <Text style={styles.meta}>{metaParts.join(" · ")}</Text>
+        <PriceRatingRow priceLevel={poi.priceLevel} rating={poi.rating} />
 
-        {community ? (
-          <Pressable
-            onPress={() =>
-              navigation.navigate("CommunityProfile", {
-                communityId: community.id,
-              })
-            }
-            style={styles.communityLink}
-          >
-            <IconMapPin size={14} color={colors.forest} />
-            <Text style={styles.communityLinkText}>
-              {community.name}
-              {community.neighborhood ? ` · ${community.neighborhood}` : ""}
-            </Text>
-            <IconChevronRight size={16} color={colors.grayLight} />
-          </Pressable>
-        ) : null}
-
-        {poi.address || poi.hours ? (
+        {poi.address || poi.hours || community ? (
           <View style={styles.infoBlock}>
             {poi.address ? (
               <View style={styles.infoRow}>
@@ -206,6 +171,19 @@ export function RestaurantDetailScreen() {
                 <IconClock size={16} color={colors.gray} />
                 <Text style={styles.infoText}>{poi.hours}</Text>
               </View>
+            ) : null}
+            {community ? (
+              <Pressable
+                onPress={() =>
+                  navigation.navigate("CommunityProfile", {
+                    communityId: community.id,
+                  })
+                }
+                style={styles.communityLink}
+              >
+                <IconUsers size={16} color={colors.forest} />
+                <Text style={styles.communityLinkText}>{community.name}</Text>
+              </Pressable>
             ) : null}
           </View>
         ) : null}
@@ -241,16 +219,15 @@ export function RestaurantDetailScreen() {
               title={dish.name}
               subtitle={dish.description ?? undefined}
               showChevron={false}
+              rightAlign="top"
               rightElement={
-                <View style={styles.dishActions}>
-                  {dish.priceRange ? <Badge label={dish.priceRange} /> : null}
-                  <FavoriteHeart
-                    type="dish"
-                    targetId={dish.id}
-                    size={18}
-                    initialFavorited={favoriteIds.has(`dish:${dish.id}`)}
-                  />
-                </View>
+                <FavoriteHeart
+                  type="dish"
+                  targetId={dish.id}
+                  size={16}
+                  circled
+                  initialFavorited={favoriteIds.has(`dish:${dish.id}`)}
+                />
               }
             />
           ))
@@ -316,32 +293,20 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: colors.ink,
   },
-  meta: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 14,
-    color: colors.forest,
-    marginTop: 6,
-  },
-  dishActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
   communityLink: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginTop: 14,
-    paddingVertical: 8,
+    gap: 10,
   },
   communityLinkText: {
     flex: 1,
     fontFamily: typography.bodyMedium,
     fontSize: 14,
     color: colors.forest,
+    lineHeight: 20,
   },
   infoBlock: {
-    marginTop: 8,
+    marginTop: 14,
     gap: 10,
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,

@@ -20,7 +20,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: radii.full,
-    alignSelf: "flex-start",
   },
   default: {
     backgroundColor: colors.surface,

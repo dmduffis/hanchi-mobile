@@ -18,12 +18,13 @@ import { mapApiCommunity } from "../api/mappers";
 import type { ApiPoi } from "../api/search";
 import { IconArrowsMaximize, IconChevronRight, IconX } from "../icons";
 import { displayDescription, displayNeighborhood } from "../lib/communityCopy";
-import { colors, radii, typography } from "../theme";
+import { colors, listTitle, radii, typography } from "../theme";
 import { Chip } from "./Chip";
 import { EnclaveDetailMap } from "./EnclaveDetailMap";
 import { EthnicityFlags } from "./EthnicityFlags";
 import { FavoriteHeart } from "./FavoriteHeart";
 import { PassportStampButton } from "./PassportStampButton";
+import { PriceRatingRow } from "./PriceRatingRow";
 
 const SHORT_DESC_CHARS = 140;
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -75,14 +76,6 @@ function RestaurantCard({
   poi: ApiPoi;
   onPress: () => void;
 }) {
-  const rating =
-    poi.rating != null && Number.isFinite(poi.rating)
-      ? `★ ${poi.rating.toFixed(1)}`
-      : null;
-  const meta = [poi.category, poi.priceLevel, rating]
-    .filter(Boolean)
-    .join(" · ");
-
   return (
     <Pressable
       onPress={onPress}
@@ -116,16 +109,12 @@ function RestaurantCard({
         <Text style={styles.restaurantName} numberOfLines={1}>
           {poi.name}
         </Text>
-        {meta ? (
+        {poi.category || poi.address ? (
           <Text style={styles.restaurantMeta} numberOfLines={1}>
-            {meta}
+            {[poi.category, poi.address].filter(Boolean).join(" · ")}
           </Text>
         ) : null}
-        {poi.address ? (
-          <Text style={styles.restaurantAddress} numberOfLines={1}>
-            {poi.address}
-          </Text>
-        ) : null}
+        <PriceRatingRow priceLevel={poi.priceLevel} rating={poi.rating} />
       </View>
       <View
         onStartShouldSetResponder={() => true}
@@ -640,18 +629,11 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   restaurantName: {
-    fontFamily: typography.bodySemibold,
-    fontSize: 15,
-    color: colors.ink,
+    ...listTitle,
   },
   restaurantMeta: {
     fontFamily: typography.bodyMedium,
     fontSize: 12,
     color: colors.forest,
-  },
-  restaurantAddress: {
-    fontFamily: typography.body,
-    fontSize: 12,
-    color: colors.gray,
   },
 });

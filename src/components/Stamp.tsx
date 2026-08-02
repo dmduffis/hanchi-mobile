@@ -92,7 +92,7 @@ export function Stamp({
                 <StampPlaceIcon
                   type={motif}
                   color={ink}
-                  size={isSm ? 26 : 30}
+                  size={isSm ? 30 : 36}
                 />
               </View>
             </View>
