@@ -156,7 +156,7 @@ export const WIKI_COMMUNITY_FLAGS: Record<string, string> = {
   "ellicott-city-maryland": "🇵🇰",
   "etobicoke-toronto-ontario": "🇮🇳",
   "eveleth-minnesota": "🇸🇮",
-  "excelsior-district-san-francisco-california": "🇬🇹",
+  "excelsior-district-san-francisco-california": "🇾🇪",
   "fairfax-county-virginia": "🇻🇳",
   "fall-river-massachusetts": "🇵🇹",
   "farmington-hills-michigan": "🇮🇳",
@@ -224,7 +224,7 @@ export const WIKI_COMMUNITY_FLAGS: Record<string, string> = {
   "katy-texas": "🇮🇳",
   "kent-washington": "🇮🇳",
   "kimballton-iowa": "🇩🇰",
-  "kiryas-joel-new-york-near-monroe-new-york": "🇮🇱",
+  "kiryas-joel-new-york-near-monroe-new-york": "✡️",
   "koreatown-ellicott-city-maryland": "🇰🇷",
   "koreatown-la": "🇰🇷",
   "lackawanna-new-york": "🇾🇪",
@@ -658,7 +658,7 @@ export const WIKI_COMMUNITY_COUNTRY_CODES: Record<string, string> = {
   "ellicott-city-maryland": "pk",
   "etobicoke-toronto-ontario": "in",
   "eveleth-minnesota": "si",
-  "excelsior-district-san-francisco-california": "gt",
+  "excelsior-district-san-francisco-california": "ye",
   "fairfax-county-virginia": "vn",
   "fall-river-massachusetts": "pt",
   "farmington-hills-michigan": "in",
@@ -726,7 +726,6 @@ export const WIKI_COMMUNITY_COUNTRY_CODES: Record<string, string> = {
   "katy-texas": "in",
   "kent-washington": "in",
   "kimballton-iowa": "dk",
-  "kiryas-joel-new-york-near-monroe-new-york": "il",
   "koreatown-ellicott-city-maryland": "kr",
   "koreatown-la": "kr",
   "lackawanna-new-york": "ye",
@@ -1423,7 +1422,7 @@ export const WIKI_COMMUNITY_AFFINITIES: Record<string, string[]> = {
     "european"
   ],
   "excelsior-district-san-francisco-california": [
-    "latino"
+    "middle-eastern"
   ],
   "fall-river-massachusetts": [
     "european"
@@ -1601,8 +1600,7 @@ export const WIKI_COMMUNITY_AFFINITIES: Record<string, string[]> = {
     "european"
   ],
   "kiryas-joel-new-york-near-monroe-new-york": [
-    "european",
-    "middle-eastern"
+    "european"
   ],
   "koreatown-ellicott-city-maryland": [
     "korean"

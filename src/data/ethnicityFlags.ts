@@ -45,6 +45,7 @@ export const ETHNICITY_FLAGS: Record<string, string> = {
   turkish: "🇹🇷",
   iranian: "🇮🇷",
   israeli: "🇮🇱",
+  jewish: "✡️",
   middle_eastern: "🇱🇧",
   albanian: "🇦🇱",
   greek: "🇬🇷",
