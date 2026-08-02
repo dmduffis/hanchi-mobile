@@ -3,15 +3,67 @@ import { WIKI_COMMUNITY_AFFINITIES } from "./generated/wikipediaCommunityMeta";
 
 export type CultureFilterId =
   | "all"
+  // East / Southeast Asia
   | "chinese"
+  | "taiwanese"
   | "korean"
-  | "south-asian"
-  | "caribbean"
-  | "latino"
-  | "african"
-  | "middle-eastern"
-  | "european"
-  | "filipino";
+  | "japanese"
+  | "vietnamese"
+  | "thai"
+  | "filipino"
+  // South Asia
+  | "indian"
+  | "pakistani"
+  | "bangladeshi"
+  | "nepali"
+  | "afghan"
+  // Latin America
+  | "mexican"
+  | "colombian"
+  | "dominican"
+  | "ecuadorian"
+  | "peruvian"
+  | "venezuelan"
+  | "cuban"
+  | "puerto_rican"
+  | "salvadoran"
+  | "brazilian"
+  | "guatemalan"
+  // Caribbean
+  | "jamaican"
+  | "haitian"
+  | "guyanese"
+  | "trinidadian"
+  // Africa
+  | "senegalese"
+  | "ghanaian"
+  | "liberian"
+  | "ethiopian"
+  | "nigerian"
+  | "somali"
+  // MENA
+  | "lebanese"
+  | "syrian"
+  | "palestinian"
+  | "yemeni"
+  | "egyptian"
+  | "iraqi"
+  | "moroccan"
+  | "jordanian"
+  | "iranian"
+  | "turkish"
+  // Europe
+  | "polish"
+  | "ukrainian"
+  | "russian"
+  | "albanian"
+  | "greek"
+  | "italian"
+  | "german"
+  | "french"
+  | "spanish"
+  | "portuguese"
+  | "british";
 
 export type CultureFilter = {
   id: CultureFilterId;
@@ -21,69 +73,113 @@ export type CultureFilter = {
 export const CULTURE_FILTERS: CultureFilter[] = [
   { id: "all", label: "All" },
   { id: "chinese", label: "Chinese" },
+  { id: "taiwanese", label: "Taiwanese" },
   { id: "korean", label: "Korean" },
-  { id: "south-asian", label: "South Asian" },
-  { id: "caribbean", label: "Caribbean" },
-  { id: "latino", label: "Latino" },
-  { id: "african", label: "African" },
-  { id: "middle-eastern", label: "Middle Eastern" },
-  { id: "european", label: "European" },
+  { id: "japanese", label: "Japanese" },
+  { id: "vietnamese", label: "Vietnamese" },
+  { id: "thai", label: "Thai" },
   { id: "filipino", label: "Filipino" },
+  { id: "indian", label: "Indian" },
+  { id: "pakistani", label: "Pakistani" },
+  { id: "bangladeshi", label: "Bangladeshi" },
+  { id: "nepali", label: "Nepali" },
+  { id: "afghan", label: "Afghan" },
+  { id: "mexican", label: "Mexican" },
+  { id: "colombian", label: "Colombian" },
+  { id: "dominican", label: "Dominican" },
+  { id: "ecuadorian", label: "Ecuadorian" },
+  { id: "peruvian", label: "Peruvian" },
+  { id: "venezuelan", label: "Venezuelan" },
+  { id: "cuban", label: "Cuban" },
+  { id: "puerto_rican", label: "Puerto Rican" },
+  { id: "salvadoran", label: "Salvadoran" },
+  { id: "brazilian", label: "Brazilian" },
+  { id: "guatemalan", label: "Guatemalan" },
+  { id: "jamaican", label: "Jamaican" },
+  { id: "haitian", label: "Haitian" },
+  { id: "guyanese", label: "Guyanese" },
+  { id: "trinidadian", label: "Trinidadian" },
+  { id: "senegalese", label: "Senegalese" },
+  { id: "ghanaian", label: "Ghanaian" },
+  { id: "liberian", label: "Liberian" },
+  { id: "ethiopian", label: "Ethiopian" },
+  { id: "nigerian", label: "Nigerian" },
+  { id: "somali", label: "Somali" },
+  { id: "lebanese", label: "Lebanese" },
+  { id: "syrian", label: "Syrian" },
+  { id: "palestinian", label: "Palestinian" },
+  { id: "yemeni", label: "Yemeni" },
+  { id: "egyptian", label: "Egyptian" },
+  { id: "iraqi", label: "Iraqi" },
+  { id: "moroccan", label: "Moroccan" },
+  { id: "jordanian", label: "Jordanian" },
+  { id: "iranian", label: "Iranian" },
+  { id: "turkish", label: "Turkish" },
+  { id: "polish", label: "Polish" },
+  { id: "ukrainian", label: "Ukrainian" },
+  { id: "russian", label: "Russian" },
+  { id: "albanian", label: "Albanian" },
+  { id: "greek", label: "Greek" },
+  { id: "italian", label: "Italian" },
+  { id: "german", label: "German" },
+  { id: "french", label: "French" },
+  { id: "spanish", label: "Spanish" },
+  { id: "portuguese", label: "Portuguese" },
+  { id: "british", label: "British" },
 ];
 
 /**
- * Soft cultural affinities per enclave — not 1:1.
- * An enclave can belong to several groups (e.g. Little Guyana → Caribbean + South Asian).
- * Replace / enrich later with backend taxonomy or embeddings.
+ * Soft cultural affinities per enclave — country-level where possible.
+ * An enclave can belong to several countries (e.g. Little Guyana → Guyanese + Indian).
  */
 const AFFINITIES: Record<string, CultureFilterId[]> = {
   "chinatown-flushing": ["chinese"],
   "chinatown-manhattan": ["chinese"],
   "chinatown-sunset-park": ["chinese"],
-  "guyana-gateway": ["caribbean", "south-asian"],
+  "guyana-gateway": ["guyanese", "indian"],
   "koreatown-manhattan": ["korean"],
   "koreatown-queens": ["korean"],
-  "little-africa-si": ["african"],
-  "little-africa-bronx": ["african"],
-  "little-albania": ["european"],
-  "little-bangladesh": ["south-asian"],
-  "little-bhod-tibet": ["south-asian"],
-  "little-caribbean": ["caribbean", "african"],
-  "little-colombia": ["latino"],
-  "little-dominican-republic": ["latino", "caribbean"],
-  "little-ecuador": ["latino"],
-  "little-egypt": ["middle-eastern", "african"],
-  "little-guyana-queens": ["caribbean", "south-asian"],
-  "little-guyana-bronx": ["caribbean", "south-asian"],
-  "little-haiti": ["caribbean", "african"],
-  "little-india": ["south-asian"],
+  "little-africa-si": ["liberian", "senegalese", "ghanaian"],
+  "little-africa-bronx": ["ghanaian", "nigerian", "senegalese"],
+  "little-albania": ["albanian"],
+  "little-bangladesh": ["bangladeshi"],
+  "little-bhod-tibet": ["nepali"],
+  "little-caribbean": ["jamaican", "haitian", "trinidadian"],
+  "little-colombia": ["colombian"],
+  "little-dominican-republic": ["dominican"],
+  "little-ecuador": ["ecuadorian"],
+  "little-egypt": ["egyptian"],
+  "little-guyana-queens": ["guyanese", "indian"],
+  "little-guyana-bronx": ["guyanese", "indian"],
+  "little-haiti": ["haitian"],
+  "little-india": ["indian"],
   "little-manila": ["filipino"],
-  "little-mexico-port-richmond": ["latino"],
-  "little-mexico-sunset-park": ["latino"],
-  "little-odessa": ["european"],
-  "little-palestine": ["middle-eastern"],
-  "little-pakistan": ["south-asian"],
-  "little-poland": ["european"],
-  "little-senegal": ["african"],
-  "little-ukraine": ["european"],
-  "little-yemen": ["middle-eastern"],
-  "little-india-hicksville": ["south-asian"],
-  "little-portugal-mineola": ["european"],
-  "little-el-salvador-brentwood": ["latino"],
+  "little-mexico-port-richmond": ["mexican"],
+  "little-mexico-sunset-park": ["mexican"],
+  "little-odessa": ["ukrainian", "russian"],
+  "little-palestine": ["palestinian"],
+  "little-pakistan": ["pakistani"],
+  "little-poland": ["polish"],
+  "little-senegal": ["senegalese"],
+  "little-ukraine": ["ukrainian"],
+  "little-yemen": ["yemeni"],
+  "little-india-hicksville": ["indian"],
+  "little-portugal-mineola": ["portuguese"],
+  "little-el-salvador-brentwood": ["salvadoran"],
   "koreatown-nassau": ["korean"],
-  "little-arabia-dearborn": ["middle-eastern"],
-  "yemeni-south-end-dearborn": ["middle-eastern"],
-  "little-baghdad-sterling-heights": ["middle-eastern"],
-  "banglatown-hamtramck": ["south-asian"],
-  "mexicantown-detroit": ["latino"],
+  "little-arabia-dearborn": ["lebanese", "yemeni", "iraqi"],
+  "yemeni-south-end-dearborn": ["yemeni"],
+  "little-baghdad-sterling-heights": ["iraqi"],
+  "banglatown-hamtramck": ["bangladeshi"],
+  "mexicantown-detroit": ["mexican"],
   "koreatown-la": ["korean"],
-  "thai-town-la": [],
-  "little-tokyo-la": [],
-  "little-ethiopia-la": ["african"],
-  "little-arabia-anaheim": ["middle-eastern"],
-  "little-saigon-westminster": [],
-  "japantown-sf": [],
-  "calle-24-sf": ["latino"],
+  "thai-town-la": ["thai"],
+  "little-tokyo-la": ["japanese"],
+  "little-ethiopia-la": ["ethiopian"],
+  "little-arabia-anaheim": ["syrian", "lebanese", "egyptian"],
+  "little-saigon-westminster": ["vietnamese"],
+  "japantown-sf": ["japanese"],
+  "calle-24-sf": ["mexican", "salvadoran", "peruvian"],
   "soma-pilipinas-sf": ["filipino"],
   "sunset-chinese-sf": ["chinese"],
   // US cultural districts — not foreign-country / diaspora enclaves.
@@ -92,14 +188,280 @@ const AFFINITIES: Record<string, CultureFilterId[]> = {
   "american-indian-sf": [],
 };
 
+const COUNTRY_HINTS: Array<{ id: CultureFilterId; re: RegExp }> = [
+  // Asia
+  { id: "chinese", re: /chinatown|chinese|china\b/ },
+  { id: "taiwanese", re: /taiwan/ },
+  { id: "korean", re: /korea/ },
+  { id: "japanese", re: /japan|tokyo|nippon/ },
+  { id: "vietnamese", re: /vietnam|saigon/ },
+  { id: "thai", re: /\bthai\b|thailand/ },
+  { id: "filipino", re: /filipino|filipina|pilipinas|manila|philippines/ },
+  { id: "indian", re: /\bindia\b|indian(?!a)/ },
+  { id: "pakistani", re: /pakistan/ },
+  { id: "bangladeshi", re: /bangladesh|bangla/ },
+  { id: "nepali", re: /nepal|tibet|bhod/ },
+  { id: "afghan", re: /afghan/ },
+  // Latin America
+  { id: "mexican", re: /mexico|mexican/ },
+  { id: "colombian", re: /colombia/ },
+  { id: "dominican", re: /dominican/ },
+  { id: "ecuadorian", re: /ecuador/ },
+  { id: "peruvian", re: /peru/ },
+  { id: "venezuelan", re: /venezuela/ },
+  { id: "cuban", re: /\bcuba\b|cuban/ },
+  { id: "puerto_rican", re: /puerto\s*ric/ },
+  { id: "salvadoran", re: /salvador/ },
+  { id: "brazilian", re: /brazil/ },
+  { id: "guatemalan", re: /guatemala/ },
+  // Caribbean
+  { id: "jamaican", re: /jamaica/ },
+  { id: "haitian", re: /haiti/ },
+  { id: "guyanese", re: /guyana/ },
+  { id: "trinidadian", re: /trinidad|tobago/ },
+  // Africa
+  { id: "senegalese", re: /senegal/ },
+  { id: "ghanaian", re: /ghana/ },
+  { id: "liberian", re: /liberia/ },
+  { id: "ethiopian", re: /ethiopia/ },
+  { id: "nigerian", re: /nigeria/ },
+  { id: "somali", re: /somali/ },
+  // MENA
+  { id: "yemeni", re: /yemen/ },
+  { id: "lebanese", re: /lebanon|lebanese/ },
+  { id: "syrian", re: /syria|syrian/ },
+  { id: "palestinian", re: /palestine|palestinian/ },
+  { id: "egyptian", re: /egypt/ },
+  { id: "iraqi", re: /iraq|baghdad/ },
+  { id: "moroccan", re: /morocco|moroccan/ },
+  { id: "jordanian", re: /jordan/ },
+  { id: "iranian", re: /persian|iranian|tehrangeles|\biran\b/ },
+  { id: "turkish", re: /turkish|turk\b|anatolia/ },
+  // Europe
+  { id: "polish", re: /poland|polish/ },
+  { id: "ukrainian", re: /ukraine|ukrainian|odessa/ },
+  { id: "russian", re: /russia|russian/ },
+  { id: "albanian", re: /albania/ },
+  { id: "greek", re: /\bgreek\b|greece/ },
+  { id: "italian", re: /italy|italian/ },
+  { id: "german", re: /german|germany/ },
+  { id: "french", re: /\bfrench\b|france/ },
+  { id: "spanish", re: /\bspain\b|spanish/ },
+  { id: "portuguese", re: /portugal|portuguese/ },
+  { id: "british", re: /british|england|uk\b/ },
+];
+
+function communityHaystack(community: Community): string {
+  return [
+    community.name,
+    community.heritage,
+    community.neighborhood,
+    ...community.tags,
+  ]
+    .join(" ")
+    .toLowerCase();
+}
+
+function countriesFromHaystack(hay: string): CultureFilterId[] {
+  return COUNTRY_HINTS.filter((h) => h.re.test(hay)).map((h) => h.id);
+}
+
+/** Expand legacy broad wiki tags into country chips. */
+function expandLegacyGroup(
+  id: string,
+  community: Community,
+): CultureFilterId[] {
+  const hay = communityHaystack(community);
+  const fromName = countriesFromHaystack(hay);
+
+  switch (id) {
+    case "middle-eastern":
+    case "arab":
+      if (fromName.some((c) =>
+        [
+          "lebanese",
+          "syrian",
+          "palestinian",
+          "yemeni",
+          "egyptian",
+          "iraqi",
+          "moroccan",
+          "jordanian",
+          "iranian",
+          "turkish",
+        ].includes(c),
+      )) {
+        return fromName.filter((c) =>
+          [
+            "lebanese",
+            "syrian",
+            "palestinian",
+            "yemeni",
+            "egyptian",
+            "iraqi",
+            "moroccan",
+            "jordanian",
+            "iranian",
+            "turkish",
+          ].includes(c),
+        );
+      }
+      if (/arabia|arab|middle.?east|mena/.test(hay)) {
+        return ["lebanese", "yemeni", "syrian"];
+      }
+      return [];
+    case "persian":
+      return ["iranian"];
+    case "latino":
+    case "hispanic":
+      if (fromName.some((c) =>
+        [
+          "mexican",
+          "colombian",
+          "dominican",
+          "ecuadorian",
+          "peruvian",
+          "venezuelan",
+          "cuban",
+          "puerto_rican",
+          "salvadoran",
+          "brazilian",
+          "guatemalan",
+        ].includes(c),
+      )) {
+        return fromName.filter((c) =>
+          [
+            "mexican",
+            "colombian",
+            "dominican",
+            "ecuadorian",
+            "peruvian",
+            "venezuelan",
+            "cuban",
+            "puerto_rican",
+            "salvadoran",
+            "brazilian",
+            "guatemalan",
+          ].includes(c),
+        );
+      }
+      return ["mexican"];
+    case "south-asian":
+      if (fromName.some((c) =>
+        ["indian", "pakistani", "bangladeshi", "nepali", "afghan"].includes(c),
+      )) {
+        return fromName.filter((c) =>
+          ["indian", "pakistani", "bangladeshi", "nepali", "afghan"].includes(c),
+        );
+      }
+      return ["indian"];
+    case "caribbean":
+      if (fromName.some((c) =>
+        ["jamaican", "haitian", "guyanese", "trinidadian", "dominican"].includes(
+          c,
+        ),
+      )) {
+        return fromName.filter((c) =>
+          ["jamaican", "haitian", "guyanese", "trinidadian", "dominican"].includes(
+            c,
+          ),
+        );
+      }
+      return ["jamaican", "haitian"];
+    case "african":
+      if (fromName.some((c) =>
+        [
+          "senegalese",
+          "ghanaian",
+          "liberian",
+          "ethiopian",
+          "nigerian",
+          "somali",
+          "egyptian",
+          "moroccan",
+        ].includes(c),
+      )) {
+        return fromName.filter((c) =>
+          [
+            "senegalese",
+            "ghanaian",
+            "liberian",
+            "ethiopian",
+            "nigerian",
+            "somali",
+            "egyptian",
+            "moroccan",
+          ].includes(c),
+        );
+      }
+      return ["senegalese", "nigerian", "ethiopian"];
+    case "european":
+      if (fromName.some((c) =>
+        [
+          "polish",
+          "ukrainian",
+          "russian",
+          "albanian",
+          "greek",
+          "italian",
+          "german",
+          "french",
+          "spanish",
+          "portuguese",
+          "british",
+        ].includes(c),
+      )) {
+        return fromName.filter((c) =>
+          [
+            "polish",
+            "ukrainian",
+            "russian",
+            "albanian",
+            "greek",
+            "italian",
+            "german",
+            "french",
+            "spanish",
+            "portuguese",
+            "british",
+          ].includes(c),
+        );
+      }
+      return [];
+    default:
+      return [];
+  }
+}
+
+function normalizeAffinityIds(
+  id: string,
+  community: Community,
+): CultureFilterId[] {
+  const legacy = expandLegacyGroup(id, community);
+  if (legacy.length > 0) return legacy;
+  if (CULTURE_FILTERS.some((f) => f.id === id)) return [id as CultureFilterId];
+  // Unknown wiki tag — try country hints from the tag string itself.
+  return countriesFromHaystack(id.replace(/-/g, " "));
+}
+
 function affinitiesFor(community: Community): CultureFilterId[] {
   const local = AFFINITIES[community.id];
   if (local) return local;
   const wiki = WIKI_COMMUNITY_AFFINITIES[community.id];
-  if (!wiki?.length) return [];
-  return wiki.filter((id): id is CultureFilterId =>
-    CULTURE_FILTERS.some((f) => f.id === id),
-  );
+  if (!wiki?.length) {
+    // Fall back to name/heritage parsing for untagged rows.
+    return countriesFromHaystack(communityHaystack(community));
+  }
+  const out: CultureFilterId[] = [];
+  for (const id of wiki) {
+    for (const next of normalizeAffinityIds(id, community)) {
+      if (!out.includes(next)) out.push(next);
+    }
+  }
+  if (out.length === 0) {
+    return countriesFromHaystack(communityHaystack(community));
+  }
+  return out;
 }
 
 export function getCommunityAffinities(
@@ -128,23 +490,60 @@ export function getAffinityLabels(community: Community): string[] {
 /** Extra search terms per culture group (labels rarely appear in enclave copy). */
 const GROUP_SEARCH_TERMS: Record<CultureFilterId, string[]> = {
   all: [],
-  chinese: ["chinese", "asian", "east asian", "chinatown"],
-  korean: ["korean", "asian", "east asian", "koreatown"],
-  "south-asian": [
-    "south asian",
-    "asian",
-    "desi",
-    "indian",
-    "pakistani",
-    "bangladeshi",
-    "indo-caribbean",
-  ],
-  caribbean: ["caribbean", "west indian", "indo-caribbean"],
-  latino: ["latino", "latina", "latin", "hispanic", "latinx"],
-  african: ["african", "west african", "africa"],
-  "middle-eastern": ["middle eastern", "arab", "mena"],
-  european: ["european", "eastern european"],
-  filipino: ["filipino", "asian", "southeast asian", "pinoy"],
+  chinese: ["chinese", "chinatown", "china"],
+  taiwanese: ["taiwanese", "taiwan"],
+  korean: ["korean", "koreatown", "korea"],
+  japanese: ["japanese", "japan", "tokyo"],
+  vietnamese: ["vietnamese", "vietnam", "saigon", "pho"],
+  thai: ["thai", "thailand"],
+  filipino: ["filipino", "philippines", "manila", "pinoy"],
+  indian: ["indian", "india", "desi"],
+  pakistani: ["pakistani", "pakistan"],
+  bangladeshi: ["bangladeshi", "bangladesh", "bangla"],
+  nepali: ["nepali", "nepal", "tibet"],
+  afghan: ["afghan", "afghanistan"],
+  mexican: ["mexican", "mexico", "taco"],
+  colombian: ["colombian", "colombia"],
+  dominican: ["dominican", "dominica"],
+  ecuadorian: ["ecuadorian", "ecuador"],
+  peruvian: ["peruvian", "peru"],
+  venezuelan: ["venezuelan", "venezuela"],
+  cuban: ["cuban", "cuba"],
+  puerto_rican: ["puerto rican", "puerto rico"],
+  salvadoran: ["salvadoran", "el salvador"],
+  brazilian: ["brazilian", "brazil"],
+  guatemalan: ["guatemalan", "guatemala"],
+  jamaican: ["jamaican", "jamaica"],
+  haitian: ["haitian", "haiti"],
+  guyanese: ["guyanese", "guyana"],
+  trinidadian: ["trinidadian", "trinidad", "tobago"],
+  senegalese: ["senegalese", "senegal"],
+  ghanaian: ["ghanaian", "ghana"],
+  liberian: ["liberian", "liberia"],
+  ethiopian: ["ethiopian", "ethiopia"],
+  nigerian: ["nigerian", "nigeria"],
+  somali: ["somali", "somalia"],
+  lebanese: ["lebanese", "lebanon"],
+  syrian: ["syrian", "syria"],
+  palestinian: ["palestinian", "palestine"],
+  yemeni: ["yemeni", "yemen"],
+  egyptian: ["egyptian", "egypt"],
+  iraqi: ["iraqi", "iraq", "baghdad"],
+  moroccan: ["moroccan", "morocco"],
+  jordanian: ["jordanian", "jordan"],
+  iranian: ["iranian", "persian", "iran", "farsi", "tehrangeles"],
+  turkish: ["turkish", "turk", "anatolian"],
+  polish: ["polish", "poland"],
+  ukrainian: ["ukrainian", "ukraine", "odessa"],
+  russian: ["russian", "russia"],
+  albanian: ["albanian", "albania"],
+  greek: ["greek", "greece"],
+  italian: ["italian", "italy"],
+  german: ["german", "germany"],
+  french: ["french", "france"],
+  spanish: ["spanish", "spain"],
+  portuguese: ["portuguese", "portugal"],
+  british: ["british", "england", "uk"],
 };
 
 function haystack(c: Community): string {
@@ -168,165 +567,47 @@ function haystack(c: Community): string {
       ? "detroit dearborn sterling heights hamtramck"
       : "",
     c.heritage.includes("Long Island") ||
-    c.neighborhood.includes("Nassau") ||
-    c.neighborhood.includes("Suffolk")
-      ? "long island nassau suffolk"
+    c.tags.some((t) => /long island|nassau|hicksville|mineola|brentwood/i.test(t))
+      ? "long island nassau suffolk hicksville mineola"
       : "",
-    c.neighborhood.includes("Los Angeles") ||
     c.tags.some((t) => /los angeles/i.test(t))
       ? "los angeles la hollywood koreatown"
       : "",
-    c.neighborhood.includes("Anaheim") ||
-    c.neighborhood.includes("Westminster") ||
     c.tags.some((t) => /anaheim|orange county|westminster/i.test(t))
       ? "anaheim orange county oc westminster garden grove saigon"
       : "",
-    c.neighborhood.includes("San Francisco") ||
-    c.heritage.includes("San Francisco") ||
-    c.tags.some((t) => /san francisco|\bsf\b/i.test(t))
-      ? "san francisco sf bay area mission castro japantown sunset"
+    c.tags.some((t) => /san francisco/i.test(t))
+      ? "san francisco sf bay area"
       : "",
-    c.neighborhood.includes("Chicago") ||
-    c.heritage.includes("Chicago") ||
-    c.tags.some((t) =>
-      /chicago|bridgeview|pilsen|argyle|devon|bolingbrook|humboldt|avondale/i.test(
-        t,
-      ),
-    )
-      ? "chicago chicagoland illinois uptown pilsen little village bolingbrook"
-      : "",
-    c.neighborhood.includes("Houston") ||
-    c.tags.some((t) => /houston|bellaire|hillcroft|alief|sugar land|katy/i.test(t))
-      ? "houston texas bellaire hillcroft alief sugar land katy"
-      : "",
-    c.neighborhood.includes("Seattle") ||
-    c.neighborhood.includes("Bellevue") ||
-    c.neighborhood.includes("Kent") ||
-    c.neighborhood.includes("Redmond") ||
-    c.tags.some((t) => /seattle|bellevue|kent|redmond|white center|beacon hill/i.test(t))
-      ? "seattle eastside bellevue kent redmond white center beacon hill"
-      : "",
-    c.neighborhood.includes("Boston") ||
-    c.neighborhood.includes("Quincy") ||
-    c.neighborhood.includes("Malden") ||
-    c.neighborhood.includes("Somerville") ||
-    c.neighborhood.includes("Watertown") ||
-    c.tags.some((t) => /boston|quincy|malden|somerville|watertown|east boston/i.test(t))
-      ? "boston massachusetts quincy malden somerville watertown"
-      : "",
-    c.neighborhood.includes("Washington, D.C.") ||
-    c.neighborhood.includes("Silver Spring") ||
-    c.neighborhood.includes("Falls Church") ||
-    c.neighborhood.includes("Annandale") ||
-    c.tags.some((t) => /washington|d\.?c\.?|silver spring|falls church|annandale|eden center/i.test(t))
-      ? "washington dc district columbia silver spring falls church annandale"
-      : "",
-    c.neighborhood.includes("Dallas") ||
-    c.neighborhood.includes("Plano") ||
-    c.neighborhood.includes("Frisco") ||
-    c.neighborhood.includes("Irving") ||
-    c.neighborhood.includes("Richardson") ||
-    c.neighborhood.includes("Carrollton") ||
-    c.tags.some((t) => /dallas|dfw|plano|frisco|irving|richardson|carrollton|oak cliff/i.test(t))
-      ? "dallas fort worth dfw plano frisco irving richardson carrollton"
-      : "",
-    c.neighborhood.includes("Connecticut") ||
-    c.neighborhood.includes("New Haven") ||
-    c.neighborhood.includes("Hartford") ||
-    c.neighborhood.includes("Bridgeport") ||
-    c.neighborhood.includes("New Britain") ||
-    c.neighborhood.includes("Danbury") ||
-    c.neighborhood.includes("Stamford") ||
-    c.tags.some((t) =>
-      /connecticut|\bct\b|new haven|hartford|bridgeport|new britain|danbury|stamford|wooster|fair haven/i.test(
-        t,
-      ),
-    )
-      ? "connecticut ct new haven hartford bridgeport new britain danbury stamford wooster"
-      : "",
-    c.neighborhood.includes("Miami") ||
-    c.neighborhood.includes("Hialeah") ||
-    c.neighborhood.includes("Sweetwater") ||
-    c.neighborhood.includes("Doral") ||
-    c.neighborhood.includes("Westchester") ||
-    c.neighborhood.includes("Kendall") ||
-    c.neighborhood.includes("Pompano") ||
-    c.neighborhood.includes("Deerfield") ||
-    c.tags.some((t) =>
-      /miami|hialeah|little havana|little haiti|sweetwater|doral|allapattah|calle ocho|kendall|pompano|broward/i.test(
-        t,
-      ),
-    )
-      ? "miami florida hialeah little havana little haiti sweetwater doral allapattah kendall pompano broward"
-      : "",
-    c.neighborhood.includes("Orlando") ||
-    c.neighborhood.includes("Kissimmee") ||
-    c.neighborhood.includes("Apopka") ||
-    c.tags.some((t) =>
-      /orlando|kissimmee|mills 50|pine hills|azalea park|central florida|kirkman|apopka|i-drive/i.test(
-        t,
-      ),
-    )
-      ? "orlando kissimmee mills 50 pine hills azalea park central florida kirkman apopka"
-      : "",
-    c.neighborhood.includes("Tampa") ||
-    c.neighborhood.includes("Tarpon Springs") ||
-    c.neighborhood.includes("Ybor") ||
-    c.tags.some((t) => /tampa|ybor|tarpon springs|west tampa/i.test(t))
-      ? "tampa ybor tarpon springs west tampa florida"
-      : "",
-    c.neighborhood.includes("Jacksonville") ||
-    c.neighborhood.includes("Baymeadows") ||
-    c.tags.some((t) => /jacksonville|baymeadows/i.test(t))
-      ? "jacksonville baymeadows florida"
-      : "",
-    c.neighborhood.includes("Minneapolis") ||
-    c.neighborhood.includes("Saint Paul") ||
-    c.neighborhood.includes("Brooklyn Park") ||
-    c.neighborhood.includes("Frogtown") ||
-    c.tags.some((t) =>
-      /minnesota|minneapolis|saint paul|st paul|twin cities|hmong|cedar-riverside|little mekong|brooklyn park/i.test(
-        t,
-      ),
-    )
-      ? "minnesota minneapolis saint paul st paul twin cities hmong cedar riverside little mekong"
-      : "",
+    c.tags.some((t) => /chicago/i.test(t)) ? "chicago" : "",
+    c.tags.some((t) => /houston/i.test(t)) ? "houston" : "",
+    c.tags.some((t) => /seattle/i.test(t)) ? "seattle" : "",
   ]
+    .filter(Boolean)
     .join(" ")
     .toLowerCase();
 }
 
-/** Loose text search — token-ish, not exact phrase only. */
 export function communityMatchesQuery(
   community: Community,
   query: string,
 ): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
-
   const text = haystack(community);
   if (text.includes(q)) return true;
 
-  // Multi-word: all tokens should appear somewhere (order-independent)
+  // Multi-token: every token must appear somewhere.
   const tokens = q.split(/\s+/).filter(Boolean);
   if (tokens.length > 1 && tokens.every((t) => text.includes(t))) return true;
 
-  // Synonym / vibe aliases for scaffold demos
+  // Lightweight metro / nickname aliases.
   const aliases: Record<string, string[]> = {
-    desi: [
-      "south asian",
-      "indian",
-      "pakistan",
-      "bangladesh",
-      "guyanese",
-      "indo",
-    ],
-    spicy: ["indian", "korean", "mexican", "caribbean", "sichuan"],
-    dimsum: ["chinese", "chinatown", "flushing", "sunset park"],
-    bbq: ["korean", "koreatown"],
-    latin: ["latino", "colombian", "mexican", "ecuador", "dominican"],
-    arab: ["egypt", "yemen", "palestine", "middle eastern"],
-    africa: ["senegal", "african", "ghana", "liberian", "haiti"],
+    nyc: ["new york", "queens", "brooklyn", "manhattan", "bronx", "staten"],
+    "new york": ["nyc", "queens", "brooklyn", "manhattan"],
+    la: ["los angeles", "hollywood", "hollywood"],
+    oc: ["orange county", "westminster", "anaheim", "garden grove"],
+    sf: ["san francisco"],
   };
 
   // Avoid Object.entries — React Compiler / Hermes can turn it into .entries() and crash
@@ -359,10 +640,6 @@ export function filterCommunities(
   );
 }
 
-/**
- * Higher = better text match for map fly-to.
- * Prefer real names/neighborhoods over loose metro aliases in the haystack.
- */
 export function scoreCommunityQuery(
   community: Community,
   query: string,
@@ -418,57 +695,60 @@ function isLikelyCityHallPin(lat: number, lng: number): boolean {
  */
 const CULTURE_POI_ETHNICITIES: Record<CultureFilterId, string[] | null> = {
   all: null,
-  chinese: ["chinese", "taiwanese"],
+  chinese: ["chinese"],
+  taiwanese: ["taiwanese"],
   korean: ["korean"],
-  "south-asian": ["indian", "pakistani", "bangladeshi", "nepali", "afghan"],
-  caribbean: ["jamaican", "haitian", "guyanese", "caribbean"],
-  latino: [
-    "mexican",
-    "colombian",
-    "dominican",
-    "ecuadorian",
-    "peruvian",
-    "venezuelan",
-    "cuban",
-    "puerto_rican",
-    "salvadoran",
-  ],
-  african: [
-    "senegalese",
-    "ghanaian",
-    "liberian",
-    "ethiopian",
-    "nigerian",
-    "somali",
-    "west_african",
-  ],
-  "middle-eastern": [
-    "egyptian",
-    "lebanese",
-    "syrian",
-    "palestinian",
-    "yemeni",
-    "iraqi",
-    "moroccan",
-    "turkish",
-    "iranian",
-    "israeli",
-    "middle_eastern",
-  ],
-  european: [
-    "polish",
-    "ukrainian",
-    "russian",
-    "albanian",
-    "greek",
-    "italian",
-    "german",
-    "french",
-    "spanish",
-    "portuguese",
-    "british",
-  ],
+  japanese: ["japanese"],
+  vietnamese: ["vietnamese"],
+  thai: ["thai"],
   filipino: ["filipino"],
+  indian: ["indian"],
+  pakistani: ["pakistani"],
+  bangladeshi: ["bangladeshi"],
+  nepali: ["nepali"],
+  afghan: ["afghan"],
+  mexican: ["mexican"],
+  colombian: ["colombian"],
+  dominican: ["dominican"],
+  ecuadorian: ["ecuadorian"],
+  peruvian: ["peruvian"],
+  venezuelan: ["venezuelan"],
+  cuban: ["cuban"],
+  puerto_rican: ["puerto_rican"],
+  salvadoran: ["salvadoran"],
+  brazilian: ["brazilian"],
+  guatemalan: ["guatemalan"],
+  jamaican: ["jamaican"],
+  haitian: ["haitian"],
+  guyanese: ["guyanese"],
+  trinidadian: ["trinidadian", "caribbean"],
+  senegalese: ["senegalese"],
+  ghanaian: ["ghanaian"],
+  liberian: ["liberian"],
+  ethiopian: ["ethiopian"],
+  nigerian: ["nigerian"],
+  somali: ["somali"],
+  lebanese: ["lebanese"],
+  syrian: ["syrian"],
+  palestinian: ["palestinian"],
+  yemeni: ["yemeni"],
+  egyptian: ["egyptian"],
+  iraqi: ["iraqi"],
+  moroccan: ["moroccan"],
+  jordanian: ["jordanian"],
+  iranian: ["iranian", "persian"],
+  turkish: ["turkish"],
+  polish: ["polish"],
+  ukrainian: ["ukrainian"],
+  russian: ["russian"],
+  albanian: ["albanian"],
+  greek: ["greek"],
+  italian: ["italian"],
+  german: ["german"],
+  french: ["french"],
+  spanish: ["spanish"],
+  portuguese: ["portuguese"],
+  british: ["british"],
 };
 
 export function ethnicitiesForCultureFilter(
@@ -493,19 +773,18 @@ export function availableCultureFiltersForEthnicities(
 }
 
 export function poiMatchesQuery(
-  poi: { name: string; category: string; address?: string | null; ethnicities?: string[] },
+  poi: {
+    name: string;
+    category: string;
+    address?: string | null;
+    ethnicities?: string[];
+  },
   query: string,
 ): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  const text = [
-    poi.name,
-    poi.category,
-    poi.address ?? "",
-    ...(poi.ethnicities ?? []),
-  ]
-    .join(" ")
-    .toLowerCase();
+  const eth = (poi.ethnicities ?? []).join(" ");
+  const text = `${poi.name} ${poi.category} ${poi.address ?? ""} ${eth}`.toLowerCase();
   if (text.includes(q)) return true;
   const tokens = q.split(/\s+/).filter(Boolean);
   return tokens.length > 1 && tokens.every((t) => text.includes(t));

@@ -64,6 +64,7 @@ import {
 import {
   availableCultureFiltersForCommunities,
   availableCultureFiltersForEthnicities,
+  CULTURE_FILTERS,
   ethnicitiesForCultureFilter,
   filterCommunities,
   getAffinityLabels,
@@ -136,6 +137,14 @@ function formatDistanceMeters(meters?: number | null): string {
   if (meters < 1000) return `${Math.round(meters)} m away`;
   return `${(meters / 1000).toFixed(1)} km away`;
 }
+
+function ethnicityChipLabel(id: string): string {
+  return id
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
 const CAROUSEL_LIMIT = 5;
 
 type BottomMode = "cards" | "list";
@@ -215,6 +224,10 @@ export function MapScreen() {
     id: string;
     name: string;
   } | null>(null);
+  /** Specific ethnicity within a community-scoped restaurant set. */
+  const [foodEthnicityFilter, setFoodEthnicityFilter] = useState<string | null>(
+    null,
+  );
   const [locating, setLocating] = useState(false);
   /** Restaurant card sheet pulled up → Favorites-style list. */
   const [restaurantSheetExpanded, setRestaurantSheetExpanded] = useState(false);
@@ -474,45 +487,117 @@ export function MapScreen() {
   );
 
   const cultureFilters = useMemo(() => {
+    // Restaurants layer: chips from POIs on the map — community centroids
+    // often sit outside a tight restaurant zoom after clearing a community scope.
+    if (layer === "restaurants" && !foodCommunityFilter) {
+      const sourcePois =
+        mode === "list"
+          ? foodPois
+          : foodPois.filter((p) => {
+              const coord = pointToLatLng(p.location);
+              if (!coord) return false;
+              return isCoordInRegion(coord.latitude, coord.longitude, region);
+            });
+      const ethnicities: string[] = [];
+      for (const p of sourcePois) {
+        for (const e of p.ethnicities ?? []) ethnicities.push(e);
+      }
+      const available = availableCultureFiltersForEthnicities(ethnicities);
+      if (culture !== "all" && !available.some((f) => f.id === culture)) {
+        const selected = CULTURE_FILTERS.find((f) => f.id === culture);
+        if (selected) return [...available, selected];
+      }
+      return available;
+    }
+
     const source =
       mode === "list"
         ? queryMatchedCommunities
         : queryMatchedCommunities.filter((c) => isCommunityInRegion(c, region));
-    return availableCultureFiltersForCommunities(source);
-  }, [mode, queryMatchedCommunities, region]);
+    const available = availableCultureFiltersForCommunities(source);
+    // Keep the active chip visible when switching map ↔ list even if
+    // matching communities are briefly outside the current viewport.
+    if (culture !== "all" && !available.some((f) => f.id === culture)) {
+      const selected = CULTURE_FILTERS.find((f) => f.id === culture);
+      if (selected) return [...available, selected];
+    }
+    return available;
+  }, [
+    layer,
+    foodCommunityFilter,
+    mode,
+    foodPois,
+    queryMatchedCommunities,
+    region,
+    culture,
+  ]);
 
-  /** Culture chips from POI ethnicities while a community restaurant filter is on. */
-  const communityRestaurantCultureFilters = useMemo(() => {
+  /** Specific ethnicity chips for restaurants in the scoped community. */
+  const communityEthnicityOptions = useMemo(() => {
     if (!foodCommunityFilter) return [];
-    return availableCultureFiltersForEthnicities(
-      foodPois.flatMap((p) => p.ethnicities ?? []),
-    );
+    const counts = new Map<string, number>();
+    for (const p of foodPois) {
+      for (const id of p.ethnicities ?? []) {
+        const key = id.trim();
+        if (!key) continue;
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+    }
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([id]) => id);
   }, [foodCommunityFilter, foodPois]);
 
-  const activeCultureFilters = foodCommunityFilter
-    ? communityRestaurantCultureFilters
-    : cultureFilters;
+  useEffect(() => {
+    setFoodEthnicityFilter(null);
+  }, [foodCommunityFilter?.id]);
 
+  // Drop culture only when it's invalid for the active layer's catalog —
+  // not merely missing from a tight map viewport.
   useEffect(() => {
     if (culture === "all") return;
-    if (activeCultureFilters.some((f) => f.id === culture)) return;
-    setCulture("all");
-  }, [culture, activeCultureFilters]);
+    if (foodCommunityFilter) return;
+    if (layer === "restaurants") {
+      if (foodPois.length === 0) return;
+      const stillValid = availableCultureFiltersForEthnicities(
+        foodPois.flatMap((p) => p.ethnicities ?? []),
+      ).some((f) => f.id === culture);
+      if (!stillValid) setCulture("all");
+      return;
+    }
+    const stillValid = availableCultureFiltersForCommunities(
+      queryMatchedCommunities,
+    ).some((f) => f.id === culture);
+    if (!stillValid) setCulture("all");
+  }, [culture, queryMatchedCommunities, foodCommunityFilter, layer, foodPois]);
+
+  useEffect(() => {
+    if (!foodEthnicityFilter) return;
+    if (communityEthnicityOptions.includes(foodEthnicityFilter)) return;
+    setFoodEthnicityFilter(null);
+  }, [foodEthnicityFilter, communityEthnicityOptions]);
 
   const filteredFood = useMemo(() => {
     let list = foodPois.filter((p) => poiMatchesQuery(p, query));
-    // Community-scoped fetch is unfiltered by culture — narrow here.
-    if (foodCommunityFilter && culture !== "all") {
-      const ids = ethnicitiesForCultureFilter(culture);
-      if (ids?.length) {
-        const allow = new Set(ids.map((id) => id.toLowerCase()));
+    // Community-scoped: filter by specific ethnicity present in this area.
+    if (foodCommunityFilter && foodEthnicityFilter) {
+      const want = foodEthnicityFilter.toLowerCase();
+      list = list.filter((p) =>
+        (p.ethnicities ?? []).some((e) => e.toLowerCase() === want),
+      );
+    } else if (!foodCommunityFilter && culture !== "all") {
+      // Keep the full POI fetch unfiltered so culture chips stay visible;
+      // apply the selected culture here.
+      const want = ethnicitiesForCultureFilter(culture);
+      if (want?.length) {
+        const set = new Set(want.map((e) => e.toLowerCase()));
         list = list.filter((p) =>
-          (p.ethnicities ?? []).some((e) => allow.has(e.toLowerCase())),
+          (p.ethnicities ?? []).some((e) => set.has(e.toLowerCase())),
         );
       }
     }
     return list;
-  }, [foodPois, query, foodCommunityFilter, culture]);
+  }, [foodPois, query, foodCommunityFilter, foodEthnicityFilter, culture]);
 
   const inViewFood = useMemo(
     () =>
@@ -686,17 +771,14 @@ export function MapScreen() {
   }, [filteredKey, query, culture, filtered, layer, moveCamera, resultsOpen]);
 
   // Restaurants layer: fetch for viewport, or one community when expanded.
-  // When scoped to a community, fetch the full set and filter culture client-side
-  // so ethnicity chips still work inside that community.
+  // Always fetch the unfiltered set and filter culture/ethnicity client-side
+  // so the chip row keeps every option while one is selected.
   useEffect(() => {
     if (layer !== "restaurants") return;
     const gen = ++foodFetchGen.current;
     const handle = setTimeout(() => {
       const current = regionRef.current;
       const communityId = foodCommunityFilter?.id;
-      const ethnicities = communityId
-        ? undefined
-        : (ethnicitiesForCultureFilter(culture) ?? undefined);
       const radiusMeters = communityId
         ? Math.max(radiusMetersForRegion(current), 8000)
         : radiusMetersForRegion(current);
@@ -704,7 +786,6 @@ export function MapScreen() {
       fetchPoisNear({
         near: { lat: current.latitude, lng: current.longitude },
         radiusMeters,
-        ethnicity: ethnicities,
         communityId,
         limit: communityId ? 200 : 100,
       })
@@ -722,13 +803,7 @@ export function MapScreen() {
         });
     }, 350);
     return () => clearTimeout(handle);
-    // Culture is applied client-side while a community filter is active.
-  }, [
-    layer,
-    region,
-    foodCommunityFilter?.id,
-    foodCommunityFilter ? null : culture,
-  ]);
+  }, [layer, region, foodCommunityFilter?.id]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -920,13 +995,17 @@ export function MapScreen() {
   // Same header chip on map cards and list — scoped restaurant filter.
   const showFoodCommunityFilter =
     layer === "restaurants" && foodCommunityFilter != null && !showSearchPanel;
-  // Culture chips stay available inside a community filter (mixed enclaves).
-  // Hide when only "All" is available. List sheet has its own chip row.
+  // Same header chips on map and list so the active filter stays visible.
+  // Community scope uses ethnicity chips instead of culture groups.
   const showCultureChips =
-    mode === "cards" &&
     !showCommunityDetail &&
     !showSearchPanel &&
-    activeCultureFilters.some((f) => f.id !== "all");
+    !foodCommunityFilter &&
+    cultureFilters.some((f) => f.id !== "all");
+  const showCommunityEthnicityChips =
+    !!foodCommunityFilter &&
+    communityEthnicityOptions.length > 0 &&
+    !showSearchPanel;
 
   const handleSearchResultPress = (item: SearchResult) => {
     Keyboard.dismiss();
@@ -965,12 +1044,14 @@ export function MapScreen() {
 
   const showMapControls =
     !showCommunityDetail && mode !== "list" && !showSearchPanel;
+  const topFilterRows =
+    (showFoodCommunityFilter ? 1 : 0) +
+    (showCommunityEthnicityChips || showCultureChips ? 1 : 0);
+  // Sit the list sheet under search / layer / filter chips (no overlap).
+  const listSheetTop =
+    insets.top + (topFilterRows > 0 ? 132 + topFilterRows * 44 : 132);
   const locateOffset = restaurantSheetExpanded
-    ? {
-        top:
-          insets.top +
-          (showCultureChips || showFoodCommunityFilter ? 168 : 132),
-      }
+    ? { top: listSheetTop }
     : showRestaurantCarousel
       ? { bottom: 250 + Math.max(insets.bottom, 6) }
       : { bottom: 24 + Math.max(insets.bottom, 6) };
@@ -1071,6 +1152,7 @@ export function MapScreen() {
                 ]}
                 onPress={() => {
                   setFoodCommunityFilter(null);
+                  setFoodEthnicityFilter(null);
                   setLayer("enclaves");
                 }}
               >
@@ -1094,6 +1176,7 @@ export function MapScreen() {
                 ]}
                 onPress={() => {
                   setFoodCommunityFilter(null);
+                  setFoodEthnicityFilter(null);
                   setLayer("restaurants");
                 }}
               >
@@ -1140,6 +1223,7 @@ export function MapScreen() {
               style={styles.communityFilterChip}
               onPress={() => {
                 setFoodCommunityFilter(null);
+                setFoodEthnicityFilter(null);
                 setCulture("all");
               }}
               accessibilityRole="button"
@@ -1153,25 +1237,70 @@ export function MapScreen() {
           </View>
         ) : null}
 
-        {showCultureChips ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.topFilters}
-            keyboardShouldPersistTaps="handled"
-            style={styles.topFiltersScroll}
-          >
-            {activeCultureFilters.map((f) => (
+        {showCommunityEthnicityChips ? (
+          <View style={styles.topFiltersRow}>
+            <View style={styles.topFiltersPinned}>
               <Chip
-                key={f.id}
-                label={f.label}
+                label="All"
                 size="sm"
                 tone="overlay"
-                selected={culture === f.id}
-                onPress={() => setCulture(f.id)}
+                selected={foodEthnicityFilter == null}
+                onPress={() => setFoodEthnicityFilter(null)}
               />
-            ))}
-          </ScrollView>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.topFilters}
+              keyboardShouldPersistTaps="handled"
+              style={styles.topFiltersScroll}
+            >
+              {communityEthnicityOptions.map((id) => (
+                <Chip
+                  key={id}
+                  label={ethnicityChipLabel(id)}
+                  size="sm"
+                  tone="overlay"
+                  selected={foodEthnicityFilter === id}
+                  onPress={() => setFoodEthnicityFilter(id)}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+
+        {showCultureChips ? (
+          <View style={styles.topFiltersRow}>
+            <View style={styles.topFiltersPinned}>
+              <Chip
+                label="All"
+                size="sm"
+                tone="overlay"
+                selected={culture === "all"}
+                onPress={() => setCulture("all")}
+              />
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.topFilters}
+              keyboardShouldPersistTaps="handled"
+              style={styles.topFiltersScroll}
+            >
+              {cultureFilters
+                .filter((f) => f.id !== "all")
+                .map((f) => (
+                  <Chip
+                    key={f.id}
+                    label={f.label}
+                    size="sm"
+                    tone="overlay"
+                    selected={culture === f.id}
+                    onPress={() => setCulture(f.id)}
+                  />
+                ))}
+            </ScrollView>
+          </View>
         ) : null}
       </SafeAreaView>
 
@@ -1248,6 +1377,7 @@ export function MapScreen() {
             setGlobalResults([]);
             setSearchKind("all");
             setCulture("all");
+            setFoodEthnicityFilter(null);
             setFoodCommunityFilter({ id: communityId, name: communityName });
             setMode("cards");
             setLayer("restaurants");
@@ -1441,8 +1571,7 @@ export function MapScreen() {
       ) : null}
 
       {mode === "list" ? (
-        <View style={styles.listSheet}>
-          <View style={styles.sheetHandle} />
+        <View style={[styles.listSheet, { top: listSheetTop }]}>
           <View style={styles.sheetHeader}>
             <View>
               <Text style={styles.sheetTitle}>
@@ -1466,26 +1595,6 @@ export function MapScreen() {
               <IconX size={18} color={colors.ink} />
             </Pressable>
           </View>
-          {activeCultureFilters.some((f) => f.id !== "all") ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.sheetFilters}
-              keyboardShouldPersistTaps="handled"
-              style={styles.listFiltersScroll}
-            >
-              {activeCultureFilters.map((f) => (
-                <Chip
-                  key={f.id}
-                  label={f.label}
-                  size="sm"
-                  tone="overlay"
-                  selected={culture === f.id}
-                  onPress={() => setCulture(f.id)}
-                />
-              ))}
-            </ScrollView>
-          ) : null}
           <View style={styles.listBody}>
             {layer === "enclaves" ? (
               <FlatList
@@ -1677,14 +1786,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.forest,
   },
-  topFiltersScroll: {
+  topFiltersRow: {
     marginTop: 10,
-  },
-  topFilters: {
-    paddingHorizontal: 16,
-    gap: 6,
+    flexDirection: "row",
     alignItems: "center",
     paddingBottom: 4,
+  },
+  topFiltersPinned: {
+    paddingLeft: 16,
+    paddingRight: 6,
+  },
+  topFiltersScroll: {
+    flex: 1,
+  },
+  topFilters: {
+    paddingRight: 16,
+    gap: 6,
+    alignItems: "center",
   },
   searchPanelWrap: {
     marginTop: 10,
@@ -1833,14 +1951,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    top: "32%",
-    zIndex: 30,
-    elevation: 30,
+    zIndex: 15,
+    elevation: 15,
     backgroundColor: colors.background,
     borderTopLeftRadius: radii.lg,
     borderTopRightRadius: radii.lg,
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 14,
     borderTopWidth: 1,
     borderColor: colors.border,
     shadowColor: "#000",
@@ -1852,14 +1969,6 @@ const styles = StyleSheet.create({
   listBody: {
     flex: 1,
     minHeight: 0,
-  },
-  sheetHandle: {
-    alignSelf: "center",
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.border,
-    marginBottom: 12,
   },
   sheetHeader: {
     flexDirection: "row",
