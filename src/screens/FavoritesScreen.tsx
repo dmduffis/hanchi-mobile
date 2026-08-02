@@ -195,21 +195,25 @@ export function FavoritesScreen() {
       <View style={styles.filters}>
         <Chip
           label="All"
+          size="sm"
           selected={filter === "all"}
           onPress={() => setFilter("all")}
         />
         <Chip
           label="Communities"
+          size="sm"
           selected={filter === "community"}
           onPress={() => setFilter("community")}
         />
         <Chip
           label="Restaurants"
+          size="sm"
           selected={filter === "restaurant"}
           onPress={() => setFilter("restaurant")}
         />
         <Chip
           label="Dishes"
+          size="sm"
           selected={filter === "dish"}
           onPress={() => setFilter("dish")}
         />
@@ -267,8 +271,9 @@ const styles = StyleSheet.create({
   },
   filters: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+    flexWrap: "nowrap",
+    alignItems: "center",
+    gap: 6,
     paddingHorizontal: 20,
     marginBottom: 8,
   },

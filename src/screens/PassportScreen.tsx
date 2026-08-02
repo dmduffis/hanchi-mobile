@@ -94,7 +94,12 @@ export function PassportScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Passport</Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>Passport</Text>
+          <Text style={styles.subtitle}>
+            A record of flavors, streets, and the places that stayed with you
+          </Text>
+        </View>
         {loading ? (
           <ActivityIndicator color={colors.forest} style={{ marginTop: 24 }} />
         ) : collected.length === 0 ? (
@@ -107,15 +112,12 @@ export function PassportScreen() {
           </View>
         ) : (
           <>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressText}>
-                {collected.length} place
-                {collected.length === 1 ? "" : "s"} stamped
-              </Text>
-              <Text style={styles.hint}>Tap a stamp to revisit</Text>
+            <View style={[styles.sectionHeader, styles.placesHeader]}>
+              <Text style={styles.sectionTitle}>Where I&apos;ve been</Text>
+              <View style={styles.countCircle}>
+                <Text style={styles.countText}>{collected.length}</Text>
+              </View>
             </View>
-
-            <Text style={styles.sectionTitle}>Where I&apos;ve been</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -141,7 +143,14 @@ export function PassportScreen() {
               ))}
             </ScrollView>
 
-            <Text style={styles.sectionTitle}>Badges</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Badges</Text>
+              <View style={styles.countCircle}>
+                <Text style={styles.countText}>
+                  {mockPassportBadges.filter((b) => b.earned).length}
+                </Text>
+              </View>
+            </View>
             {mockPassportBadges.map((badge) => (
               <View
                 key={badge.id}
@@ -190,29 +199,46 @@ const styles = StyleSheet.create({
     fontFamily: typography.display,
     fontSize: 28,
     color: colors.ink,
+  },
+  header: {
     marginTop: 8,
-    marginBottom: 16,
+    marginBottom: 28,
   },
-  progressHeader: {
-    marginBottom: 20,
-  },
-  progressText: {
-    fontFamily: typography.bodySemibold,
-    fontSize: 15,
-    color: colors.forest,
-    marginBottom: 4,
-  },
-  hint: {
+  subtitle: {
     fontFamily: typography.body,
-    fontSize: 12,
+    fontSize: 14,
     color: colors.gray,
+    marginTop: 6,
+    lineHeight: 20,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 14,
+    marginTop: 8,
+  },
+  placesHeader: {
+    marginBottom: 4,
   },
   sectionTitle: {
     fontFamily: typography.display,
     fontSize: 18,
     color: colors.ink,
-    marginBottom: 14,
-    marginTop: 8,
+  },
+  countCircle: {
+    minWidth: 24,
+    height: 24,
+    paddingHorizontal: 6,
+    borderRadius: 12,
+    backgroundColor: colors.gold,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  countText: {
+    fontFamily: typography.bodySemibold,
+    fontSize: 12,
+    color: colors.goldText,
   },
   stampScroll: {
     overflow: "visible",
@@ -220,7 +246,8 @@ const styles = StyleSheet.create({
   stampRow: {
     gap: 10,
     paddingRight: 8,
-    paddingVertical: 12,
+    paddingTop: 4,
+    paddingBottom: 12,
     marginBottom: 16,
     overflow: "visible",
   },

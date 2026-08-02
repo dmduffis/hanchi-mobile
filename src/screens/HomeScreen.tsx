@@ -429,13 +429,15 @@ const styles = StyleSheet.create({
   greeting: {
     fontFamily: typography.display,
     fontSize: 28,
+    lineHeight: 34,
     color: colors.ink,
   },
   subGreeting: {
     fontFamily: typography.body,
     fontSize: 14,
+    lineHeight: 18,
     color: colors.gray,
-    marginTop: 2,
+    marginTop: 0,
   },
   headerActions: {
     flexDirection: "row",
@@ -544,12 +546,13 @@ const styles = StyleSheet.create({
   dishName: {
     fontFamily: typography.bodySemibold,
     fontSize: 14,
+    lineHeight: 18,
     color: colors.ink,
-    minHeight: 36,
   },
   dishCommunity: {
     fontFamily: typography.body,
     fontSize: 12,
+    lineHeight: 16,
     color: colors.gray,
     marginTop: 2,
   },

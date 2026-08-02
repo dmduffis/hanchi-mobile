@@ -1,24 +1,36 @@
 export const colors = {
+  /** Primary interactive (chips, CTAs, active tabs). */
   forest: "#163A2B",
   forestDark: "#0F2A1F",
-  gold: "#F0BF63",
-  goldText: "#5C3D14",
-  heart: "#E23B3B",
-  background: "#FAFAFA",
-  surface: "#F0F0EE",
-  ink: "#1B1B18",
-  gray: "#6B6862",
-  grayLight: "#9A968D",
-  border: "#E5E3DE",
+  gold: "#F9BF30",
+  goldText: "#171922",
+  /** Favorites — restrained warm red, less candy than palette rose. */
+  heart: "#C84B4B",
+  /** Playful accent kept for rare highlights (not primary UI). */
+  accent: "#F6643C",
+  blue: "#0057A6",
+  background: "#FFFFFF",
+  surface: "#F3F2F0",
+  ink: "#171922",
+  gray: "#5C5F6A",
+  grayLight: "#8B8E99",
+  border: "#E6E4DF",
   white: "#FFFFFF",
 };
 
 export const typography = {
-  display: "SourceSerif4_600SemiBold", // load via @expo-google-fonts/source-serif-4
-  body: "Inter_400Regular",
-  bodyMedium: "Inter_500Medium",
-  bodySemibold: "Inter_600SemiBold",
+  display: "Poppins_700Bold",
+  body: "Poppins_400Regular",
+  bodyMedium: "Poppins_500Medium",
+  bodySemibold: "Poppins_600SemiBold",
 };
+
+/** Restaurant / place names in list rows (search, favorites, profile Food, sheets). */
+export const listTitle = {
+  fontFamily: typography.bodySemibold,
+  fontSize: 16,
+  color: colors.ink,
+} as const;
 
 export const spacing = {
   xs: 4,

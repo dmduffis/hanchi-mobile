@@ -13,6 +13,7 @@ export { MapFlagPin } from "./MapFlagPin";
 export { MapSheetCard } from "./MapSheetCard";
 export { PassportStampButton } from "./PassportStampButton";
 export { PhotoPlaceholder } from "./PhotoPlaceholder";
+export { PriceRatingRow } from "./PriceRatingRow";
 export { PrimaryButton } from "./PrimaryButton";
 export { PromoBanner } from "./PromoBanner";
 export { SearchBar } from "./SearchBar";

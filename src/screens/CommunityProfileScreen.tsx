@@ -22,7 +22,6 @@ import {
 import { pointToLatLng } from "../api/geo";
 import { mapApiCommunity } from "../api/mappers";
 import {
-  Badge,
   Chip,
   EnclaveDetailMap,
   EthnicityFlags,
@@ -30,6 +29,7 @@ import {
   FavoriteThumb,
   ListRow,
   PassportStampButton,
+  PriceRatingRow,
 } from "../components";
 import { getInsidersForCommunity } from "../data/mockCommunities";
 import {
@@ -39,7 +39,7 @@ import {
 import { IconArrowLeft, IconArrowsMaximize, IconChevronRight } from "../icons";
 import { displayDescription, displayNeighborhood } from "../lib/communityCopy";
 import type { RootStackParamList } from "../navigation/types";
-import { colors, radii, typography } from "../theme";
+import { colors, listTitle, radii, typography } from "../theme";
 import type { CommunityProfileTab } from "../types";
 
 const TABS: CommunityProfileTab[] = ["About", "Food", "Insiders"];
@@ -333,11 +333,7 @@ export function CommunityProfileScreen() {
             ) : (
               visiblePois.map((poi) => {
                 const poiDishes = dishesByPoi.get(poi.id) ?? [];
-                const rating =
-                  poi.rating != null && Number.isFinite(poi.rating)
-                    ? `★ ${poi.rating.toFixed(1)}`
-                    : null;
-                const meta = [poi.category, poi.priceLevel, rating, poi.address]
+                const meta = [poi.category, poi.address]
                   .filter(Boolean)
                   .join(" · ");
                 return (
@@ -366,7 +362,13 @@ export function CommunityProfileScreen() {
                       </View>
                       <View style={styles.restaurantInfo}>
                         <Text style={styles.restaurantName}>{poi.name}</Text>
-                        <Text style={styles.restaurantMeta}>{meta}</Text>
+                        {meta ? (
+                          <Text style={styles.restaurantMeta}>{meta}</Text>
+                        ) : null}
+                        <PriceRatingRow
+                          priceLevel={poi.priceLevel}
+                          rating={poi.rating}
+                        />
                       </View>
                       <View
                         onStartShouldSetResponder={() => true}
@@ -402,22 +404,20 @@ export function CommunityProfileScreen() {
                         }
                         title={dish.name}
                         subtitle={dish.description ?? undefined}
+                        showChevron={false}
+                        rightAlign="top"
                         onPress={() =>
                           navigation.navigate("RestaurantDetail", {
                             restaurantId: poi.id,
                           })
                         }
                         rightElement={
-                          <View style={styles.dishActions}>
-                            {dish.priceRange ? (
-                              <Badge label={dish.priceRange} />
-                            ) : null}
-                            <FavoriteHeart
-                              type="dish"
-                              targetId={dish.id}
-                              size={18}
-                            />
-                          </View>
+                          <FavoriteHeart
+                            type="dish"
+                            targetId={dish.id}
+                            size={16}
+                            circled
+                          />
                         }
                       />
                     ))}
@@ -657,20 +657,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   restaurantName: {
-    fontFamily: typography.display,
-    fontSize: 18,
-    color: colors.ink,
+    ...listTitle,
   },
   restaurantMeta: {
     fontFamily: typography.bodyMedium,
     fontSize: 12,
     color: colors.forest,
     marginTop: 2,
-  },
-  dishActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
   },
   restaurantBlurb: {
     fontFamily: typography.body,

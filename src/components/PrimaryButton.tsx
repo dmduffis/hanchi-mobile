@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   ghostLabel: {
-    color: colors.gold,
+    color: colors.forest,
     fontFamily: typography.bodyMedium,
   },
 });
