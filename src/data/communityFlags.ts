@@ -64,6 +64,8 @@ export const COMMUNITY_FLAGS: Record<string, string> = {
   // US cultural districts (not foreign-country enclaves) — emoji markers, no ISO code.
   "african-american-arts-sf": "🖤",
   "american-indian-sf": "🪶",
+  // Hasidic Satmar village — Star of David, not the Israeli flag.
+  "kiryas-joel-new-york-near-monroe-new-york": "✡️",
   "sunset-chinese-sf": "🇨🇳",
   "pacific-islander-sf": "🇼🇸",
   "chinatown-chicago": "🇨🇳",
@@ -451,10 +453,14 @@ export function getCommunityFlag(communityId: string, fallback = "🏳️"): str
 export function getCommunityCountryCode(
   communityId: string,
 ): string | undefined {
-  return (
-    COMMUNITY_COUNTRY_CODES[communityId] ??
-    WIKI_COMMUNITY_COUNTRY_CODES[communityId]
-  );
+  if (Object.prototype.hasOwnProperty.call(COMMUNITY_COUNTRY_CODES, communityId)) {
+    return COMMUNITY_COUNTRY_CODES[communityId];
+  }
+  // Curated emoji pin without an ISO code — don't fall back to a wrong wiki nation.
+  if (Object.prototype.hasOwnProperty.call(COMMUNITY_FLAGS, communityId)) {
+    return undefined;
+  }
+  return WIKI_COMMUNITY_COUNTRY_CODES[communityId];
 }
 
 /** Up to two flags for restaurant / place labels. */
