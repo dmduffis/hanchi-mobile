@@ -1,6 +1,14 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import {
+  getCommunityCountryCode,
+  getCommunityFlag,
+} from "../data/communityFlags";
+import {
+  primaryEthnicityCountryCode,
+  primaryEthnicityEmoji,
+} from "../data/ethnicityFlags";
+import {
   SEARCH_KIND_FILTERS,
   countSearchKinds,
   filterSearchResults,
@@ -9,7 +17,35 @@ import {
 } from "../lib/searchResults";
 import { colors, radii, typography } from "../theme";
 import { Chip } from "./Chip";
+import { FavoriteThumb } from "./FavoriteThumb";
 import { ListRow } from "./ListRow";
+
+function leadingForResult(item: SearchResult) {
+  const communityId = item.communityId;
+  const countryCode =
+    item.kind === "community" && communityId
+      ? getCommunityCountryCode(communityId)
+      : (primaryEthnicityCountryCode(item.ethnicities) ??
+        (communityId ? getCommunityCountryCode(communityId) : undefined));
+
+  const flag =
+    item.kind === "community" && communityId
+      ? getCommunityFlag(communityId, item.emoji ?? item.thumbnail)
+      : item.ethnicities?.length
+        ? primaryEthnicityEmoji(item.ethnicities)
+        : communityId
+          ? getCommunityFlag(communityId, item.emoji ?? item.thumbnail)
+          : item.thumbnail;
+
+  return (
+    <FavoriteThumb
+      kind={item.kind}
+      imageUrl={item.imageUrl}
+      countryCode={countryCode}
+      flag={flag}
+    />
+  );
+}
 
 type SearchResultsPanelProps = {
   results: SearchResult[];
@@ -79,7 +115,7 @@ export function SearchResultsPanel({
           {filtered.map((item) => (
             <ListRow
               key={item.id}
-              thumbnail={item.thumbnail}
+              leading={leadingForResult(item)}
               title={item.title}
               subtitle={item.subtitle}
               onPress={() => onPressResult(item)}
