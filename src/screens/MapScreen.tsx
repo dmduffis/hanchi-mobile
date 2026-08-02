@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Dimensions,
   FlatList,
   Keyboard,
@@ -43,6 +44,7 @@ import {
   FavoriteThumb,
   ListRow,
   MapSheetCard,
+  PriceRatingRow,
   SearchBar,
   SearchResultsPanel,
 } from "../components";
@@ -103,10 +105,14 @@ import { colors, radii, typography } from "../theme";
 import type { Community } from "../types";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-const CARD_WIDTH = SCREEN_WIDTH * 0.7;
-const CARD_GAP = 10;
+const CARD_WIDTH = SCREEN_WIDTH * 0.64;
+const CARD_GAP = 8;
 const CARD_EDGE = 14;
 const RESTAURANT_SHEET_EXPANDED_TOP = Math.round(SCREEN_HEIGHT * 0.28);
+/** Bottom offset for floating controls above the collapsed restaurant carousel. */
+const RESTAURANT_PEEK_CONTROLS_BOTTOM = 156;
+const LIST_DISMISS_DISTANCE = 80;
+const LIST_DISMISS_VELOCITY = 0.85;
 const SEARCH_PANEL_MAX_HEIGHT = Math.round(SCREEN_HEIGHT * 0.42);
 
 function communitiesNear(
@@ -130,12 +136,6 @@ function mapLocationKey(
   longitude: number,
 ): string {
   return `${mode}:${latitude.toFixed(3)},${longitude.toFixed(3)}`;
-}
-
-function formatDistanceMeters(meters?: number | null): string {
-  if (meters == null || !Number.isFinite(meters)) return "Nearby";
-  if (meters < 1000) return `${Math.round(meters)} m away`;
-  return `${(meters / 1000).toFixed(1)} km away`;
 }
 
 function ethnicityChipLabel(id: string): string {
@@ -727,6 +727,52 @@ export function MapScreen() {
       },
     }),
   ).current;
+
+  const listSheetTranslateY = useRef(new Animated.Value(0)).current;
+  const closeListSheet = useCallback(() => {
+    Animated.timing(listSheetTranslateY, {
+      toValue: SCREEN_HEIGHT,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (!finished) return;
+      setMode("cards");
+    });
+  }, [listSheetTranslateY]);
+
+  const finishListSheetPan = useCallback(
+    (dy: number, vy: number) => {
+      if (dy > LIST_DISMISS_DISTANCE || vy > LIST_DISMISS_VELOCITY) {
+        closeListSheet();
+        return;
+      }
+      Animated.spring(listSheetTranslateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        bounciness: 4,
+      }).start();
+    },
+    [closeListSheet, listSheetTranslateY],
+  );
+  const finishListSheetPanRef = useRef(finishListSheetPan);
+  finishListSheetPanRef.current = finishListSheetPan;
+
+  const listSheetPan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, g) => {
+        if (g.dy > 0) listSheetTranslateY.setValue(g.dy);
+      },
+      onPanResponderRelease: (_, g) =>
+        finishListSheetPanRef.current(g.dy, g.vy),
+      onPanResponderTerminate: () => finishListSheetPanRef.current(0, 0),
+    }),
+  ).current;
+
+  useEffect(() => {
+    if (mode === "list") listSheetTranslateY.setValue(0);
+  }, [mode, listSheetTranslateY]);
   const filteredKey = useMemo(
     () =>
       layer === "enclaves"
@@ -1112,7 +1158,9 @@ export function MapScreen() {
   const locateOffset = restaurantSheetExpanded
     ? { top: listSheetTop }
     : showRestaurantCarousel
-      ? { bottom: 250 + Math.max(insets.bottom, 6) }
+      ? {
+          bottom: RESTAURANT_PEEK_CONTROLS_BOTTOM + Math.max(insets.bottom, 6),
+        }
       : { bottom: 24 + Math.max(insets.bottom, 6) };
 
   const zoomOffset =
@@ -1253,26 +1301,6 @@ export function MapScreen() {
                 </Text>
               </Pressable>
             </View>
-            <Pressable
-              style={[
-                styles.modeCircle,
-                mode === "list" && styles.modeCircleActive,
-              ]}
-              onPress={() => {
-                setFocusedCommunityId(null);
-                setResultsOpen(false);
-                setMode((m) => (m === "list" ? "cards" : "list"));
-              }}
-              hitSlop={4}
-              accessibilityRole="button"
-              accessibilityLabel={mode === "list" ? "Show map" : "Show list"}
-            >
-              {mode === "list" ? (
-                <IconMap size={18} color={colors.white} />
-              ) : (
-                <IconList size={18} color={colors.forest} />
-              )}
-            </Pressable>
           </View>
         ) : null}
 
@@ -1469,17 +1497,25 @@ export function MapScreen() {
         <View
           style={[
             styles.sheet,
+            !restaurantSheetExpanded && styles.sheetCollapsed,
             restaurantSheetExpanded && styles.sheetExpanded,
             restaurantSheetExpanded && {
               top: RESTAURANT_SHEET_EXPANDED_TOP,
             },
-            { paddingBottom: Math.max(insets.bottom, 6) },
+            {
+              paddingBottom: restaurantSheetExpanded
+                ? Math.max(insets.bottom, 8)
+                : 10,
+            },
           ]}
           pointerEvents="box-none"
         >
           <View
             {...restaurantSheetPan.panHandlers}
-            style={styles.sheetDragZone}
+            style={[
+              styles.sheetDragZone,
+              !restaurantSheetExpanded && styles.sheetDragZoneCollapsed,
+            ]}
           >
             <Pressable
               onPress={() => setRestaurantSheetExpanded((v) => !v)}
@@ -1491,7 +1527,12 @@ export function MapScreen() {
                   : "Expand restaurant list"
               }
             >
-              <View style={styles.sheetGrabber} />
+              <View
+                style={[
+                  styles.sheetGrabber,
+                  !restaurantSheetExpanded && styles.sheetGrabberCollapsed,
+                ]}
+              />
             </Pressable>
             {restaurantSheetExpanded ? (
               <View style={styles.sheetHeaderCompact}>
@@ -1538,18 +1579,6 @@ export function MapScreen() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.restaurantListContent}
               renderItem={({ item }) => {
-                const rating =
-                  item.rating != null && Number.isFinite(item.rating)
-                    ? `★ ${item.rating.toFixed(1)}`
-                    : null;
-                const subtitle = [
-                  item.category,
-                  item.priceLevel,
-                  rating,
-                  formatDistanceMeters(item.distanceMeters),
-                ]
-                  .filter(Boolean)
-                  .join(" · ");
                 return (
                   <ListRow
                     leading={
@@ -1560,16 +1589,34 @@ export function MapScreen() {
                           item.ethnicities,
                         )}
                         flag={primaryEthnicityEmoji(item.ethnicities)}
+                        size={56}
                       />
                     }
                     title={item.name}
-                    subtitle={subtitle}
                     onPress={() => openRestaurant(item.id)}
+                    belowElement={
+                      <View>
+                        <PriceRatingRow
+                          priceLevel={item.priceLevel}
+                          rating={item.rating}
+                          compact
+                        />
+                        {item.category ? (
+                          <Text
+                            style={styles.restaurantPlaceType}
+                            numberOfLines={1}
+                          >
+                            {item.category}
+                          </Text>
+                        ) : null}
+                      </View>
+                    }
                     rightElement={
                       <FavoriteHeart
                         type="restaurant"
                         targetId={item.id}
-                        size={18}
+                        size={16}
+                        circled
                       />
                     }
                   />
@@ -1602,19 +1649,12 @@ export function MapScreen() {
               }}
               onMomentumScrollEnd={onCardsScrollEnd}
               renderItem={({ item }) => {
-                const rating =
-                  item.rating != null && Number.isFinite(item.rating)
-                    ? `★ ${item.rating.toFixed(1)}`
-                    : null;
-                const meta = [item.priceLevel, item.category, rating]
-                  .filter(Boolean)
-                  .join(" · ");
                 return (
                   <MapSheetCard
                     width={CARD_WIDTH}
                     title={item.name}
-                    meta={meta}
-                    detail={formatDistanceMeters(item.distanceMeters)}
+                    priceLevel={item.priceLevel}
+                    rating={item.rating}
                     imageUrl={item.imageUrl}
                     countryCode={primaryEthnicityCountryCode(item.ethnicities)}
                     flag={primaryEthnicityEmoji(item.ethnicities)}
@@ -1629,30 +1669,69 @@ export function MapScreen() {
         </View>
       ) : null}
 
+      {showMapControls && !restaurantSheetExpanded ? (
+        <Pressable
+          style={[
+            styles.viewListBtn,
+            showRestaurantCarousel
+              ? {
+                  bottom:
+                    RESTAURANT_PEEK_CONTROLS_BOTTOM +
+                    Math.max(insets.bottom, 6),
+                }
+              : null,
+          ]}
+          onPress={() => {
+            setFocusedCommunityId(null);
+            setResultsOpen(false);
+            listSheetTranslateY.setValue(0);
+            setMode("list");
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="View list"
+        >
+          <IconList size={16} color={colors.white} />
+          <Text style={styles.viewListBtnText}>View list</Text>
+        </Pressable>
+      ) : null}
+
       {mode === "list" && !showSearchPanel ? (
-        <View style={[styles.listSheet, { top: listSheetTop }]}>
-          <View style={styles.sheetHeader}>
-            <View>
-              <Text style={styles.sheetTitle}>
-                {layer === "enclaves"
-                  ? "Communities on the map"
-                  : foodCommunityFilter
-                    ? foodCommunityFilter.name
-                    : "Restaurants nearby"}
-              </Text>
-              <Text style={styles.sheetSub}>
-                {layer === "restaurants" && foodCommunityFilter
-                  ? `${filteredFood.length} restaurant${filteredFood.length === 1 ? "" : "s"} in this community`
-                  : filterLabel}
-              </Text>
+        <Animated.View
+          style={[
+            styles.listSheet,
+            {
+              top: listSheetTop,
+              transform: [{ translateY: listSheetTranslateY }],
+            },
+          ]}
+        >
+          <View {...listSheetPan.panHandlers} style={styles.listSheetDragZone}>
+            <View style={styles.sheetGrabber} />
+            <View style={styles.sheetHeader}>
+              <View style={styles.sheetHeaderText}>
+                <Text style={styles.sheetTitle} numberOfLines={2}>
+                  {layer === "enclaves"
+                    ? "Communities on the map"
+                    : foodCommunityFilter
+                      ? foodCommunityFilter.name
+                      : "Restaurants nearby"}
+                </Text>
+                <Text style={styles.sheetSub}>
+                  {layer === "restaurants" && foodCommunityFilter
+                    ? `${filteredFood.length} restaurant${filteredFood.length === 1 ? "" : "s"} in this community`
+                    : filterLabel}
+                </Text>
+              </View>
+              <Pressable
+                style={styles.viewMapBtn}
+                onPress={closeListSheet}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="View map"
+              >
+                <IconMap size={18} color={colors.forest} />
+              </Pressable>
             </View>
-            <Pressable
-              style={styles.closeListBtn}
-              onPress={() => setMode("cards")}
-              hitSlop={8}
-            >
-              <IconX size={18} color={colors.ink} />
-            </Pressable>
           </View>
           <View style={styles.listBody}>
             {layer === "enclaves" ? (
@@ -1713,18 +1792,34 @@ export function MapScreen() {
                           item.ethnicities,
                         )}
                         flag={primaryEthnicityEmoji(item.ethnicities)}
+                        size={56}
                       />
                     }
                     title={item.name}
-                    subtitle={[item.category, item.priceLevel]
-                      .filter(Boolean)
-                      .join(" · ")}
                     onPress={() => openRestaurant(item.id)}
+                    belowElement={
+                      <View>
+                        <PriceRatingRow
+                          priceLevel={item.priceLevel}
+                          rating={item.rating}
+                          compact
+                        />
+                        {item.category ? (
+                          <Text
+                            style={styles.restaurantPlaceType}
+                            numberOfLines={1}
+                          >
+                            {item.category}
+                          </Text>
+                        ) : null}
+                      </View>
+                    }
                     rightElement={
                       <FavoriteHeart
                         type="restaurant"
                         targetId={item.id}
-                        size={18}
+                        size={16}
+                        circled
                       />
                     }
                   />
@@ -1732,7 +1827,7 @@ export function MapScreen() {
               />
             )}
           </View>
-        </View>
+        </Animated.View>
       ) : null}
     </View>
   );
@@ -1785,20 +1880,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     padding: 3,
     gap: 2,
-  },
-  modeCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.white,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  modeCircleActive: {
-    backgroundColor: colors.forest,
-    borderColor: colors.forest,
   },
   layerBtn: {
     flex: 1,
@@ -1931,6 +2012,9 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: -3 },
   },
+  sheetCollapsed: {
+    paddingTop: 8,
+  },
   sheetExpanded: {
     zIndex: 30,
     elevation: 30,
@@ -1942,12 +2026,19 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 8,
   },
+  sheetDragZoneCollapsed: {
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
   sheetGrabber: {
     alignSelf: "center",
     width: 36,
     height: 4,
     borderRadius: 2,
     backgroundColor: colors.border,
+    marginBottom: 10,
+  },
+  sheetGrabberCollapsed: {
     marginBottom: 10,
   },
   sheetHeaderCompact: {
@@ -2016,7 +2107,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radii.lg,
     borderTopRightRadius: radii.lg,
     paddingHorizontal: 20,
-    paddingTop: 14,
+    paddingTop: 6,
     borderTopWidth: 1,
     borderColor: colors.border,
     shadowColor: "#000",
@@ -2025,15 +2116,23 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -4 },
     overflow: "hidden",
   },
+  listSheetDragZone: {
+    paddingBottom: 4,
+  },
   listBody: {
     flex: 1,
     minHeight: 0,
   },
   sheetHeader: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
+    alignItems: "flex-start",
+    gap: 12,
+    marginBottom: 10,
+  },
+  sheetHeaderText: {
+    flex: 1,
+    minWidth: 0,
+    paddingRight: 4,
   },
   listFiltersScroll: {
     marginHorizontal: -20,
@@ -2060,6 +2159,46 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
+  },
+  viewMapBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  viewListBtn: {
+    position: "absolute",
+    alignSelf: "center",
+    bottom: 16,
+    zIndex: 40,
+    elevation: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    minWidth: 140,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: radii.full,
+    backgroundColor: colors.forest,
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  viewListBtnText: {
+    fontFamily: typography.bodySemibold,
+    fontSize: 14,
+    color: colors.white,
+  },
+  restaurantPlaceType: {
+    fontFamily: typography.body,
+    fontSize: 12,
+    color: colors.gray,
+    marginTop: 3,
   },
   listContent: {
     paddingBottom: 32,

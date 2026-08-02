@@ -24,7 +24,6 @@ import { mapApiCommunity } from "../api/mappers";
 import {
   Chip,
   EnclaveDetailMap,
-  EthnicityFlags,
   FavoriteHeart,
   FavoriteThumb,
   ListRow,
@@ -36,10 +35,10 @@ import {
   primaryEthnicityCountryCode,
   primaryEthnicityEmoji,
 } from "../data/ethnicityFlags";
-import { IconArrowLeft, IconArrowsMaximize, IconChevronRight } from "../icons";
+import { IconArrowLeft, IconArrowsMaximize } from "../icons";
 import { displayDescription, displayNeighborhood } from "../lib/communityCopy";
 import type { RootStackParamList } from "../navigation/types";
-import { colors, listTitle, radii, typography } from "../theme";
+import { colors, radii, typography } from "../theme";
 import type { CommunityProfileTab } from "../types";
 
 const TABS: CommunityProfileTab[] = ["About", "Food", "Insiders"];
@@ -333,55 +332,52 @@ export function CommunityProfileScreen() {
             ) : (
               visiblePois.map((poi) => {
                 const poiDishes = dishesByPoi.get(poi.id) ?? [];
-                const meta = [poi.category, poi.address]
-                  .filter(Boolean)
-                  .join(" · ");
                 return (
                   <View key={poi.id} style={styles.restaurantBlock}>
-                    <Pressable
+                    <ListRow
+                      leading={
+                        <FavoriteThumb
+                          kind="restaurant"
+                          imageUrl={poi.imageUrl}
+                          countryCode={primaryEthnicityCountryCode(
+                            poi.ethnicities,
+                          )}
+                          flag={primaryEthnicityEmoji(poi.ethnicities)}
+                          size={56}
+                        />
+                      }
+                      title={poi.name}
                       onPress={() =>
                         navigation.navigate("RestaurantDetail", {
                           restaurantId: poi.id,
                         })
                       }
-                      style={({ pressed }) => [
-                        styles.restaurantHeader,
-                        pressed && { opacity: 0.7 },
-                      ]}
-                    >
-                      <View style={styles.restaurantEmojiWrap}>
-                        <Text style={styles.restaurantEmoji}>🍽️</Text>
-                        {poi.ethnicities?.length ? (
-                          <View style={styles.restaurantFlagBadge}>
-                            <EthnicityFlags
-                              ethnicities={poi.ethnicities.slice(0, 1)}
-                              size={20}
-                            />
-                          </View>
-                        ) : null}
-                      </View>
-                      <View style={styles.restaurantInfo}>
-                        <Text style={styles.restaurantName}>{poi.name}</Text>
-                        {meta ? (
-                          <Text style={styles.restaurantMeta}>{meta}</Text>
-                        ) : null}
-                        <PriceRatingRow
-                          priceLevel={poi.priceLevel}
-                          rating={poi.rating}
-                        />
-                      </View>
-                      <View
-                        onStartShouldSetResponder={() => true}
-                        onTouchEnd={(e) => e.stopPropagation()}
-                      >
+                      belowElement={
+                        <View>
+                          <PriceRatingRow
+                            priceLevel={poi.priceLevel}
+                            rating={poi.rating}
+                            compact
+                          />
+                          {poi.category ? (
+                            <Text
+                              style={styles.restaurantPlaceType}
+                              numberOfLines={1}
+                            >
+                              {poi.category}
+                            </Text>
+                          ) : null}
+                        </View>
+                      }
+                      rightElement={
                         <FavoriteHeart
                           type="restaurant"
                           targetId={poi.id}
-                          size={18}
+                          size={16}
+                          circled
                         />
-                      </View>
-                      <IconChevronRight size={18} color={colors.grayLight} />
-                    </Pressable>
+                      }
+                    />
                     {poiDishes.map((dish) => (
                       <ListRow
                         key={dish.id}
@@ -631,46 +627,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
-  restaurantHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 4,
-  },
-  restaurantEmojiWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: radii.sm,
-    backgroundColor: colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  restaurantEmoji: {
-    fontSize: 24,
-  },
-  restaurantFlagBadge: {
-    position: "absolute",
-    right: -4,
-    bottom: -4,
-  },
-  restaurantInfo: {
-    flex: 1,
-  },
-  restaurantName: {
-    ...listTitle,
-  },
-  restaurantMeta: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 12,
-    color: colors.forest,
-    marginTop: 2,
-  },
-  restaurantBlurb: {
+  restaurantPlaceType: {
     fontFamily: typography.body,
-    fontSize: 13,
+    fontSize: 12,
     color: colors.gray,
-    marginTop: 4,
-    lineHeight: 18,
+    marginTop: 3,
   },
   insiderCard: {
     backgroundColor: colors.surface,

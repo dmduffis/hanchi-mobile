@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
-  Image,
   PanResponder,
   Pressable,
   ScrollView,
@@ -16,13 +15,18 @@ import { fetchCommunity, type ApiCommunityDetail } from "../api/communities";
 import { pointToLatLng, type LatLng } from "../api/geo";
 import { mapApiCommunity } from "../api/mappers";
 import type { ApiPoi } from "../api/search";
-import { IconArrowsMaximize, IconChevronRight, IconX } from "../icons";
+import {
+  primaryEthnicityCountryCode,
+  primaryEthnicityEmoji,
+} from "../data/ethnicityFlags";
+import { IconArrowsMaximize, IconX } from "../icons";
 import { displayDescription, displayNeighborhood } from "../lib/communityCopy";
-import { colors, listTitle, radii, typography } from "../theme";
+import { colors, radii, typography } from "../theme";
 import { Chip } from "./Chip";
 import { EnclaveDetailMap } from "./EnclaveDetailMap";
-import { EthnicityFlags } from "./EthnicityFlags";
 import { FavoriteHeart } from "./FavoriteHeart";
+import { FavoriteThumb } from "./FavoriteThumb";
+import { ListRow } from "./ListRow";
 import { PassportStampButton } from "./PassportStampButton";
 import { PriceRatingRow } from "./PriceRatingRow";
 
@@ -77,53 +81,36 @@ function RestaurantCard({
   onPress: () => void;
 }) {
   return (
-    <Pressable
+    <ListRow
+      leading={
+        <FavoriteThumb
+          kind="restaurant"
+          imageUrl={poi.imageUrl}
+          countryCode={primaryEthnicityCountryCode(poi.ethnicities)}
+          flag={primaryEthnicityEmoji(poi.ethnicities)}
+          size={56}
+        />
+      }
+      title={poi.name}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.restaurantCard,
-        pressed && styles.pressed,
-      ]}
-    >
-      <View style={styles.restaurantImageWrap}>
-        {poi.imageUrl ? (
-          <Image
-            source={{ uri: poi.imageUrl }}
-            style={styles.restaurantImage}
-            resizeMode="cover"
+      belowElement={
+        <View>
+          <PriceRatingRow
+            priceLevel={poi.priceLevel}
+            rating={poi.rating}
+            compact
           />
-        ) : (
-          <View style={styles.restaurantImageFallback}>
-            <Text style={styles.restaurantEmoji}>🍽️</Text>
-          </View>
-        )}
-        {poi.ethnicities?.length ? (
-          <View style={styles.restaurantFlagBadge}>
-            <EthnicityFlags
-              ethnicities={poi.ethnicities.slice(0, 1)}
-              size={20}
-            />
-          </View>
-        ) : null}
-      </View>
-      <View style={styles.restaurantBody}>
-        <Text style={styles.restaurantName} numberOfLines={1}>
-          {poi.name}
-        </Text>
-        {poi.category || poi.address ? (
-          <Text style={styles.restaurantMeta} numberOfLines={1}>
-            {[poi.category, poi.address].filter(Boolean).join(" · ")}
-          </Text>
-        ) : null}
-        <PriceRatingRow priceLevel={poi.priceLevel} rating={poi.rating} />
-      </View>
-      <View
-        onStartShouldSetResponder={() => true}
-        onTouchEnd={(e) => e.stopPropagation()}
-      >
-        <FavoriteHeart type="restaurant" targetId={poi.id} size={18} />
-      </View>
-      <IconChevronRight size={18} color={colors.grayLight} />
-    </Pressable>
+          {poi.category ? (
+            <Text style={styles.restaurantPlaceType} numberOfLines={1}>
+              {poi.category}
+            </Text>
+          ) : null}
+        </View>
+      }
+      rightElement={
+        <FavoriteHeart type="restaurant" targetId={poi.id} size={16} circled />
+      }
+    />
   );
 }
 
@@ -490,14 +477,14 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: typography.display,
     fontSize: 24,
-    lineHeight: 28,
+    lineHeight: 26,
     color: colors.ink,
   },
   neighborhood: {
     fontFamily: typography.body,
     fontSize: 14,
     color: colors.gray,
-    marginTop: 4,
+    marginTop: 0,
   },
   closeBtn: {
     width: 36,
@@ -589,51 +576,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.gray,
   },
-  restaurantCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  pressed: {
-    opacity: 0.75,
-  },
-  restaurantImageWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: radii.sm,
-    overflow: "hidden",
-    backgroundColor: colors.surface,
-  },
-  restaurantImage: {
-    width: "100%",
-    height: "100%",
-  },
-  restaurantImageFallback: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  restaurantEmoji: {
-    fontSize: 24,
-  },
-  restaurantFlagBadge: {
-    position: "absolute",
-    right: -2,
-    bottom: -2,
-  },
-  restaurantBody: {
-    flex: 1,
-    gap: 2,
-  },
-  restaurantName: {
-    ...listTitle,
-  },
-  restaurantMeta: {
-    fontFamily: typography.bodyMedium,
+  restaurantPlaceType: {
+    fontFamily: typography.body,
     fontSize: 12,
-    color: colors.forest,
+    color: colors.gray,
+    marginTop: 3,
   },
 });

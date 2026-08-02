@@ -68,17 +68,22 @@ export function ListRow({
           </View>
         ) : null}
       </View>
-      {rightElement ? (
+      {rightElement || (showChevron && onPress) ? (
         <View
-          style={styles.right}
-          onStartShouldSetResponder={() => true}
-          onTouchEnd={(e) => e.stopPropagation()}
+          style={[styles.trailing, rightAlign === "top" && styles.trailingTop]}
         >
-          {rightElement}
+          {rightElement ? (
+            <View
+              onStartShouldSetResponder={() => true}
+              onTouchEnd={(e) => e.stopPropagation()}
+            >
+              {rightElement}
+            </View>
+          ) : null}
+          {showChevron && onPress ? (
+            <IconChevronRight size={18} color={colors.grayLight} />
+          ) : null}
         </View>
-      ) : null}
-      {showChevron && onPress ? (
-        <IconChevronRight size={18} color={colors.grayLight} />
       ) : null}
     </Pressable>
   );
@@ -123,6 +128,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...listTitle,
+    lineHeight: 20,
   },
   subtitle: {
     fontFamily: typography.body,
@@ -131,10 +137,16 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   below: {
-    marginTop: 8,
+    marginTop: 1,
     alignSelf: "flex-start",
   },
-  right: {
+  trailing: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     flexShrink: 0,
+  },
+  trailingTop: {
+    marginTop: 2,
   },
 });

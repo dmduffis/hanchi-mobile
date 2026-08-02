@@ -31,7 +31,7 @@ export function FavoriteThumb({
   }
 
   const radius = Math.max(8, Math.round(size * 0.22));
-  const flagSize = Math.round(size * 0.42);
+  const flagSize = Math.min(18, Math.round(size * 0.32));
 
   return (
     <View style={{ width: size, height: size }}>
