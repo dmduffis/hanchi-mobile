@@ -4,9 +4,26 @@ import type { Region } from "react-native-maps";
 
 import { METRO_PRESETS, NYC_REGION } from "../data/mapDefaults";
 
-const LAST_REGION_KEY = "sinta.lastMapRegion";
-const LOCATION_MODE_KEY = "sinta.mapLocationMode";
-const LOCATION_LABEL_KEY = "sinta.mapLocationLabel";
+const LAST_REGION_KEY = "hanchi.lastMapRegion";
+const LOCATION_MODE_KEY = "hanchi.mapLocationMode";
+const LOCATION_LABEL_KEY = "hanchi.mapLocationLabel";
+/** Legacy keys from the pre-rename app — read once, then migrate. */
+const LEGACY_LAST_REGION_KEY = "sinta.lastMapRegion";
+const LEGACY_LOCATION_MODE_KEY = "sinta.mapLocationMode";
+const LEGACY_LOCATION_LABEL_KEY = "sinta.mapLocationLabel";
+
+async function readMigratedItem(
+  key: string,
+  legacyKey: string,
+): Promise<string | null> {
+  const value = await AsyncStorage.getItem(key);
+  if (value != null) return value;
+  const legacy = await AsyncStorage.getItem(legacyKey);
+  if (legacy == null) return null;
+  await AsyncStorage.setItem(key, legacy);
+  await AsyncStorage.removeItem(legacyKey);
+  return legacy;
+}
 
 export type MapBootRegion = Region;
 export type MapLocationMode = "gps" | "manual";
@@ -52,7 +69,7 @@ export const METRO_FIT_RADIUS_METERS = 80_000;
 
 export async function getSavedMapRegion(): Promise<MapBootRegion | null> {
   try {
-    const raw = await AsyncStorage.getItem(LAST_REGION_KEY);
+    const raw = await readMigratedItem(LAST_REGION_KEY, LEGACY_LAST_REGION_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<MapBootRegion>;
     if (
@@ -84,7 +101,10 @@ export async function saveMapRegion(region: MapBootRegion): Promise<void> {
 
 export async function getMapLocationMode(): Promise<MapLocationMode> {
   try {
-    const value = await AsyncStorage.getItem(LOCATION_MODE_KEY);
+    const value = await readMigratedItem(
+      LOCATION_MODE_KEY,
+      LEGACY_LOCATION_MODE_KEY,
+    );
     return value === "manual" ? "manual" : "gps";
   } catch {
     return "gps";
@@ -101,7 +121,10 @@ async function setMapLocationMode(mode: MapLocationMode): Promise<void> {
 
 export async function getMapLocationLabel(): Promise<string | null> {
   try {
-    return (await AsyncStorage.getItem(LOCATION_LABEL_KEY)) ?? null;
+    return (
+      (await readMigratedItem(LOCATION_LABEL_KEY, LEGACY_LOCATION_LABEL_KEY)) ??
+      null
+    );
   } catch {
     return null;
   }

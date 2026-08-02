@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "Sinta",
-    "slug": "sinta-mobile-app",
+    "name": "Hanchi",
+    "slug": "hanchi-mobile-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "sinta",
+    "scheme": "hanchi",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.sinta.app",
+      "bundleIdentifier": "com.hanchi.app",
       "icon": "./assets/expo.icon",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Sinta uses your location to center the map on you and show nearby communities and restaurants."
+        "NSLocationWhenInUseUsageDescription": "Hanchi uses your location to center the map on you and show nearby communities and restaurants."
       }
     },
     "android": {
@@ -22,7 +22,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "package": "com.sinta.app",
+      "package": "com.hanchi.app",
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
@@ -45,7 +45,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Sinta to use your location to center the map on you."
+          "locationWhenInUsePermission": "Allow Hanchi to use your location to center the map on you."
         }
       ]
     ],
