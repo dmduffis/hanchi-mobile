@@ -72,6 +72,7 @@ const AFFINITIES: Record<string, CultureFilterId[]> = {
   "little-el-salvador-brentwood": ["latino"],
   "koreatown-nassau": ["korean"],
   "little-arabia-dearborn": ["middle-eastern"],
+  "yemeni-south-end-dearborn": ["middle-eastern"],
   "little-baghdad-sterling-heights": ["middle-eastern"],
   "banglatown-hamtramck": ["south-asian"],
   "mexicantown-detroit": ["latino"],
