@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { fetchUserStamps } from "../api/stamps";
 import { fetchMe, updateMe, type ApiUser, type UserIntent } from "../api/users";
+import { useAuth } from "../auth/AuthContext";
 import {
   Badge,
   CircularFlag,
@@ -53,9 +54,11 @@ const SETTINGS: { id: string; label: string; icon: Icon }[] = [
 ];
 
 export function ProfileScreen() {
+  const { signOut, profile } = useAuth();
   const [stamps, setStamps] = useState(0);
   const [placesStamped, setPlacesStamped] = useState(0);
   const [user, setUser] = useState<ApiUser | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   const [locationInfo, setLocationInfo] = useState<SavedLocationInfo | null>(
@@ -181,9 +184,34 @@ export function ProfileScreen() {
     }
   };
 
-  const displayName = user?.displayName ?? "Alex Rivera";
+  const displayName = user?.displayName ?? profile?.displayName ?? "Explorer";
   const initial = displayName.charAt(0).toUpperCase();
-  const cultures = user?.cultures ?? [];
+  const cultures = user?.cultures ?? profile?.cultures ?? [];
+
+  const onSignOut = () => {
+    Alert.alert("Sign out", "Sign out of Hanchi on this device?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign out",
+        style: "destructive",
+        onPress: () => {
+          void (async () => {
+            setSigningOut(true);
+            try {
+              await signOut();
+            } catch (e) {
+              Alert.alert(
+                "Couldn’t sign out",
+                e instanceof Error ? e.message : "Try again",
+              );
+            } finally {
+              setSigningOut(false);
+            }
+          })();
+        },
+      },
+    ]);
+  };
   const locationSubtitle =
     locationInfo == null
       ? "Set where the map opens"
@@ -264,15 +292,24 @@ export function ProfileScreen() {
         {SETTINGS.map((item) => {
           const SettingIcon = item.icon;
           return (
-            <Pressable key={item.id} style={styles.settingsRow}>
+            <Pressable
+              key={item.id}
+              style={styles.settingsRow}
+              onPress={item.id === "account" ? onSignOut : undefined}
+            >
               <View style={styles.settingsIcon}>
                 <SettingIcon size={18} color={colors.forest} />
               </View>
-              <Text style={styles.settingsLabel}>{item.label}</Text>
+              <Text style={styles.settingsLabel}>
+                {item.id === "account" ? "Sign out" : item.label}
+              </Text>
               <IconChevronRight size={18} color={colors.grayLight} />
             </Pressable>
           );
         })}
+        {signingOut ? (
+          <ActivityIndicator color={colors.forest} style={{ marginTop: 12 }} />
+        ) : null}
       </ScrollView>
 
       <Modal

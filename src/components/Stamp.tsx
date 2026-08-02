@@ -23,6 +23,10 @@ type StampProps = {
   countryCode?: string | null;
   earned?: boolean;
   size?: "md" | "sm";
+  /** Override postcard tilt (degrees). */
+  tiltDeg?: number;
+  /** Override stamp ink (auth hero, previews). */
+  inkColor?: string;
   onPress?: () => void;
   disabled?: boolean;
   emoji?: string;
@@ -41,13 +45,20 @@ export function Stamp({
   countryCode,
   earned = true,
   size = "md",
+  tiltDeg,
+  inkColor,
   onPress,
   disabled = false,
 }: StampProps) {
   const title = stampTitleForCommunity(name || label || "Place");
   const motif = stampMotifForCommunity(communityId);
-  const tilt = stampTiltForCommunity(communityId);
-  const ink = earned ? stampInkForCommunity(communityId) : colors.grayLight;
+  const tilt =
+    tiltDeg !== undefined ? tiltDeg : stampTiltForCommunity(communityId);
+  const ink = inkColor
+    ? inkColor
+    : earned
+      ? stampInkForCommunity(communityId)
+      : colors.grayLight;
   const code = countryCode?.trim().toUpperCase().slice(0, 2) || "—";
   const isSm = size === "sm";
   const w = isSm ? 156 : STAMP_W;
