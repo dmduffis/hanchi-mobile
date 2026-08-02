@@ -18,6 +18,15 @@ export type MainTabParamList = {
           longitude: number;
           restaurantCoords?: { latitude: number; longitude: number }[];
         };
+        /** Home “Open map” — sync camera to the Home peek and clear stale focus. */
+        openAt?: {
+          latitude: number;
+          longitude: number;
+          latitudeDelta: number;
+          longitudeDelta: number;
+          /** Unique per tap so the same region can re-apply. */
+          token: number;
+        };
       }
     | undefined;
   Favorites: undefined;

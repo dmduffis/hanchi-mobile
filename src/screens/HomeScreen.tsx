@@ -307,7 +307,17 @@ export function HomeScreen() {
               />
               <Pressable
                 style={styles.mapHitArea}
-                onPress={() => navigation.navigate("Map")}
+                onPress={() =>
+                  navigation.navigate("Map", {
+                    openAt: {
+                      latitude: peekRegion.latitude,
+                      longitude: peekRegion.longitude,
+                      latitudeDelta: peekRegion.latitudeDelta,
+                      longitudeDelta: peekRegion.longitudeDelta,
+                      token: Date.now(),
+                    },
+                  })
+                }
               >
                 <View style={styles.mapCta}>
                   <IconArrowsMaximize size={14} color={colors.forest} />
