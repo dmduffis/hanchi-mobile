@@ -1657,14 +1657,14 @@ export function MapScreen() {
           <View style={styles.listBody}>
             {layer === "enclaves" ? (
               <FlatList
-                data={filtered}
+                data={inViewCommunities}
                 keyExtractor={(item) => item.id}
                 style={styles.listFlex}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.listContent}
                 ListEmptyComponent={
                   <Text style={styles.emptySub}>
-                    No communities match these filters.
+                    No communities in this map area match these filters.
                   </Text>
                 }
                 renderItem={({ item }) => (
