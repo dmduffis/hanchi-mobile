@@ -7,6 +7,7 @@ type SearchBarProps = {
   placeholder?: string;
   value?: string;
   onChangeText?: (text: string) => void;
+  onFocus?: () => void;
   onPress?: () => void;
   editable?: boolean;
   autoFocus?: boolean;
@@ -16,6 +17,7 @@ export function SearchBar({
   placeholder = "Search communities, dishes…",
   value,
   onChangeText,
+  onFocus,
   onPress,
   editable = true,
   autoFocus = false,
@@ -38,6 +40,7 @@ export function SearchBar({
         placeholderTextColor={colors.grayLight}
         value={value}
         onChangeText={onChangeText}
+        onFocus={onFocus}
         autoFocus={autoFocus}
         returnKeyType="search"
         clearButtonMode="never"

@@ -360,6 +360,59 @@ export function filterCommunities(
 }
 
 /**
+ * Higher = better text match for map fly-to.
+ * Prefer real names/neighborhoods over loose metro aliases in the haystack.
+ */
+export function scoreCommunityQuery(
+  community: Community,
+  query: string,
+): number {
+  const q = query.trim().toLowerCase();
+  if (!q) return 0;
+
+  const name = community.name.toLowerCase();
+  const neighborhood = community.neighborhood.toLowerCase();
+  const heritage = community.heritage.toLowerCase();
+  const tags = community.tags.join(" ").toLowerCase();
+  const tokens = q.split(/\s+/).filter(Boolean);
+
+  let score = 0;
+  if (name === q) score = 1000;
+  else if (name.startsWith(q)) score = 850;
+  else if (name.includes(q)) score = 700;
+  else if (tokens.length > 1 && tokens.every((t) => name.includes(t)))
+    score = 650;
+  else if (neighborhood.includes(q)) score = 500;
+  else if (tokens.every((t) => neighborhood.includes(t))) score = 450;
+  else if (heritage.includes(q) || tags.includes(q)) score = 300;
+  else if (communityMatchesQuery(community, q)) score = 120;
+  else return 0;
+
+  // City-hall / metro-centroid dumps should lose to a better-geocoded twin.
+  if (isLikelyCityHallPin(community.latitude, community.longitude)) {
+    score -= 400;
+  }
+  return score;
+}
+
+/** Known Nominatim city-level centroids that previously swallowed neighborhoods. */
+function isLikelyCityHallPin(lat: number, lng: number): boolean {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return true;
+  const dumps: Array<[number, number]> = [
+    [40.7127281, -74.0060152], // NYC
+    [40.7128, -74.006],
+    [34.0522, -118.2437], // LA
+    [34.0522342, -118.2436849],
+    [43.6532, -79.3832], // Toronto
+    [37.8044, -122.2712], // Oakland
+    [49.2827, -123.1207], // Vancouver
+  ];
+  return dumps.some(
+    ([dLat, dLng]) => Math.abs(lat - dLat) < 0.0015 && Math.abs(lng - dLng) < 0.0015,
+  );
+}
+
+/**
  * Map culture chips → POI ethnicity slugs for Food-layer discovery.
  * Null means no ethnicity filter (All).
  */

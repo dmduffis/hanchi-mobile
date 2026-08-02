@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 
 import {
   fetchUserFavorites,
@@ -27,19 +27,16 @@ export function FavoriteHeart({
   onFavoritedChange,
 }: FavoriteHeartProps) {
   const [favorited, setFavorited] = useState(initialFavorited ?? false);
-  const [loading, setLoading] = useState(initialFavorited === undefined);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (initialFavorited !== undefined) {
       setFavorited(initialFavorited);
-      setLoading(false);
       return;
     }
 
     let cancelled = false;
     (async () => {
-      setLoading(true);
       try {
         const list = await fetchUserFavorites();
         if (cancelled) return;
@@ -48,8 +45,6 @@ export function FavoriteHeart({
         );
       } catch {
         if (!cancelled) setFavorited(false);
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     })();
     return () => {
@@ -76,14 +71,6 @@ export function FavoriteHeart({
       setBusy(false);
     }
   }, [busy, favorited, type, targetId, onFavoritedChange]);
-
-  if (loading) {
-    return (
-      <Pressable style={styles.btn} disabled>
-        <ActivityIndicator size="small" color={colors.forest} />
-      </Pressable>
-    );
-  }
 
   return (
     <Pressable

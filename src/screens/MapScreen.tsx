@@ -1,4 +1,13 @@
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import type {
+  CompositeNavigationProp,
+  RouteProp,
+} from "@react-navigation/native";
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -6,6 +15,7 @@ import {
   Alert,
   Dimensions,
   FlatList,
+  Keyboard,
   NativeScrollEvent,
   NativeSyntheticEvent,
   PanResponder,
@@ -23,6 +33,7 @@ import {
 import { pointToLatLng } from "../api/geo";
 import { fetchPoisNear } from "../api/pois";
 import type { ApiPoi } from "../api/search";
+import { searchAll } from "../api/search";
 import { useCommunities } from "../api/useCommunities";
 import {
   Chip,
@@ -33,6 +44,7 @@ import {
   ListRow,
   MapSheetCard,
   SearchBar,
+  SearchResultsPanel,
 } from "../components";
 import {
   CommunityMap,
@@ -55,6 +67,7 @@ import {
   filterCommunities,
   getAffinityLabels,
   poiMatchesQuery,
+  scoreCommunityQuery,
   type CultureFilterId,
 } from "../data/cultureFilters";
 import {
@@ -71,9 +84,15 @@ import {
   IconUsers,
   IconX,
 } from "../icons";
-import type { RootStackParamList } from "../navigation/types";
+import {
+  mapSearchResults,
+  type SearchKindFilter,
+  type SearchResult,
+} from "../lib/searchResults";
+import type { MainTabParamList, RootStackParamList } from "../navigation/types";
 import {
   distanceMeters,
+  getMapLocationMode,
   getSavedLocationInfo,
   METRO_FIT_RADIUS_METERS,
   resolveMapRegion,
@@ -86,6 +105,7 @@ const CARD_WIDTH = SCREEN_WIDTH * 0.7;
 const CARD_GAP = 10;
 const CARD_EDGE = 14;
 const RESTAURANT_SHEET_EXPANDED_TOP = Math.round(SCREEN_HEIGHT * 0.28);
+const SEARCH_PANEL_MAX_HEIGHT = Math.round(SCREEN_HEIGHT * 0.42);
 
 function communitiesNear(
   list: Community[],
@@ -99,6 +119,15 @@ function communitiesNear(
       Number.isFinite(c.longitude) &&
       distanceMeters(lat, lng, c.latitude, c.longitude) <= radiusMeters,
   );
+}
+
+/** Stable key so boot / focus / locate agree (avoids false “location changed” refits). */
+function mapLocationKey(
+  mode: string,
+  latitude: number,
+  longitude: number,
+): string {
+  return `${mode}:${latitude.toFixed(3)},${longitude.toFixed(3)}`;
 }
 
 function formatDistanceMeters(meters?: number | null): string {
@@ -140,9 +169,14 @@ function poiDistSq(poi: ApiPoi, lat: number, lng: number): number {
   return distSq(coord.latitude, coord.longitude, lat, lng);
 }
 
+type MapNav = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList, "Map">,
+  NativeStackNavigationProp<RootStackParamList>
+>;
+
 export function MapScreen() {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<MapNav>();
+  const route = useRoute<RouteProp<MainTabParamList, "Map">>();
   const insets = useSafeAreaInsets();
   const { communities, loading, error } = useCommunities();
   const [layer, setLayer] = useState<MapLayer>("enclaves");
@@ -150,6 +184,20 @@ export function MapScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [query, setQuery] = useState("");
   const [culture, setCulture] = useState<CultureFilterId>("all");
+  const [globalResults, setGlobalResults] = useState<SearchResult[]>([]);
+  const [globalSearchLoading, setGlobalSearchLoading] = useState(false);
+  const [searchKind, setSearchKind] = useState<SearchKindFilter>("all");
+  const [resultsOpen, setResultsOpen] = useState(false);
+  const [searchAutoFocus, setSearchAutoFocus] = useState(false);
+  /** Bump to remount SearchBar so autoFocus works when Map is already mounted. */
+  const [searchFocusKey, setSearchFocusKey] = useState(0);
+  const appliedFocusKey = useRef<string | null>(null);
+  /** Skip one search fly-to after Home deep-link aims the camera. */
+  const skipSearchFlyTo = useRef(false);
+  /** Last query/culture we already flew to — don't re-fly while the user pans. */
+  const lastSearchFlyIntent = useRef("");
+  /** Ignore the next region-change callback from our own animate/fit. */
+  const ignoreNextRegionCommit = useRef(false);
   const [region, setRegion] = useState<MapRegion>(NYC_REGION);
   const [foodPois, setFoodPois] = useState<ApiPoi[]>([]);
   const [foodLoading, setFoodLoading] = useState(false);
@@ -161,6 +209,11 @@ export function MapScreen() {
   const [focusedCommunityId, setFocusedCommunityId] = useState<string | null>(
     null,
   );
+  /** Restaurants layer scoped to one community (from sheet expand). */
+  const [foodCommunityFilter, setFoodCommunityFilter] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [locating, setLocating] = useState(false);
   /** Restaurant card sheet pulled up → Favorites-style list. */
   const [restaurantSheetExpanded, setRestaurantSheetExpanded] = useState(false);
@@ -176,6 +229,17 @@ export function MapScreen() {
   const didBootLocation = useRef(false);
   const appliedLocationKey = useRef<string | null>(null);
   const fittedLocationKey = useRef<string | null>(null);
+  /**
+   * After Home/Map search moves the camera, keep that place — don't yank
+   * back to the profile/GPS metro on tab focus or catalog load.
+   * Cleared only by the locate button.
+   */
+  const suppressAutoLocationFit = useRef(false);
+
+  const moveCamera = useCallback((action: () => void) => {
+    ignoreNextRegionCommit.current = true;
+    action();
+  }, []);
 
   useEffect(() => {
     if (didBootLocation.current) return;
@@ -184,12 +248,19 @@ export function MapScreen() {
 
     (async () => {
       // Prefer live GPS when already allowed; else saved coords; else NYC.
-      const { region } = await resolveMapRegion({ requestPermission: false });
+      const [{ region }, mode] = await Promise.all([
+        resolveMapRegion({ requestPermission: false }),
+        getMapLocationMode(),
+      ]);
       if (cancelled) return;
       regionRef.current = region;
       setRegion(region);
       setBootRegion(region);
-      appliedLocationKey.current = `boot:${region.latitude.toFixed(3)},${region.longitude.toFixed(3)}`;
+      appliedLocationKey.current = mapLocationKey(
+        mode,
+        region.latitude,
+        region.longitude,
+      );
     })();
 
     return () => {
@@ -197,14 +268,26 @@ export function MapScreen() {
     };
   }, []);
 
-  // Re-frame when Profile changes map location while this screen is revisited.
+  // Re-frame only when Profile changes the saved map location.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
       (async () => {
         const info = await getSavedLocationInfo();
         if (cancelled) return;
-        const key = `${info.mode}:${info.region.latitude.toFixed(3)},${info.region.longitude.toFixed(3)}`;
+        const key = mapLocationKey(
+          info.mode,
+          info.region.latitude,
+          info.region.longitude,
+        );
+
+        // Search deep-link / user exploration owns the camera.
+        if (suppressAutoLocationFit.current) {
+          appliedLocationKey.current = key;
+          fittedLocationKey.current = key;
+          return;
+        }
+
         if (appliedLocationKey.current === key) return;
         appliedLocationKey.current = key;
         fittedLocationKey.current = key;
@@ -217,22 +300,24 @@ export function MapScreen() {
           info.region.longitude,
         );
         if (metro.length > 0) {
-          mapRef.current?.fitToCommunities(metro);
+          moveCamera(() => mapRef.current?.fitToCommunities(metro));
         } else {
-          mapRef.current?.animateToCoordinate(
-            info.region.latitude,
-            info.region.longitude,
-            {
-              latitudeDelta: info.region.latitudeDelta,
-              longitudeDelta: info.region.longitudeDelta,
-            },
+          moveCamera(() =>
+            mapRef.current?.animateToCoordinate(
+              info.region.latitude,
+              info.region.longitude,
+              {
+                latitudeDelta: info.region.latitudeDelta,
+                longitudeDelta: info.region.longitudeDelta,
+              },
+            ),
           );
         }
       })();
       return () => {
         cancelled = true;
       };
-    }, [communities]),
+    }, [communities, moveCamera]),
   );
 
   // After location + community catalog load, frame the whole metro so OC
@@ -241,6 +326,9 @@ export function MapScreen() {
     if (!bootRegion || loading || communities.length === 0) {
       return;
     }
+    if (suppressAutoLocationFit.current) return;
+    // Deep-link focus from Home search owns the camera instead.
+    if (route.params?.focusCommunityId || route.params?.query) return;
     const key = appliedLocationKey.current;
     if (!key || fittedLocationKey.current === key) return;
     const metro = communitiesNear(
@@ -251,10 +339,121 @@ export function MapScreen() {
     if (metro.length === 0) return;
     fittedLocationKey.current = key;
     const handle = requestAnimationFrame(() => {
-      mapRef.current?.fitToCommunities(metro);
+      moveCamera(() => mapRef.current?.fitToCommunities(metro));
     });
     return () => cancelAnimationFrame(handle);
-  }, [bootRegion, communities, loading]);
+  }, [
+    bootRegion,
+    communities,
+    loading,
+    route.params?.focusCommunityId,
+    route.params?.query,
+    moveCamera,
+  ]);
+
+  // Home portal / deep-link → Map search or a specific community.
+  useEffect(() => {
+    const focusId = route.params?.focusCommunityId;
+    const incomingQuery = route.params?.query?.trim();
+    const showResults = route.params?.showResults === true;
+    const focusSearch = route.params?.focusSearch === true;
+    if (!focusId && !incomingQuery && !showResults && !focusSearch) return;
+    if (loading || !bootRegion) return;
+    if ((focusId || incomingQuery) && communities.length === 0) return;
+
+    const key = `${focusId ?? ""}|${incomingQuery ?? ""}|${showResults}|${focusSearch}`;
+    if (appliedFocusKey.current === key) return;
+    appliedFocusKey.current = key;
+
+    suppressAutoLocationFit.current = true;
+
+    if (focusSearch) {
+      setSearchFocusKey((k) => k + 1);
+      setSearchAutoFocus(true);
+      setResultsOpen(true);
+      setLayer("enclaves");
+    }
+
+    if (incomingQuery) {
+      skipSearchFlyTo.current = true;
+      lastSearchFlyIntent.current = `all|${incomingQuery.toLowerCase()}`;
+      setQuery(incomingQuery);
+      setLayer("enclaves");
+      setCulture("all");
+      // Keep query in the bar; only open dropdown when explicitly requested.
+      setResultsOpen(showResults && !focusId);
+    } else if (showResults && !focusId) {
+      setResultsOpen(true);
+    }
+
+    const target = focusId
+      ? communities.find((c) => c.id === focusId)
+      : undefined;
+    if (target) {
+      skipSearchFlyTo.current = true;
+      lastSearchFlyIntent.current = `all|${(incomingQuery ?? target.name).toLowerCase()}`;
+      setFocusedCommunityId(target.id);
+      setLayer("enclaves");
+      setResultsOpen(false);
+      fittedLocationKey.current = appliedLocationKey.current;
+      requestAnimationFrame(() => {
+        moveCamera(() =>
+          mapRef.current?.animateToCoordinate(
+            target.latitude,
+            target.longitude,
+            { latitudeDelta: 0.06, longitudeDelta: 0.06 },
+          ),
+        );
+      });
+    }
+
+    navigation.setParams({
+      focusCommunityId: undefined,
+      query: undefined,
+      showResults: undefined,
+      focusSearch: undefined,
+    });
+  }, [
+    route.params?.focusCommunityId,
+    route.params?.query,
+    route.params?.showResults,
+    route.params?.focusSearch,
+    communities,
+    loading,
+    bootRegion,
+    navigation,
+    moveCamera,
+  ]);
+
+  // Prefetch global search results for the query. Do not auto-open the
+  // dropdown here — that would reopen it after a community tap from Home.
+  useEffect(() => {
+    let cancelled = false;
+    const q = query.trim();
+    if (!q) {
+      setGlobalResults([]);
+      setGlobalSearchLoading(false);
+      setSearchKind("all");
+      return;
+    }
+
+    const handle = setTimeout(async () => {
+      setGlobalSearchLoading(true);
+      try {
+        const data = await searchAll(q);
+        if (!cancelled) setGlobalResults(mapSearchResults(data));
+      } catch {
+        if (!cancelled) setGlobalResults([]);
+      } finally {
+        if (!cancelled) setGlobalSearchLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [query]);
 
   const filtered = useMemo(
     () => filterCommunities(communities, { culture, query }),
@@ -370,19 +569,75 @@ export function MapScreen() {
     [layer, filtered, filteredFood],
   );
 
-  // Search/filter for communities outside the current view (e.g. "detroit") → fly there.
-  // Never fit the unfiltered full list (that zooms out to the whole country).
+  // Search/filter → fly once to the best match, then leave the camera alone
+  // so pan/zoom/pin taps stay on this same map place.
   useEffect(() => {
     if (layer !== "enclaves") return;
+    // While the results dropdown is open, wait for a tap — don't fly under it.
+    if (resultsOpen) return;
+    const q = query.trim();
+    const hasIntent = q.length > 0 || culture !== "all";
+    if (!hasIntent) {
+      lastSearchFlyIntent.current = "";
+      return;
+    }
     if (filtered.length === 0) return;
-    const hasIntent = query.trim().length > 0 || culture !== "all";
-    if (!hasIntent) return;
 
+    const intent = `${culture}|${q.toLowerCase()}`;
+    // Same search — user is exploring; do not re-fly on pan or catalog churn.
+    if (lastSearchFlyIntent.current === intent) return;
+
+    if (skipSearchFlyTo.current) {
+      skipSearchFlyTo.current = false;
+      lastSearchFlyIntent.current = intent;
+      return;
+    }
+
+    lastSearchFlyIntent.current = intent;
+    suppressAutoLocationFit.current = true;
     const current = regionRef.current;
+
+    if (q.length > 0) {
+      const ranked = [...filtered].sort((a, b) => {
+        const sa = scoreCommunityQuery(a, q);
+        const sb = scoreCommunityQuery(b, q);
+        if (sb !== sa) return sb - sa;
+        const da =
+          (a.latitude - current.latitude) ** 2 +
+          (a.longitude - current.longitude) ** 2;
+        const db =
+          (b.latitude - current.latitude) ** 2 +
+          (b.longitude - current.longitude) ** 2;
+        return da - db;
+      });
+      const best = ranked[0]!;
+      const bestScore = scoreCommunityQuery(best, q);
+      if (isCommunityInRegion(best, current) && current.latitudeDelta <= 0.35) {
+        setFocusedCommunityId(best.id);
+        return;
+      }
+
+      const METRO_SPAN_DEG = 0.45;
+      const minScore = Math.max(bestScore - 150, 200);
+      const localCluster = ranked.filter((c) => {
+        const dLat = Math.abs(c.latitude - best.latitude);
+        const dLng = Math.abs(c.longitude - best.longitude);
+        return (
+          dLat <= METRO_SPAN_DEG &&
+          dLng <= METRO_SPAN_DEG &&
+          scoreCommunityQuery(c, q) >= minScore
+        );
+      });
+      const target = localCluster.length > 0 ? localCluster : [best];
+      moveCamera(() => mapRef.current?.fitToCommunities(target));
+      setFocusedCommunityId(best.id);
+      return;
+    }
+
+    // Culture-only: fly only when nothing matching is in view.
     const anyVisible = filtered.some((c) => isCommunityInRegion(c, current));
     if (anyVisible) return;
 
-    // Prefer the nearest metro cluster, not every match nationwide.
     const nearest = filtered.reduce(
       (best, c) => {
         const d =
@@ -400,24 +655,33 @@ export function MapScreen() {
       return dLat <= METRO_SPAN_DEG && dLng <= METRO_SPAN_DEG;
     });
 
-    mapRef.current?.fitToCommunities(
-      localCluster.length > 0 ? localCluster : [nearest.c],
+    moveCamera(() =>
+      mapRef.current?.fitToCommunities(
+        localCluster.length > 0 ? localCluster : [nearest.c],
+      ),
     );
-  }, [filteredKey, query, culture, filtered, layer]);
+  }, [filteredKey, query, culture, filtered, layer, moveCamera, resultsOpen]);
 
-  // Restaurants layer: fetch cultural restaurants for the viewport.
+  // Restaurants layer: fetch for viewport, or one community when expanded.
   useEffect(() => {
     if (layer !== "restaurants") return;
     const gen = ++foodFetchGen.current;
     const handle = setTimeout(() => {
       const current = regionRef.current;
-      const ethnicities = ethnicitiesForCultureFilter(culture) ?? undefined;
+      const communityId = foodCommunityFilter?.id;
+      const ethnicities = communityId
+        ? undefined
+        : (ethnicitiesForCultureFilter(culture) ?? undefined);
+      const radiusMeters = communityId
+        ? Math.max(radiusMetersForRegion(current), 8000)
+        : radiusMetersForRegion(current);
       setFoodLoading(true);
       fetchPoisNear({
         near: { lat: current.latitude, lng: current.longitude },
-        radiusMeters: radiusMetersForRegion(current),
-        ethnicity: ethnicities ?? undefined,
-        limit: 100,
+        radiusMeters,
+        ethnicity: ethnicities,
+        communityId,
+        limit: communityId ? 200 : 100,
       })
         .then((res) => {
           if (foodFetchGen.current !== gen) return;
@@ -433,13 +697,16 @@ export function MapScreen() {
         });
     }, 350);
     return () => clearTimeout(handle);
-  }, [layer, region, culture]);
+  }, [layer, region, culture, foodCommunityFilter?.id]);
 
   useEffect(() => {
     setActiveIndex(0);
     selectedIdRef.current = null;
     setFocusRestaurantId(null);
-    setFocusedCommunityId(null);
+    // Leave community focus while typing — the search fly-to effect sets the best match.
+    if (!query.trim() || layer !== "enclaves") {
+      setFocusedCommunityId(null);
+    }
     listRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, [culture, query, layer]);
 
@@ -568,6 +835,12 @@ export function MapScreen() {
         );
         return;
       }
+      // Explicit locate — resume auto-fit for future profile location changes.
+      suppressAutoLocationFit.current = false;
+      lastSearchFlyIntent.current = "";
+      const key = mapLocationKey("gps", region.latitude, region.longitude);
+      appliedLocationKey.current = key;
+      fittedLocationKey.current = key;
       regionRef.current = region;
       setRegion(region);
       const metro = communitiesNear(
@@ -576,12 +849,18 @@ export function MapScreen() {
         region.longitude,
       );
       if (metro.length > 0) {
-        mapRef.current?.fitToCommunities(metro);
+        moveCamera(() => mapRef.current?.fitToCommunities(metro));
       } else {
-        mapRef.current?.animateToCoordinate(region.latitude, region.longitude, {
-          latitudeDelta: region.latitudeDelta,
-          longitudeDelta: region.longitudeDelta,
-        });
+        moveCamera(() =>
+          mapRef.current?.animateToCoordinate(
+            region.latitude,
+            region.longitude,
+            {
+              latitudeDelta: region.latitudeDelta,
+              longitudeDelta: region.longitudeDelta,
+            },
+          ),
+        );
       }
     } catch {
       Alert.alert(
@@ -598,23 +877,75 @@ export function MapScreen() {
       ? `${inView.length} in view`
       : `${inView.length} in view · ${layer === "enclaves" ? filtered.length : filteredFood.length} match${(layer === "enclaves" ? filtered.length : filteredFood.length) === 1 ? "" : "es"}`;
 
+  const showSearchPanel =
+    resultsOpen && query.trim().length > 0 && mode === "cards";
   const showCommunityDetail =
-    mode === "cards" && layer === "enclaves" && focusedCommunityId != null;
-  const showRestaurantCarousel = mode === "cards" && layer === "restaurants";
+    mode === "cards" &&
+    layer === "enclaves" &&
+    focusedCommunityId != null &&
+    !showSearchPanel;
+  const showRestaurantCarousel =
+    mode === "cards" && layer === "restaurants" && !showSearchPanel;
+  const showFoodCommunityFilter =
+    layer === "restaurants" &&
+    foodCommunityFilter != null &&
+    !showSearchPanel &&
+    mode === "cards";
+  // Hide when only "All" is available — a lone All chip is noise after
+  // clearing a community restaurant filter.
   const showCultureChips =
-    mode === "cards" && !showCommunityDetail && cultureFilters.length > 0;
+    mode === "cards" &&
+    !showCommunityDetail &&
+    !showSearchPanel &&
+    !showFoodCommunityFilter &&
+    cultureFilters.some((f) => f.id !== "all");
+
+  const handleSearchResultPress = (item: SearchResult) => {
+    Keyboard.dismiss();
+    if (
+      (item.kind === "restaurant" || item.kind === "dish") &&
+      item.restaurantId
+    ) {
+      setResultsOpen(false);
+      navigation.navigate("RestaurantDetail", {
+        restaurantId: item.restaurantId,
+      });
+      return;
+    }
+    if (!item.communityId) return;
+    const target = communities.find((c) => c.id === item.communityId);
+    suppressAutoLocationFit.current = true;
+    setResultsOpen(false);
+    setFocusedCommunityId(item.communityId);
+    setLayer("enclaves");
+    if (target) {
+      skipSearchFlyTo.current = true;
+      lastSearchFlyIntent.current = `all|${query.trim().toLowerCase()}`;
+      moveCamera(() =>
+        mapRef.current?.animateToCoordinate(target.latitude, target.longitude, {
+          latitudeDelta: 0.06,
+          longitudeDelta: 0.06,
+        }),
+      );
+    }
+  };
 
   const selectedMapId =
     layer === "enclaves"
       ? focusedCommunityId
       : (carouselItems[activeIndex]?.id ?? null);
 
-  const locateOffset =
-    showCommunityDetail || mode === "list" || restaurantSheetExpanded
-      ? { top: insets.top + (showCultureChips ? 168 : 132) }
-      : showRestaurantCarousel
-        ? { bottom: 250 + Math.max(insets.bottom, 6) }
-        : { bottom: 24 + Math.max(insets.bottom, 6) };
+  const showMapControls =
+    !showCommunityDetail && mode !== "list" && !showSearchPanel;
+  const locateOffset = restaurantSheetExpanded
+    ? {
+        top:
+          insets.top +
+          (showCultureChips || showFoodCommunityFilter ? 168 : 132),
+      }
+    : showRestaurantCarousel
+      ? { bottom: 250 + Math.max(insets.bottom, 6) }
+      : { bottom: 24 + Math.max(insets.bottom, 6) };
 
   const zoomOffset =
     "bottom" in locateOffset
@@ -655,6 +986,12 @@ export function MapScreen() {
         onRegionChangeComplete={(next) => {
           regionRef.current = next;
           setRegion(next);
+          // User pan/zoom — keep this place; don't snap back to GPS later.
+          if (ignoreNextRegionCommit.current) {
+            ignoreNextRegionCommit.current = false;
+            return;
+          }
+          suppressAutoLocationFit.current = true;
         }}
       />
 
@@ -666,73 +1003,124 @@ export function MapScreen() {
         <View style={styles.searchRow}>
           <View style={styles.searchFlex}>
             <SearchBar
+              key={`map-search-${searchFocusKey}`}
               value={query}
-              onChangeText={setQuery}
-              placeholder={
-                layer === "enclaves"
-                  ? "Search communities, cities…"
-                  : "Search Korean, Thai, phở…"
-              }
+              autoFocus={searchAutoFocus}
+              placeholder="Search communities, dishes…"
+              onFocus={() => {
+                if (query.trim()) setResultsOpen(true);
+              }}
+              onChangeText={(text) => {
+                if (searchAutoFocus) setSearchAutoFocus(false);
+                setQuery(text);
+                if (text.trim()) setResultsOpen(true);
+                else setResultsOpen(false);
+              }}
             />
           </View>
-          <Pressable
-            style={[styles.modeBtn, mode === "list" && styles.modeBtnActive]}
-            onPress={() => {
-              setFocusedCommunityId(null);
-              setMode((m) => (m === "list" ? "cards" : "list"));
-            }}
-            hitSlop={4}
-          >
-            {mode === "list" ? (
-              <IconMap size={18} color={colors.white} />
-            ) : (
-              <IconList size={18} color={colors.forest} />
-            )}
-          </Pressable>
         </View>
 
-        <View style={styles.layerToggle}>
-          <Pressable
-            style={[
-              styles.layerBtn,
-              layer === "enclaves" && styles.layerBtnActive,
-            ]}
-            onPress={() => setLayer("enclaves")}
-          >
-            <IconUsers
-              size={15}
-              color={layer === "enclaves" ? colors.white : colors.forest}
+        {showSearchPanel ? (
+          <View style={styles.searchPanelWrap}>
+            <SearchResultsPanel
+              results={globalResults}
+              loading={globalSearchLoading}
+              searchKind={searchKind}
+              onChangeKind={setSearchKind}
+              onPressResult={handleSearchResultPress}
+              maxHeight={SEARCH_PANEL_MAX_HEIGHT}
             />
-            <Text
+          </View>
+        ) : null}
+
+        {!showSearchPanel ? (
+          <View style={styles.layerRow}>
+            <View style={styles.layerToggle}>
+              <Pressable
+                style={[
+                  styles.layerBtn,
+                  layer === "enclaves" && styles.layerBtnActive,
+                ]}
+                onPress={() => {
+                  setFoodCommunityFilter(null);
+                  setLayer("enclaves");
+                }}
+              >
+                <IconUsers
+                  size={15}
+                  color={layer === "enclaves" ? colors.white : colors.forest}
+                />
+                <Text
+                  style={[
+                    styles.layerBtnText,
+                    layer === "enclaves" && styles.layerBtnTextActive,
+                  ]}
+                >
+                  Communities
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.layerBtn,
+                  layer === "restaurants" && styles.layerBtnActive,
+                ]}
+                onPress={() => {
+                  setFoodCommunityFilter(null);
+                  setLayer("restaurants");
+                }}
+              >
+                <IconToolsKitchen2
+                  size={16}
+                  color={layer === "restaurants" ? colors.white : colors.forest}
+                />
+                <Text
+                  style={[
+                    styles.layerBtnText,
+                    layer === "restaurants" && styles.layerBtnTextActive,
+                  ]}
+                >
+                  Restaurants
+                </Text>
+              </Pressable>
+            </View>
+            <Pressable
               style={[
-                styles.layerBtnText,
-                layer === "enclaves" && styles.layerBtnTextActive,
+                styles.modeCircle,
+                mode === "list" && styles.modeCircleActive,
               ]}
+              onPress={() => {
+                setFocusedCommunityId(null);
+                setResultsOpen(false);
+                setMode((m) => (m === "list" ? "cards" : "list"));
+              }}
+              hitSlop={4}
+              accessibilityRole="button"
+              accessibilityLabel={mode === "list" ? "Show map" : "Show list"}
             >
-              Communities
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[
-              styles.layerBtn,
-              layer === "restaurants" && styles.layerBtnActive,
-            ]}
-            onPress={() => setLayer("restaurants")}
-          >
-            <IconToolsKitchen2
-              size={16}
-              color={layer === "restaurants" ? colors.white : colors.forest}
-            />
-            <Text
-              style={[
-                styles.layerBtnText,
-                layer === "restaurants" && styles.layerBtnTextActive,
-              ]}
+              {mode === "list" ? (
+                <IconMap size={18} color={colors.white} />
+              ) : (
+                <IconList size={18} color={colors.forest} />
+              )}
+            </Pressable>
+          </View>
+        ) : null}
+
+        {showFoodCommunityFilter && foodCommunityFilter ? (
+          <View style={styles.communityFilterRow}>
+            <Pressable
+              style={styles.communityFilterChip}
+              onPress={() => setFoodCommunityFilter(null)}
+              accessibilityRole="button"
+              accessibilityLabel={`Clear ${foodCommunityFilter.name} restaurant filter`}
             >
-              Restaurants
-            </Text>
-          </Pressable>
-        </View>
+              <Text style={styles.communityFilterText} numberOfLines={1}>
+                {foodCommunityFilter.name}
+              </Text>
+              <IconX size={14} color={colors.forest} />
+            </Pressable>
+          </View>
+        ) : null}
 
         {showCultureChips ? (
           <ScrollView
@@ -756,51 +1144,104 @@ export function MapScreen() {
         ) : null}
       </SafeAreaView>
 
-      <View style={[styles.zoomStack, zoomOffset]}>
-        <Pressable
-          style={styles.zoomBtn}
-          onPress={zoomIn}
-          hitSlop={6}
-          accessibilityRole="button"
-          accessibilityLabel="Zoom in"
-        >
-          <IconPlus size={18} color={colors.forest} />
-        </Pressable>
-        <View style={styles.zoomDivider} />
-        <Pressable
-          style={styles.zoomBtn}
-          onPress={zoomOut}
-          hitSlop={6}
-          accessibilityRole="button"
-          accessibilityLabel="Zoom out"
-        >
-          <IconMinus size={18} color={colors.forest} />
-        </Pressable>
-      </View>
+      {showMapControls ? (
+        <>
+          <View
+            style={[styles.sideControls, zoomOffset]}
+            pointerEvents="box-none"
+          >
+            <View style={styles.zoomStack}>
+              <Pressable
+                style={styles.zoomBtn}
+                onPress={zoomIn}
+                hitSlop={6}
+                accessibilityRole="button"
+                accessibilityLabel="Zoom in"
+              >
+                <IconPlus size={18} color={colors.forest} />
+              </Pressable>
+              <View style={styles.zoomDivider} />
+              <Pressable
+                style={styles.zoomBtn}
+                onPress={zoomOut}
+                hitSlop={6}
+                accessibilityRole="button"
+                accessibilityLabel="Zoom out"
+              >
+                <IconMinus size={18} color={colors.forest} />
+              </Pressable>
+            </View>
+          </View>
 
-      <Pressable
-        style={[styles.locateBtn, locateOffset]}
-        onPress={goToMyLocation}
-        hitSlop={8}
-        accessibilityRole="button"
-        accessibilityLabel="Go to my location"
-      >
-        {locating ? (
-          <ActivityIndicator size="small" color={colors.forest} />
-        ) : (
-          <IconLocate size={20} color={colors.forest} />
-        )}
-      </Pressable>
+          <Pressable
+            style={[styles.locateBtn, locateOffset]}
+            onPress={goToMyLocation}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Go to my location"
+          >
+            {locating ? (
+              <ActivityIndicator size="small" color={colors.forest} />
+            ) : (
+              <IconLocate size={20} color={colors.forest} />
+            )}
+          </Pressable>
+        </>
+      ) : null}
 
       {showCommunityDetail && focusedCommunityId ? (
         <CommunityDetailSheet
           communityId={focusedCommunityId}
           onClose={() => {
+            // Leave exploration open: drop the search filter so nearby
+            // communities aren't hidden behind the query that opened this sheet.
             setFocusedCommunityId(null);
             selectedIdRef.current = null;
+            setQuery("");
+            setResultsOpen(false);
+            setGlobalResults([]);
+            setSearchKind("all");
           }}
           onReadMore={openCommunity}
           onRestaurantPress={openRestaurant}
+          onExpandRestaurants={({
+            communityId,
+            communityName,
+            centroid,
+            restaurantCoords,
+          }) => {
+            setFocusedCommunityId(null);
+            selectedIdRef.current = null;
+            setQuery("");
+            setResultsOpen(false);
+            setGlobalResults([]);
+            setSearchKind("all");
+            setCulture("all");
+            setFoodCommunityFilter({ id: communityId, name: communityName });
+            setMode("cards");
+            setLayer("restaurants");
+            // Zoom into this enclave's restaurants (same frame as the mini-map).
+            suppressAutoLocationFit.current = true;
+            skipSearchFlyTo.current = true;
+            moveCamera(() => {
+              if (restaurantCoords.length > 0) {
+                mapRef.current?.fitToRestaurants(
+                  restaurantCoords.map((c, i) => ({
+                    id: `expand-${i}`,
+                    name: "",
+                    latitude: c.latitude,
+                    longitude: c.longitude,
+                  })),
+                );
+                return;
+              }
+              mapRef.current?.animateToCoordinate(
+                centroid.latitude,
+                centroid.longitude,
+                { latitudeDelta: 0.018, longitudeDelta: 0.018 },
+              );
+            });
+          }}
         />
       ) : null}
 
@@ -969,12 +1410,7 @@ export function MapScreen() {
       ) : null}
 
       {mode === "list" ? (
-        <View
-          style={[
-            styles.listSheet,
-            { paddingBottom: Math.max(insets.bottom, 16) },
-          ]}
-        >
+        <View style={styles.listSheet}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
             <View>
@@ -1011,82 +1447,84 @@ export function MapScreen() {
               />
             ))}
           </ScrollView>
-          {layer === "enclaves" ? (
-            <FlatList
-              data={filtered}
-              keyExtractor={(item) => item.id}
-              style={styles.listFlex}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.listContent}
-              ListEmptyComponent={
-                <Text style={styles.emptySub}>
-                  No communities match these filters.
-                </Text>
-              }
-              renderItem={({ item }) => (
-                <ListRow
-                  leading={
-                    <CircularFlag
-                      countryCode={getCommunityCountryCode(item.id)}
-                      flag={getCommunityFlag(item.id, item.emoji)}
-                      size={40}
-                    />
-                  }
-                  title={item.name}
-                  subtitle={`${item.neighborhood} · ${getAffinityLabels(item).join(" · ") || item.heritage}`}
-                  onPress={() => openCommunity(item.id)}
-                  rightElement={
-                    <FavoriteHeart
-                      type="community"
-                      targetId={item.id}
-                      size={18}
-                    />
-                  }
-                />
-              )}
-            />
-          ) : (
-            <FlatList
-              data={filteredFood}
-              keyExtractor={(item) => item.id}
-              style={styles.listFlex}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.listContent}
-              ListEmptyComponent={
-                <Text style={styles.emptySub}>
-                  {foodLoading
-                    ? "Loading restaurants…"
-                    : "No restaurants match these filters."}
-                </Text>
-              }
-              renderItem={({ item }) => (
-                <ListRow
-                  leading={
-                    <FavoriteThumb
-                      kind="restaurant"
-                      imageUrl={item.imageUrl}
-                      countryCode={primaryEthnicityCountryCode(
-                        item.ethnicities,
-                      )}
-                      flag={primaryEthnicityEmoji(item.ethnicities)}
-                    />
-                  }
-                  title={item.name}
-                  subtitle={[item.category, item.priceLevel]
-                    .filter(Boolean)
-                    .join(" · ")}
-                  onPress={() => openRestaurant(item.id)}
-                  rightElement={
-                    <FavoriteHeart
-                      type="restaurant"
-                      targetId={item.id}
-                      size={18}
-                    />
-                  }
-                />
-              )}
-            />
-          )}
+          <View style={styles.listBody}>
+            {layer === "enclaves" ? (
+              <FlatList
+                data={filtered}
+                keyExtractor={(item) => item.id}
+                style={styles.listFlex}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.listContent}
+                ListEmptyComponent={
+                  <Text style={styles.emptySub}>
+                    No communities match these filters.
+                  </Text>
+                }
+                renderItem={({ item }) => (
+                  <ListRow
+                    leading={
+                      <CircularFlag
+                        countryCode={getCommunityCountryCode(item.id)}
+                        flag={getCommunityFlag(item.id, item.emoji)}
+                        size={40}
+                      />
+                    }
+                    title={item.name}
+                    subtitle={`${item.neighborhood} · ${getAffinityLabels(item).join(" · ") || item.heritage}`}
+                    onPress={() => openCommunity(item.id)}
+                    rightElement={
+                      <FavoriteHeart
+                        type="community"
+                        targetId={item.id}
+                        size={18}
+                      />
+                    }
+                  />
+                )}
+              />
+            ) : (
+              <FlatList
+                data={filteredFood}
+                keyExtractor={(item) => item.id}
+                style={styles.listFlex}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.listContent}
+                ListEmptyComponent={
+                  <Text style={styles.emptySub}>
+                    {foodLoading
+                      ? "Loading restaurants…"
+                      : "No restaurants match these filters."}
+                  </Text>
+                }
+                renderItem={({ item }) => (
+                  <ListRow
+                    leading={
+                      <FavoriteThumb
+                        kind="restaurant"
+                        imageUrl={item.imageUrl}
+                        countryCode={primaryEthnicityCountryCode(
+                          item.ethnicities,
+                        )}
+                        flag={primaryEthnicityEmoji(item.ethnicities)}
+                      />
+                    }
+                    title={item.name}
+                    subtitle={[item.category, item.priceLevel]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    onPress={() => openRestaurant(item.id)}
+                    rightElement={
+                      <FavoriteHeart
+                        type="restaurant"
+                        targetId={item.id}
+                        size={18}
+                      />
+                    }
+                  />
+                )}
+              />
+            )}
+          </View>
         </View>
       ) : null}
     </View>
@@ -1109,6 +1547,10 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 20,
     elevation: 20,
+    backgroundColor: "rgba(248, 247, 244, 0.98)",
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
   searchRow: {
     flexDirection: "row",
@@ -1120,16 +1562,36 @@ const styles = StyleSheet.create({
   searchFlex: {
     flex: 1,
   },
-  layerToggle: {
+  layerRow: {
     flexDirection: "row",
+    alignItems: "center",
     marginHorizontal: 16,
     marginTop: 10,
+    gap: 8,
+  },
+  layerToggle: {
+    flex: 1,
+    flexDirection: "row",
     backgroundColor: "rgba(255,255,255,0.94)",
     borderRadius: radii.full,
     borderWidth: 1,
     borderColor: colors.border,
     padding: 3,
     gap: 2,
+  },
+  modeCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modeCircleActive: {
+    backgroundColor: colors.forest,
+    borderColor: colors.forest,
   },
   layerBtn: {
     flex: 1,
@@ -1151,6 +1613,31 @@ const styles = StyleSheet.create({
   layerBtnTextActive: {
     color: colors.white,
   },
+  communityFilterRow: {
+    marginTop: 10,
+    marginHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  communityFilterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    maxWidth: "100%",
+    backgroundColor: "rgba(255,255,255,0.96)",
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: colors.forest,
+    paddingVertical: 7,
+    paddingLeft: 12,
+    paddingRight: 10,
+  },
+  communityFilterText: {
+    flexShrink: 1,
+    fontFamily: typography.bodySemibold,
+    fontSize: 13,
+    color: colors.forest,
+  },
   topFiltersScroll: {
     marginTop: 10,
   },
@@ -1160,24 +1647,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingBottom: 4,
   },
-  modeBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.white,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  modeBtnActive: {
-    backgroundColor: colors.forest,
-    borderColor: colors.forest,
+  searchPanelWrap: {
+    marginTop: 10,
+    marginHorizontal: 16,
   },
   locateBtn: {
     position: "absolute",
@@ -1197,11 +1669,15 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
   },
-  zoomStack: {
+  sideControls: {
     position: "absolute",
     right: 16,
     zIndex: 25,
     elevation: 25,
+    alignItems: "center",
+    gap: 10,
+  },
+  zoomStack: {
     width: 40,
     borderRadius: 12,
     backgroundColor: colors.white,
@@ -1332,6 +1808,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: -4 },
+    overflow: "hidden",
+  },
+  listBody: {
+    flex: 1,
+    minHeight: 0,
   },
   sheetHandle: {
     alignSelf: "center",
@@ -1374,7 +1855,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   listContent: {
-    paddingBottom: 16,
+    paddingBottom: 32,
+    flexGrow: 1,
   },
   listFlex: {
     flex: 1,

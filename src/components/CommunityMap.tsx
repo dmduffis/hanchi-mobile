@@ -272,6 +272,30 @@ export const CommunityMap = forwardRef<CommunityMapHandle, CommunityMapProps>(
   ) {
     const mapRef = useRef<MapView>(null);
     const [region, setRegion] = useState<MapRegion>(initialRegion);
+    /** Always the latest camera — zoom must not use a stale React state center. */
+    const regionRef = useRef<MapRegion>(initialRegion);
+    const appliedInitialKey = useRef(
+      `${initialRegion.latitude.toFixed(4)},${initialRegion.longitude.toFixed(4)},${initialRegion.latitudeDelta.toFixed(3)}`,
+    );
+
+    // Non-interactive peeks (home) resolve GPS after first paint. initialRegion
+    // alone only applies on mount — sync the camera when the parent updates it.
+    // Interactive MapScreen owns the camera via fit/animate APIs instead.
+    useEffect(() => {
+      if (interactive) return;
+      const key = `${initialRegion.latitude.toFixed(4)},${initialRegion.longitude.toFixed(4)},${initialRegion.latitudeDelta.toFixed(3)}`;
+      if (appliedInitialKey.current === key) return;
+      appliedInitialKey.current = key;
+      regionRef.current = initialRegion;
+      setRegion(initialRegion);
+      mapRef.current?.animateToRegion(initialRegion, 0);
+    }, [
+      interactive,
+      initialRegion.latitude,
+      initialRegion.longitude,
+      initialRegion.latitudeDelta,
+      initialRegion.longitudeDelta,
+    ]);
 
     useImperativeHandle(ref, () => ({
       fitToCommunities: (list: Community[]) => {
@@ -306,23 +330,26 @@ export const CommunityMap = forwardRef<CommunityMapHandle, CommunityMapProps>(
       },
       animateToCoordinate: (latitude, longitude, deltas) => {
         if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
-        mapRef.current?.animateToRegion(
-          {
-            latitude,
-            longitude,
-            latitudeDelta: deltas?.latitudeDelta ?? 0.05,
-            longitudeDelta: deltas?.longitudeDelta ?? 0.05,
-          },
-          450,
-        );
+        const next: MapRegion = {
+          latitude,
+          longitude,
+          latitudeDelta: deltas?.latitudeDelta ?? 0.05,
+          longitudeDelta: deltas?.longitudeDelta ?? 0.05,
+        };
+        regionRef.current = next;
+        setRegion(next);
+        mapRef.current?.animateToRegion(next, 450);
       },
       zoomBy: (factor) => {
         if (!Number.isFinite(factor) || factor <= 0) return;
+        const current = regionRef.current;
         const next: MapRegion = {
-          ...region,
-          latitudeDelta: clampZoomDelta(region.latitudeDelta * factor),
-          longitudeDelta: clampZoomDelta(region.longitudeDelta * factor),
+          latitude: current.latitude,
+          longitude: current.longitude,
+          latitudeDelta: clampZoomDelta(current.latitudeDelta * factor),
+          longitudeDelta: clampZoomDelta(current.longitudeDelta * factor),
         };
+        regionRef.current = next;
         setRegion(next);
         mapRef.current?.animateToRegion(next, 220);
         onRegionChangeComplete?.(next);
@@ -357,7 +384,13 @@ export const CommunityMap = forwardRef<CommunityMapHandle, CommunityMapProps>(
       return buildRestaurantMapItems(withSelected, region, selectedId);
     }, [restaurants, selectedId, region]);
 
+    const handleRegionChange = (next: MapRegion) => {
+      // Keep zoom center in sync while the user pans (before complete).
+      regionRef.current = next;
+    };
+
     const handleRegionChangeComplete = (next: MapRegion) => {
+      regionRef.current = next;
       setRegion(next);
       onRegionChangeComplete?.(next);
     };
@@ -391,6 +424,7 @@ export const CommunityMap = forwardRef<CommunityMapHandle, CommunityMapProps>(
         style={[styles.map, style]}
         provider={PROVIDER_DEFAULT}
         initialRegion={initialRegion}
+        onRegionChange={handleRegionChange}
         onRegionChangeComplete={handleRegionChangeComplete}
         scrollEnabled={interactive}
         zoomEnabled={interactive}
