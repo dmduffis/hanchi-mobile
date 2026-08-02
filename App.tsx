@@ -13,14 +13,15 @@ import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { useOnboardingGate } from "./src/lib/onboardingStorage";
+import { AuthProvider, useAuth } from "./src/auth/AuthContext";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { colors } from "./src/theme";
 
 SplashScreen.preventAutoHideAsync();
 
-export default function App() {
-  const { ready, hasOnboarded, completeOnboarding } = useOnboardingGate();
+function AppNavigation() {
+  const { ready, profileReady, session, needsOnboarding, completeOnboarding } =
+    useAuth();
   const [fontsLoaded, fontError] = useFonts({
     Poppins_400Regular,
     Poppins_500Medium,
@@ -28,7 +29,8 @@ export default function App() {
     Poppins_700Bold,
   });
 
-  const appReady = (fontsLoaded || !!fontError) && ready;
+  const appReady =
+    (fontsLoaded || !!fontError) && ready && (!session || profileReady);
 
   useEffect(() => {
     if (appReady) {
@@ -53,12 +55,21 @@ export default function App() {
           <View style={{ flex: 1, backgroundColor: colors.background }}>
             <StatusBar style="dark" />
             <RootNavigator
-              hasOnboarded={hasOnboarded}
+              isAuthenticated={!!session}
+              needsOnboarding={needsOnboarding}
               onOnboarded={completeOnboarding}
             />
           </View>
         </NavigationContainer>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppNavigation />
+    </AuthProvider>
   );
 }

@@ -1,3 +1,5 @@
+import { supabase } from "../lib/supabase";
+
 const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 
 export class ApiError extends Error {
@@ -26,14 +28,16 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const base = getApiBaseUrl();
   const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
-  const userId = process.env.EXPO_PUBLIC_USER_ID?.trim();
+
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
 
   const response = await fetch(url, {
     ...init,
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      ...(userId ? { "x-user-id": userId } : {}),
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...(init?.headers ?? {}),
     },
   });

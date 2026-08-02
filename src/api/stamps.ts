@@ -1,4 +1,5 @@
 import { apiFetch } from "./client";
+import { supabase } from "../lib/supabase";
 
 export type ApiStamp = {
   id: string;
@@ -25,40 +26,43 @@ export type StampToggleResult = {
   community?: ApiStamp["community"];
 };
 
-export function getUserId(): string {
-  return process.env.EXPO_PUBLIC_USER_ID?.trim() || "seed-user-1";
+export async function getUserId(): Promise<string> {
+  const { data } = await supabase.auth.getSession();
+  const id = data.session?.user?.id;
+  if (!id) {
+    throw new Error("Not signed in");
+  }
+  return id;
 }
 
-export function fetchUserStamps(userId = getUserId()): Promise<ApiStamp[]> {
-  return apiFetch<ApiStamp[]>(`/users/${userId}/stamps`);
+export async function fetchUserStamps(
+  userId?: string,
+): Promise<ApiStamp[]> {
+  const id = userId ?? (await getUserId());
+  return apiFetch<ApiStamp[]>(`/users/${id}/stamps`);
 }
 
-export function createStamp(
-  communityId: string,
-  userId = getUserId(),
-): Promise<ApiStamp> {
+export async function createStamp(communityId: string): Promise<ApiStamp> {
   return apiFetch<ApiStamp>("/stamps", {
     method: "POST",
-    body: JSON.stringify({ communityId, userId }),
+    body: JSON.stringify({ communityId }),
   });
 }
 
-export function deleteStamp(
+export async function deleteStamp(
   communityId: string,
-  userId = getUserId(),
 ): Promise<{ stamped: false; communityId: string }> {
   return apiFetch("/stamps", {
     method: "DELETE",
-    body: JSON.stringify({ communityId, userId }),
+    body: JSON.stringify({ communityId }),
   });
 }
 
-export function toggleStamp(
+export async function toggleStamp(
   communityId: string,
-  userId = getUserId(),
 ): Promise<StampToggleResult> {
   return apiFetch<StampToggleResult>("/stamps/toggle", {
     method: "POST",
-    body: JSON.stringify({ communityId, userId }),
+    body: JSON.stringify({ communityId }),
   });
 }

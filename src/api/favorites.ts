@@ -20,10 +20,11 @@ export type ApiFavorite = {
   favorited?: boolean;
 };
 
-export function fetchUserFavorites(
-  userId = getUserId(),
+export async function fetchUserFavorites(
+  userId?: string,
 ): Promise<ApiFavorite[]> {
-  return apiFetch<ApiFavorite[]>(`/users/${userId}/favorites`);
+  const id = userId ?? (await getUserId());
+  return apiFetch<ApiFavorite[]>(`/users/${id}/favorites`);
 }
 
 export function toggleFavorite(

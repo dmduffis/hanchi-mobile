@@ -35,6 +35,7 @@ export type MainTabParamList = {
 };
 
 export type RootStackParamList = {
+  Auth: undefined;
   Onboarding: undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   CommunityProfile: { communityId: string; initialTab?: CommunityProfileTab };

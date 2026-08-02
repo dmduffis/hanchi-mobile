@@ -47,7 +47,8 @@
         {
           "locationWhenInUsePermission": "Allow Hanchi to use your location to center the map on you."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "reactCompiler": true
