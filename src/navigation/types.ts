@@ -4,7 +4,14 @@ import type { CommunityProfileTab } from "../types";
 
 export type MainTabParamList = {
   Home: undefined;
-  Map: undefined;
+  Map:
+    | {
+        focusCommunityId?: string;
+        query?: string;
+        showResults?: boolean;
+        focusSearch?: boolean;
+      }
+    | undefined;
   Favorites: undefined;
   Passport: undefined;
   Profile: undefined;

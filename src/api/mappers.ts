@@ -21,8 +21,9 @@ export function mapApiCommunity(c: ApiCommunity): Community {
     pullQuoteAuthor: "",
     emoji: c.heroEmoji ?? "📍",
     imageUrl: c.imageUrl ?? null,
-    latitude: c.latitude ?? 40.72,
-    longitude: c.longitude ?? -73.95,
+    // Never invent NYC coords — missing geo must not pin elsewhere.
+    latitude: c.latitude ?? Number.NaN,
+    longitude: c.longitude ?? Number.NaN,
     distanceMiles,
     relatedIds: [],
   };

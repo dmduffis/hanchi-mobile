@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 
 import { fetchUserStamps, toggleStamp } from "../api/stamps";
 import { colors } from "../theme";
@@ -24,27 +24,22 @@ export function PassportStampButton({
   onStampedChange,
 }: PassportStampButtonProps) {
   const [stamped, setStamped] = useState(initialStamped ?? false);
-  const [loading, setLoading] = useState(initialStamped === undefined);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (initialStamped !== undefined) {
       setStamped(initialStamped);
-      setLoading(false);
       return;
     }
 
     let cancelled = false;
     (async () => {
-      setLoading(true);
       try {
         const list = await fetchUserStamps();
         if (cancelled) return;
         setStamped(list.some((s) => s.communityId === communityId));
       } catch {
         if (!cancelled) setStamped(false);
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     })();
     return () => {
@@ -71,14 +66,6 @@ export function PassportStampButton({
   }, [busy, stamped, communityId, onStampedChange]);
 
   const btnStyle = compact ? styles.btnCompact : styles.btn;
-
-  if (loading) {
-    return (
-      <Pressable style={btnStyle} disabled>
-        <ActivityIndicator size="small" color={colors.forest} />
-      </Pressable>
-    );
-  }
 
   return (
     <Pressable

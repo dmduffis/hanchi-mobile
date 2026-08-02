@@ -11,12 +11,12 @@ import {
   Text,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { fetchCommunity, type ApiCommunityDetail } from "../api/communities";
+import { pointToLatLng, type LatLng } from "../api/geo";
 import { mapApiCommunity } from "../api/mappers";
 import type { ApiPoi } from "../api/search";
-import { IconChevronRight, IconX } from "../icons";
+import { IconArrowsMaximize, IconChevronRight, IconX } from "../icons";
 import { colors, radii, typography } from "../theme";
 import { Badge } from "./Badge";
 import { Chip } from "./Chip";
@@ -42,6 +42,13 @@ type CommunityDetailSheetProps = {
   onClose: () => void;
   onReadMore: (communityId: string) => void;
   onRestaurantPress: (restaurantId: string) => void;
+  /** Expand mini-map → zoom main map into this community's restaurants. */
+  onExpandRestaurants?: (payload: {
+    communityId: string;
+    communityName: string;
+    centroid: LatLng;
+    restaurantCoords: LatLng[];
+  }) => void;
 };
 
 function truncateDescription(text: string): {
@@ -133,8 +140,8 @@ export function CommunityDetailSheet({
   onClose,
   onReadMore,
   onRestaurantPress,
+  onExpandRestaurants,
 }: CommunityDetailSheetProps) {
-  const insets = useSafeAreaInsets();
   const [detail, setDetail] = useState<ApiCommunityDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -153,39 +160,42 @@ export function CommunityDetailSheet({
     });
   }, [translateY]);
 
-  const sheetPan = useRef(
+  const finishPan = useCallback(
+    (dy: number, vy: number) => {
+      if (dy > DISMISS_DISTANCE || vy > DISMISS_VELOCITY) {
+        Animated.timing(translateY, {
+          toValue: SCREEN_HEIGHT,
+          duration: 180,
+          useNativeDriver: true,
+        }).start(({ finished }) => {
+          if (finished) onCloseRef.current();
+        });
+        return;
+      }
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        bounciness: 4,
+      }).start();
+    },
+    [translateY],
+  );
+
+  // Grabber: always claims the gesture so swipe-down close is reliable.
+  const grabberPan = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) =>
-        g.dy > 8 && Math.abs(g.dy) > Math.abs(g.dx),
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
       onPanResponderMove: (_, g) => {
         if (g.dy > 0) translateY.setValue(g.dy);
       },
-      onPanResponderRelease: (_, g) => {
-        if (g.dy > DISMISS_DISTANCE || g.vy > DISMISS_VELOCITY) {
-          Animated.timing(translateY, {
-            toValue: SCREEN_HEIGHT,
-            duration: 180,
-            useNativeDriver: true,
-          }).start(({ finished }) => {
-            if (finished) onCloseRef.current();
-          });
-          return;
-        }
-        Animated.spring(translateY, {
-          toValue: 0,
-          useNativeDriver: true,
-          bounciness: 4,
-        }).start();
-      },
-      onPanResponderTerminate: () => {
-        Animated.spring(translateY, {
-          toValue: 0,
-          useNativeDriver: true,
-          bounciness: 4,
-        }).start();
-      },
+      onPanResponderRelease: (_, g) => finishPan(g.dy, g.vy),
+      onPanResponderTerminate: () => finishPan(0, 0),
     }),
   ).current;
+
+  // Do NOT use capture here — it steals the list's downward scroll and
+  // makes the restaurant list look clipped. Dismiss via the grabber instead.
 
   useEffect(() => {
     translateY.setValue(0);
@@ -253,56 +263,40 @@ export function CommunityDetailSheet({
   }, [community]);
 
   return (
-    <Animated.View
-      style={[
-        styles.sheet,
-        {
-          paddingBottom: Math.max(insets.bottom, 12),
-          transform: [{ translateY }],
-        },
-      ]}
-    >
-      <View {...sheetPan.panHandlers} style={styles.dragZone}>
+    <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
+      <View {...grabberPan.panHandlers} style={styles.grabberHit}>
         <View style={styles.grabber} />
-        <View style={styles.header}>
-          <View style={styles.headerText}>
-            {community ? (
-              <>
-                <Text style={styles.title} numberOfLines={2}>
-                  {community.name}
-                </Text>
-                <Text style={styles.neighborhood} numberOfLines={1}>
-                  {community.neighborhood}
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.title}>Community</Text>
-            )}
-          </View>
+      </View>
+      <View style={styles.header}>
+        <View style={styles.headerText}>
           {community ? (
-            <View style={styles.headerActions}>
-              <FavoriteHeart
-                type="community"
-                targetId={community.id}
-                size={20}
-              />
-              <PassportStampButton
-                communityId={community.id}
-                size={20}
-                compact
-              />
-            </View>
-          ) : null}
-          <Pressable
-            style={styles.closeBtn}
-            onPress={dismiss}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Close community details"
-          >
-            <IconX size={18} color={colors.ink} />
-          </Pressable>
+            <>
+              <Text style={styles.title} numberOfLines={2}>
+                {community.name}
+              </Text>
+              <Text style={styles.neighborhood} numberOfLines={1}>
+                {community.neighborhood}
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.title}>Community</Text>
+          )}
         </View>
+        {community ? (
+          <View style={styles.headerActions}>
+            <FavoriteHeart type="community" targetId={community.id} size={20} />
+            <PassportStampButton communityId={community.id} size={20} compact />
+          </View>
+        ) : null}
+        <Pressable
+          style={styles.closeBtn}
+          onPress={dismiss}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Close community details"
+        >
+          <IconX size={18} color={colors.ink} />
+        </Pressable>
       </View>
 
       {loading ? (
@@ -317,102 +311,129 @@ export function CommunityDetailSheet({
           </Pressable>
         </View>
       ) : (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          {community.tags.length > 0 ? (
-            <View style={styles.tags}>
-              {community.tags.slice(0, 4).map((tag) => (
-                <Badge key={tag} label={tag} />
-              ))}
-            </View>
-          ) : null}
+        <View style={styles.body}>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            bounces
+            nestedScrollEnabled
+          >
+            {community.tags.length > 0 ? (
+              <View style={styles.tags}>
+                {community.tags.slice(0, 4).map((tag) => (
+                  <Badge key={tag} label={tag} />
+                ))}
+              </View>
+            ) : null}
 
-          {short ? (
-            <View style={styles.aboutBlock}>
-              <Text style={styles.body}>{short}</Text>
+            {short ? (
+              <View style={styles.aboutBlock}>
+                <Text style={styles.bodyText}>{short}</Text>
+                <Pressable
+                  onPress={() => onReadMore(community.id)}
+                  hitSlop={6}
+                  style={styles.readMoreBtn}
+                >
+                  <Text style={styles.readMore}>
+                    {truncated ? "Read more" : "View full profile"}
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
               <Pressable
                 onPress={() => onReadMore(community.id)}
                 hitSlop={6}
                 style={styles.readMoreBtn}
               >
-                <Text style={styles.readMore}>
-                  {truncated ? "Read more" : "View full profile"}
-                </Text>
+                <Text style={styles.readMore}>View full profile</Text>
               </Pressable>
+            )}
+
+            <View style={styles.mapWrap}>
+              <EnclaveDetailMap
+                key={community.id}
+                centroid={mapCentroid}
+                pois={visiblePois}
+                onPoiPress={onRestaurantPress}
+                height={160}
+              />
+              {onExpandRestaurants && mapCentroid ? (
+                <Pressable
+                  style={styles.expandBtn}
+                  onPress={() => {
+                    const restaurantCoords = visiblePois
+                      .map((p) => pointToLatLng(p.location))
+                      .filter((c): c is LatLng => c != null);
+                    onExpandRestaurants({
+                      communityId: community.id,
+                      communityName: community.name,
+                      centroid: mapCentroid,
+                      restaurantCoords,
+                    });
+                  }}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Show restaurants on map"
+                >
+                  <IconArrowsMaximize size={16} color={colors.forest} />
+                </Pressable>
+              ) : null}
             </View>
-          ) : (
-            <Pressable
-              onPress={() => onReadMore(community.id)}
-              hitSlop={6}
-              style={styles.readMoreBtn}
-            >
-              <Text style={styles.readMore}>View full profile</Text>
-            </Pressable>
-          )}
 
-          <EnclaveDetailMap
-            key={community.id}
-            centroid={mapCentroid}
-            pois={visiblePois}
-            onPoiPress={onRestaurantPress}
-            height={160}
-            style={styles.map}
-          />
+            <Text style={styles.sectionTitle}>
+              {pois.length > 0
+                ? `${visiblePois.length}${
+                    ethnicityFilter ? ` of ${pois.length}` : ""
+                  } restaurant${visiblePois.length === 1 ? "" : "s"}`
+                : "Restaurants"}
+            </Text>
 
-          <Text style={styles.sectionTitle}>
-            {pois.length > 0
-              ? `${visiblePois.length}${
-                  ethnicityFilter ? ` of ${pois.length}` : ""
-                } restaurant${visiblePois.length === 1 ? "" : "s"}`
-              : "Restaurants"}
-          </Text>
-
-          {ethnicityOptions.length > 0 ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipRow}
-              keyboardShouldPersistTaps="handled"
-            >
-              <Chip
-                label="All"
-                selected={ethnicityFilter === null}
-                onPress={() => setEthnicityFilter(null)}
-              />
-              {ethnicityOptions.map((id) => (
+            {ethnicityOptions.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipRow}
+                keyboardShouldPersistTaps="handled"
+              >
                 <Chip
-                  key={id}
-                  label={ethnicityLabel(id)}
-                  selected={ethnicityFilter === id}
-                  onPress={() =>
-                    setEthnicityFilter(id === ethnicityFilter ? null : id)
-                  }
+                  label="All"
+                  selected={ethnicityFilter === null}
+                  onPress={() => setEthnicityFilter(null)}
                 />
-              ))}
-            </ScrollView>
-          ) : null}
+                {ethnicityOptions.map((id) => (
+                  <Chip
+                    key={id}
+                    label={ethnicityLabel(id)}
+                    selected={ethnicityFilter === id}
+                    onPress={() =>
+                      setEthnicityFilter(id === ethnicityFilter ? null : id)
+                    }
+                  />
+                ))}
+              </ScrollView>
+            ) : null}
 
-          {pois.length === 0 ? (
-            <Text style={styles.emptyRestaurants}>
-              No restaurants listed for this community yet.
-            </Text>
-          ) : visiblePois.length === 0 ? (
-            <Text style={styles.emptyRestaurants}>
-              No restaurants match this filter.
-            </Text>
-          ) : (
-            visiblePois.map((poi) => (
-              <RestaurantCard
-                key={poi.id}
-                poi={poi}
-                onPress={() => onRestaurantPress(poi.id)}
-              />
-            ))
-          )}
-        </ScrollView>
+            {pois.length === 0 ? (
+              <Text style={styles.emptyRestaurants}>
+                No restaurants listed for this community yet.
+              </Text>
+            ) : visiblePois.length === 0 ? (
+              <Text style={styles.emptyRestaurants}>
+                No restaurants match this filter.
+              </Text>
+            ) : (
+              visiblePois.map((poi) => (
+                <RestaurantCard
+                  key={poi.id}
+                  poi={poi}
+                  onPress={() => onRestaurantPress(poi.id)}
+                />
+              ))
+            )}
+          </ScrollView>
+        </View>
       )}
     </Animated.View>
   );
@@ -423,31 +444,33 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
+    top: "30%",
     bottom: 0,
-    top: "38%",
     zIndex: 30,
     elevation: 30,
     backgroundColor: colors.white,
     borderTopLeftRadius: radii.lg,
     borderTopRightRadius: radii.lg,
-    paddingTop: 10,
+    paddingTop: 4,
     borderTopWidth: 1,
     borderColor: colors.border,
     shadowColor: "#000",
     shadowOpacity: 0.18,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: -4 },
+    overflow: "hidden",
   },
-  dragZone: {
-    paddingBottom: 4,
+  grabberHit: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    marginBottom: 2,
   },
   grabber: {
-    alignSelf: "center",
     width: 40,
     height: 4,
     borderRadius: 2,
     backgroundColor: colors.border,
-    marginBottom: 10,
   },
   header: {
     flexDirection: "row",
@@ -499,9 +522,16 @@ const styles = StyleSheet.create({
   retryLink: {
     paddingVertical: 4,
   },
+  body: {
+    flex: 1,
+    minHeight: 0,
+  },
+  scroll: {
+    flex: 1,
+  },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingBottom: 40,
   },
   tags: {
     flexDirection: "row",
@@ -512,7 +542,7 @@ const styles = StyleSheet.create({
   aboutBlock: {
     marginBottom: 16,
   },
-  body: {
+  bodyText: {
     fontFamily: typography.body,
     fontSize: 15,
     color: colors.ink,
@@ -527,8 +557,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.forest,
   },
-  map: {
+  mapWrap: {
     marginBottom: 18,
+  },
+  expandBtn: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 34,
+    height: 34,
+    borderRadius: radii.full,
+    backgroundColor: colors.white,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 3,
   },
   sectionTitle: {
     fontFamily: typography.display,

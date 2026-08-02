@@ -16,5 +16,6 @@ export { PhotoPlaceholder } from "./PhotoPlaceholder";
 export { PrimaryButton } from "./PrimaryButton";
 export { PromoBanner } from "./PromoBanner";
 export { SearchBar } from "./SearchBar";
+export { SearchResultsPanel } from "./SearchResultsPanel";
 export { Stamp } from "./Stamp";
 

@@ -28,6 +28,7 @@ import {
   CircularFlag,
   ListRow,
   SearchBar,
+  SearchResultsPanel,
   EthnicityFlags,
 } from "../components";
 import { CommunityMap, NYC_REGION } from "../components/CommunityMap";
@@ -36,6 +37,11 @@ import {
   getCommunityFlag,
 } from "../data/communityFlags";
 import { IconArrowsMaximize, IconBell } from "../icons";
+import {
+  mapSearchResults,
+  type SearchKindFilter,
+  type SearchResult,
+} from "../lib/searchResults";
 import { resolveMapRegion } from "../lib/userLocation";
 import type { MainTabParamList, RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
@@ -57,16 +63,6 @@ type HomeNavigation = CompositeNavigationProp<
   NativeStackNavigationProp<RootStackParamList>
 >;
 
-type SearchResult = {
-  id: string;
-  title: string;
-  subtitle: string;
-  thumbnail: string;
-  communityId: string;
-  restaurantId?: string;
-  kind: "community" | "restaurant" | "dish";
-};
-
 function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -78,9 +74,10 @@ export function HomeScreen() {
   const navigation = useNavigation<HomeNavigation>();
   const { communities, loading, error } = useCommunities();
   const [query, setQuery] = useState("");
-  const [dishes, setDishes] = useState<ApiDish[]>([]);
+  const [searchKind, setSearchKind] = useState<SearchKindFilter>("all");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [dishes, setDishes] = useState<ApiDish[]>([]);
   const [peekRegion, setPeekRegion] = useState(NYC_REGION);
   const [nearby, setNearby] = useState<Community[]>([]);
   const [nearbyRaw, setNearbyRaw] = useState<ApiCommunity[]>([]);
@@ -133,6 +130,58 @@ export function HomeScreen() {
   );
 
   const isSearching = query.trim().length > 0;
+
+  useEffect(() => {
+    if (!query.trim()) setSearchKind("all");
+  }, [query]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const q = query.trim();
+    if (!q) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    const handle = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const data = await searchAll(q);
+        if (!cancelled) setSearchResults(mapSearchResults(data));
+      } catch {
+        if (!cancelled) setSearchResults([]);
+      } finally {
+        if (!cancelled) setSearchLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [query]);
+
+  const handleSearchResultPress = (item: SearchResult) => {
+    Keyboard.dismiss();
+    if (
+      (item.kind === "restaurant" || item.kind === "dish") &&
+      item.restaurantId
+    ) {
+      navigation.navigate("RestaurantDetail", {
+        restaurantId: item.restaurantId,
+      });
+      return;
+    }
+    if (!item.communityId) return;
+    // Keep Home query; open Map on that enclave with the same search ready.
+    navigation.navigate("Map", {
+      focusCommunityId: item.communityId,
+      query: query.trim() || item.title,
+      showResults: false,
+    });
+  };
+
   const poiCountById = useMemo(() => {
     const map = new Map<string, number>();
     nearbyRaw.forEach((c) => map.set(c.id, c.poiCount ?? 0));
@@ -161,7 +210,6 @@ export function HomeScreen() {
           ids.map((id) => fetchCommunityDishes(id).catch(() => [])),
         );
         if (!cancelled) {
-          // Prefer variety across communities.
           const seen = new Set<string>();
           const picked: ApiDish[] = [];
           for (const dish of batches.flat()) {
@@ -185,65 +233,6 @@ export function HomeScreen() {
       cancelled = true;
     };
   }, [nearbyIds]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const q = query.trim();
-    if (!q) {
-      setSearchResults([]);
-      setSearchLoading(false);
-      return;
-    }
-
-    const handle = setTimeout(async () => {
-      setSearchLoading(true);
-      try {
-        const data = await searchAll(q);
-        if (cancelled) return;
-        const poiCommunity = new Map(
-          data.pois.map((p) => [p.id, p.communityId]),
-        );
-        const fallback = data.communities[0]?.id ?? "";
-        setSearchResults([
-          ...data.communities.map((c) => ({
-            id: `c-${c.id}`,
-            title: c.name,
-            subtitle: `${c.neighborhood} · ${c.city}`,
-            thumbnail: c.heroEmoji ?? "📍",
-            communityId: c.id,
-            kind: "community" as const,
-          })),
-          ...data.pois.map((p) => ({
-            id: `r-${p.id}`,
-            title: p.name,
-            subtitle: `${p.category} · Place`,
-            thumbnail: "🍽️",
-            communityId: p.communityId,
-            restaurantId: p.id,
-            kind: "restaurant" as const,
-          })),
-          ...data.dishes.map((d) => ({
-            id: `d-${d.id}`,
-            title: d.name,
-            subtitle: d.poiName ? `${d.poiName} · Dish` : "Dish",
-            thumbnail: "🥢",
-            communityId: poiCommunity.get(d.poiId) ?? fallback,
-            restaurantId: d.poiId,
-            kind: "dish" as const,
-          })),
-        ]);
-      } catch {
-        if (!cancelled) setSearchResults([]);
-      } finally {
-        if (!cancelled) setSearchLoading(false);
-      }
-    }, 250);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(handle);
-    };
-  }, [query]);
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -289,50 +278,30 @@ export function HomeScreen() {
         ) : error ? (
           <Text style={styles.emptySearch}>{error}</Text>
         ) : isSearching ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              {searchLoading
-                ? "Searching…"
-                : searchResults.length === 0
-                  ? "No matches"
-                  : `${searchResults.length} result${searchResults.length === 1 ? "" : "s"}`}
-            </Text>
-            {searchResults.length === 0 && !searchLoading ? (
-              <Text style={styles.emptySearch}>
-                Try an enclave, restaurant, or dish name.
-              </Text>
-            ) : (
-              searchResults.map((item) => (
-                <ListRow
-                  key={item.id}
-                  thumbnail={item.thumbnail}
-                  title={item.title}
-                  subtitle={item.subtitle}
-                  onPress={() => {
-                    Keyboard.dismiss();
-                    if (
-                      (item.kind === "restaurant" || item.kind === "dish") &&
-                      item.restaurantId
-                    ) {
-                      navigation.navigate("RestaurantDetail", {
-                        restaurantId: item.restaurantId,
-                      });
-                      return;
-                    }
-                    if (!item.communityId) return;
-                    navigation.navigate("CommunityProfile", {
-                      communityId: item.communityId,
-                    });
-                  }}
-                />
-              ))
-            )}
+          <View style={styles.searchSection}>
+            <SearchResultsPanel
+              results={searchResults}
+              loading={searchLoading}
+              searchKind={searchKind}
+              onChangeKind={setSearchKind}
+              onPressResult={handleSearchResultPress}
+            />
           </View>
         ) : (
           <>
             <View style={styles.mapPeek}>
               <CommunityMap
-                communities={communities}
+                communities={
+                  nearby.length > 0
+                    ? nearby
+                    : communities.filter(
+                        (c) =>
+                          Number.isFinite(c.latitude) &&
+                          Number.isFinite(c.longitude) &&
+                          Math.abs(c.latitude - peekRegion.latitude) < 0.6 &&
+                          Math.abs(c.longitude - peekRegion.longitude) < 0.6,
+                      )
+                }
                 interactive={false}
                 initialRegion={peekRegion}
               />
@@ -374,7 +343,6 @@ export function HomeScreen() {
                           <Image
                             source={{ uri: dish.imageUrl }}
                             style={styles.dishPhoto}
-                            resizeMode="cover"
                           />
                         ) : (
                           <Text style={styles.dishEmoji}>🥢</Text>
@@ -382,7 +350,7 @@ export function HomeScreen() {
                         {dish.ethnicities?.length ? (
                           <View style={styles.dishFlagBadge}>
                             <EthnicityFlags
-                              ethnicities={dish.ethnicities.slice(0, 1)}
+                              ethnicities={dish.ethnicities}
                               size={22}
                             />
                           </View>
@@ -392,13 +360,8 @@ export function HomeScreen() {
                         {dish.name}
                       </Text>
                       <Text style={styles.dishCommunity} numberOfLines={1}>
-                        {dish.poiName ?? "Local spot"}
+                        {dish.poiName ?? "Nearby"}
                       </Text>
-                      {dish.priceRange ? (
-                        <Text style={styles.dishPrice} numberOfLines={1}>
-                          {dish.priceRange}
-                        </Text>
-                      ) : null}
                     </Pressable>
                   ))}
                 </ScrollView>
@@ -411,17 +374,16 @@ export function HomeScreen() {
                 <ActivityIndicator color={colors.forest} />
               ) : nearby.length === 0 ? (
                 <Text style={styles.emptySearch}>
-                  No communities with restaurants near you yet. Open the map to
-                  explore.
+                  No communities near you yet.
                 </Text>
               ) : (
                 nearby.map((c) => (
                   <ListRow
                     key={c.id}
-                    leading={
+                    thumbnail={
                       <CircularFlag
                         countryCode={getCommunityCountryCode(c.id)}
-                        flag={getCommunityFlag(c.id, c.emoji)}
+                        emoji={getCommunityFlag(c.id, c.emoji)}
                         size={40}
                       />
                     }
@@ -495,6 +457,9 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodySemibold,
     color: colors.white,
     fontSize: 14,
+  },
+  searchSection: {
+    marginTop: 16,
   },
   mapPeek: {
     height: 200,
@@ -586,12 +551,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 12,
     color: colors.gray,
-    marginTop: 4,
-  },
-  dishPrice: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 12,
-    color: colors.forest,
-    marginTop: 4,
+    marginTop: 2,
   },
 });

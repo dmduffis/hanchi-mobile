@@ -43,7 +43,15 @@ export function useCommunities(): State {
     };
   }, [tick]);
 
-  const communities = useMemo(() => raw.map(mapApiCommunity), [raw]);
+  const communities = useMemo(
+    () =>
+      raw
+        .map(mapApiCommunity)
+        .filter(
+          (c) => Number.isFinite(c.latitude) && Number.isFinite(c.longitude),
+        ),
+    [raw],
+  );
 
   return {
     communities,
