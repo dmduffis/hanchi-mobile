@@ -983,8 +983,9 @@ export function MapScreen() {
       ? `${inView.length} in view`
       : `${inView.length} in view · ${layer === "enclaves" ? filtered.length : filteredFood.length} match${(layer === "enclaves" ? filtered.length : filteredFood.length) === 1 ? "" : "es"}`;
 
-  const showSearchPanel =
-    resultsOpen && query.trim().length > 0 && mode === "cards";
+  // Same global API results as Home — don't limit to cards mode (list was
+  // client-filtering only and missed culture matches like Somerville × brazil).
+  const showSearchPanel = resultsOpen && query.trim().length > 0;
   const showCommunityDetail =
     mode === "cards" &&
     layer === "enclaves" &&
@@ -1570,7 +1571,7 @@ export function MapScreen() {
         </View>
       ) : null}
 
-      {mode === "list" ? (
+      {mode === "list" && !showSearchPanel ? (
         <View style={[styles.listSheet, { top: listSheetTop }]}>
           <View style={styles.sheetHeader}>
             <View>

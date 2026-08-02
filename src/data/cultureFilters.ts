@@ -163,6 +163,11 @@ const AFFINITIES: Record<string, CultureFilterId[]> = {
   "little-senegal": ["senegalese"],
   "little-ukraine": ["ukrainian"],
   "little-yemen": ["yemeni"],
+  // Greater Boston / CT / FL Brazilian corridors (curated, not wiki-tagged)
+  "somerville-boston": ["brazilian"],
+  "danbury-brazilian": ["brazilian"],
+  "pompano-brazilian": ["brazilian"],
+  "hollow-bridgeport": ["portuguese", "brazilian"],
   "little-india-hicksville": ["indian"],
   "little-portugal-mineola": ["portuguese"],
   "little-el-salvador-brentwood": ["salvadoran"],
@@ -256,6 +261,7 @@ function communityHaystack(community: Community): string {
     community.name,
     community.heritage,
     community.neighborhood,
+    community.description,
     ...community.tags,
   ]
     .join(" ")
@@ -558,6 +564,7 @@ function haystack(c: Community): string {
     c.name,
     c.heritage,
     c.neighborhood,
+    c.description,
     ...c.tags,
     affinityLabels,
     groupTerms,
@@ -653,12 +660,23 @@ export function scoreCommunityQuery(
   const tags = community.tags.join(" ").toLowerCase();
   const tokens = q.split(/\s+/).filter(Boolean);
 
+  const cultureHit = affinitiesFor(community).some((id) => {
+    if (id === q || id.includes(q) || (q.length >= 4 && q.includes(id))) {
+      return true;
+    }
+    const terms = GROUP_SEARCH_TERMS[id] ?? [];
+    return terms.some(
+      (t) => t === q || t.includes(q) || (q.length >= 4 && q.includes(t)),
+    );
+  });
+
   let score = 0;
   if (name === q) score = 1000;
   else if (name.startsWith(q)) score = 850;
   else if (name.includes(q)) score = 700;
   else if (tokens.length > 1 && tokens.every((t) => name.includes(t)))
     score = 650;
+  else if (cultureHit) score = 640;
   else if (neighborhood.includes(q)) score = 500;
   else if (tokens.every((t) => neighborhood.includes(t))) score = 450;
   else if (heritage.includes(q) || tags.includes(q)) score = 300;
