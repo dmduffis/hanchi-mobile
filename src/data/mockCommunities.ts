@@ -2,7 +2,7 @@ import type { Community, InsiderQuote } from "../types";
 
 /**
  * NYC Immigrant Enclaves — aligned to the Mayor's Office of Immigrant Affairs map
- * (30 flagged neighborhoods). Descriptions are mock copy for the Sinta scaffold.
+ * (30 flagged neighborhoods). Descriptions are mock copy for the Hanchi scaffold.
  */
 export const mockCommunities: Community[] = [
   {

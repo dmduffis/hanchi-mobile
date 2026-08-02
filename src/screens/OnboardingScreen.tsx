@@ -59,8 +59,8 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     <SafeAreaView style={styles.safe}>
       <View style={styles.content}>
         <View style={styles.top}>
-          <Text style={styles.wordmark}>Sinta</Text>
-          <Text style={styles.tagline}>Sit down. Stay a while.</Text>
+          <Text style={styles.wordmark}>Hanchi</Text>
+          <Text style={styles.tagline}>Just around the corner.</Text>
         </View>
 
         {step === 1 ? (
@@ -82,7 +82,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
           </View>
         ) : step === 2 ? (
           <View style={styles.middle}>
-            <Text style={styles.prompt}>What brings you to Sinta?</Text>
+            <Text style={styles.prompt}>What brings you to Hanchi?</Text>
             <Text style={styles.hint}>
               Optional. Choose as many as fit, or skip and explore on your own.
             </Text>
@@ -125,7 +125,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
             <Text style={styles.hint}>
               Turn on location so the map opens where you are. If you skip,
               we'll start you in New York — one of the densest places for
-              cultural neighborhoods on Sinta.
+              cultural neighborhoods on Hanchi.
             </Text>
           </View>
         )}

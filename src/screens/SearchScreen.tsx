@@ -167,7 +167,7 @@ export function SearchScreen() {
                 icon={IconMapPin}
               />
               <Text style={styles.resultsLabel}>
-                {query ? `Results for "${query}"` : "From the Sinta API"}
+                {query ? `Results for "${query}"` : "From the Hanchi API"}
               </Text>
             </View>
           }

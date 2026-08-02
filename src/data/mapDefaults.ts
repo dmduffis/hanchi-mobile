@@ -14,7 +14,7 @@ export type MetroPreset = {
   region: Region;
 };
 
-/** Curated metros with food-rich enclaves on Sinta today. */
+/** Curated metros with food-rich enclaves on Hanchi today. */
 export const METRO_PRESETS: MetroPreset[] = [
   {
     id: "nyc",

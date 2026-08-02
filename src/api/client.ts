@@ -13,7 +13,7 @@ export class ApiError extends Error {
 export function getApiBaseUrl(): string {
   if (!API_URL) {
     throw new ApiError(
-      "EXPO_PUBLIC_API_URL is not set. Add it to sinta-mobile/.env",
+      "EXPO_PUBLIC_API_URL is not set. Add it to the mobile app .env",
       0,
     );
   }

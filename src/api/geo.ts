@@ -1,4 +1,4 @@
-/** GeoJSON shapes returned by the Sinta API (WGS84). */
+/** GeoJSON shapes returned by the Hanchi API (WGS84). */
 
 export type GeoJsonPoint = {
   type: "Point";

@@ -308,7 +308,7 @@ export function ProfileScreen() {
             />
 
             <Text style={[styles.modalSection, { marginTop: 24 }]}>
-              What brings you to Sinta?
+              What brings you to Hanchi?
             </Text>
             <Text style={styles.modalHint}>
               Optional. Choose as many as fit.

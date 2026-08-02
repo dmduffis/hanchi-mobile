@@ -13,7 +13,7 @@ export type IntentOption = {
   description: string;
 };
 
-/** Maps to Sinta personas (Maya, Sofia/Diego, Sam, Jordan). */
+/** Maps to Hanchi personas (Maya, Sofia/Diego, Sam, Jordan). */
 export const INTENT_OPTIONS: IntentOption[] = [
   {
     id: "explore",
