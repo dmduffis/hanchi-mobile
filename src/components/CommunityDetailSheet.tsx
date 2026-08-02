@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Animated,
   Dimensions,
   PanResponder,
@@ -29,6 +28,7 @@ import { FavoriteThumb } from "./FavoriteThumb";
 import { ListRow } from "./ListRow";
 import { PassportStampButton } from "./PassportStampButton";
 import { PriceRatingRow } from "./PriceRatingRow";
+import { SkeletonSheet } from "./Skeleton";
 
 const SHORT_DESC_CHARS = 140;
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -288,9 +288,7 @@ export function CommunityDetailSheet({
       </View>
 
       {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.forest} />
-        </View>
+        <SkeletonSheet />
       ) : error || !community ? (
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error ?? "Community not found"}</Text>

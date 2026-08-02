@@ -18,5 +18,14 @@ export { PrimaryButton } from "./PrimaryButton";
 export { PromoBanner } from "./PromoBanner";
 export { SearchBar } from "./SearchBar";
 export { SearchResultsPanel } from "./SearchResultsPanel";
+export {
+  Skeleton,
+  SkeletonDetail,
+  SkeletonHome,
+  SkeletonListRows,
+  SkeletonMapBoot,
+  SkeletonPassport,
+  SkeletonSheet,
+} from "./Skeleton";
 export { Stamp } from "./Stamp";
 

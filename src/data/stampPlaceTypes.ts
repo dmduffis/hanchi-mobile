@@ -36,16 +36,19 @@ export type StampMotif =
 /** @deprecated Prefer StampMotif */
 export type StampPlaceType = StampMotif;
 
-/** Monochrome stamp ink colors — one color per stamp. */
+/**
+ * Monochrome stamp ink colors — one color per stamp.
+ * Pulled from the invite-card illustration vibe (violet, peach, sage, navy).
+ */
 export const STAMP_INK_COLORS = [
-  "#163A2B", // forest
-  "#C45C3A", // terracotta
-  "#2A6F6F", // teal
-  "#5C4033", // brown
-  "#8B6914", // gold-ink
-  "#3D5A6C", // slate
-  "#B85C5C", // clay
-  "#5A6B3F", // olive
+  "#AC48C6", // invite violet (CTA / gaming)
+  "#7C3AED", // brand violet
+  "#231C57", // deep navy (silhouettes)
+  "#E07A52", // peach ink (sunset, deepened for paper)
+  "#6CB26E", // sage green (food card)
+  "#E5525B", // coral rose
+  "#9B6BC9", // soft lilac
+  "#C45B7A", // dusty magenta-rose
 ] as const;
 
 /**

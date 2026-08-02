@@ -1,19 +1,17 @@
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { fetchCommunities } from "../api/communities";
 import { searchAll } from "../api/search";
-import { ListRow, PromoBanner, SearchBar } from "../components";
+import {
+  ListRow,
+  PromoBanner,
+  SearchBar,
+  SkeletonListRows,
+} from "../components";
 import { IconArrowLeft, IconMapPin } from "../icons";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, typography } from "../theme";
@@ -144,8 +142,8 @@ export function SearchScreen() {
       </View>
 
       {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.ink} />
+        <View style={styles.list}>
+          <SkeletonListRows count={8} />
         </View>
       ) : error ? (
         <View style={styles.centered}>

@@ -3,7 +3,6 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   Pressable,
   ScrollView,
@@ -29,6 +28,7 @@ import {
   ListRow,
   PassportStampButton,
   PriceRatingRow,
+  SkeletonDetail,
 } from "../components";
 import { getInsidersForCommunity } from "../data/mockCommunities";
 import {
@@ -142,8 +142,8 @@ export function CommunityProfileScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.safe, styles.centered]} edges={["top"]}>
-        <ActivityIndicator color={colors.forest} />
+      <SafeAreaView style={styles.safe} edges={["top"]}>
+        <SkeletonDetail />
       </SafeAreaView>
     );
   }

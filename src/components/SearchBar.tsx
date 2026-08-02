@@ -11,6 +11,8 @@ type SearchBarProps = {
   onPress?: () => void;
   editable?: boolean;
   autoFocus?: boolean;
+  /** White fill + shadow for sitting on the map basemap. */
+  elevated?: boolean;
 };
 
 export function SearchBar({
@@ -21,10 +23,13 @@ export function SearchBar({
   onPress,
   editable = true,
   autoFocus = false,
+  elevated = false,
 }: SearchBarProps) {
+  const shell = [styles.container, elevated && styles.containerElevated];
+
   if (onPress && !editable) {
     return (
-      <Pressable onPress={onPress} style={styles.container}>
+      <Pressable onPress={onPress} style={shell}>
         <IconSearch size={18} color={colors.gray} />
         <Text style={styles.placeholder}>{placeholder}</Text>
       </Pressable>
@@ -32,7 +37,7 @@ export function SearchBar({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={shell}>
       <IconSearch size={18} color={colors.gray} />
       <TextInput
         style={styles.input}
@@ -69,6 +74,15 @@ const styles = StyleSheet.create({
     gap: 10,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  containerElevated: {
+    backgroundColor: colors.white,
+    borderColor: "rgba(0,0,0,0.12)",
+    shadowColor: "#000",
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
   input: {
     flex: 1,

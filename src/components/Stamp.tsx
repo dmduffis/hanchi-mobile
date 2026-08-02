@@ -7,6 +7,7 @@ import {
   stampTitleForCommunity,
 } from "../data/stampPlaceTypes";
 import { colors, typography } from "../theme";
+import { StampGrunge } from "./stamp/StampGrunge";
 import { StampPlaceIcon } from "./stamp/StampPlaceIcon";
 import { StampShapeFrame } from "./stamp/StampShapeFrame";
 
@@ -69,34 +70,45 @@ export function Stamp({
     >
       <View style={[styles.tiltBox, { padding: tiltPad }]}>
         <View style={{ transform: [{ rotate: `${tilt}deg` }] }}>
-          <StampShapeFrame
-            color={ink}
-            width={w}
-            height={h}
-            strokeWidth={earned ? 2.25 : 1.75}
-          >
-            <View style={styles.face}>
-              <Text
-                style={[styles.title, { color: ink }, isSm && styles.titleSm]}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-              >
-                {title}
-              </Text>
-              <View style={styles.bottomRow}>
+          <View style={{ width: w, height: h }}>
+            <StampShapeFrame
+              color={ink}
+              width={w}
+              height={h}
+              strokeWidth={earned ? 2.25 : 1.75}
+            >
+              <View style={styles.face}>
                 <Text
-                  style={[styles.code, { color: ink }, isSm && styles.codeSm]}
+                  style={[styles.title, { color: ink }, isSm && styles.titleSm]}
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
                 >
-                  {code}
+                  {title}
                 </Text>
-                <StampPlaceIcon
-                  type={motif}
-                  color={ink}
-                  size={isSm ? 30 : 36}
-                />
+                <View style={styles.bottomRow}>
+                  <Text
+                    style={[styles.code, { color: ink }, isSm && styles.codeSm]}
+                  >
+                    {code}
+                  </Text>
+                  <StampPlaceIcon
+                    type={motif}
+                    color={ink}
+                    size={isSm ? 30 : 36}
+                  />
+                </View>
               </View>
-            </View>
-          </StampShapeFrame>
+            </StampShapeFrame>
+            {earned ? (
+              <StampGrunge
+                width={w}
+                height={h}
+                color={ink}
+                seed={communityId}
+                intensity={0.6}
+              />
+            ) : null}
+          </View>
         </View>
       </View>
 

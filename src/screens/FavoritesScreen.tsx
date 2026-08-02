@@ -1,14 +1,7 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useCallback, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -17,7 +10,7 @@ import {
   toggleFavorite,
   type ApiFavorite,
 } from "../api/favorites";
-import { Chip, FavoriteThumb, ListRow } from "../components";
+import { Chip, FavoriteThumb, ListRow, SkeletonListRows } from "../components";
 import {
   getCommunityCountryCode,
   getCommunityFlag,
@@ -220,8 +213,8 @@ export function FavoritesScreen() {
       </View>
 
       {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.forest} />
+        <View style={styles.list}>
+          <SkeletonListRows count={7} />
         </View>
       ) : (
         <FlatList
