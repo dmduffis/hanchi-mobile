@@ -10,6 +10,8 @@ const STAR_SIZE = 14;
 type PriceRatingRowProps = {
   priceLevel?: string | null;
   rating?: number | null;
+  /** Tighter sizing for map carousel cards. */
+  compact?: boolean;
 };
 
 /** Exact 0–1 fill for star at index (0-based), from raw rating — no rounding. */
@@ -17,33 +19,38 @@ function starPortion(rating: number, index: number): number {
   return Math.min(1, Math.max(0, rating - index));
 }
 
-function FractionalStar({ portion }: { portion: number }) {
-  const fillWidth = STAR_SIZE * portion;
+function FractionalStar({ portion, size }: { portion: number; size: number }) {
+  const fillWidth = size * portion;
   return (
-    <View style={styles.starSlot}>
+    <View style={{ width: size, height: size }}>
       <Ionicons
         name="star"
-        size={STAR_SIZE}
+        size={size}
         color={colors.border}
         style={styles.starBase}
       />
       {portion > 0 ? (
-        <View style={[styles.starClip, { width: fillWidth }]}>
-          <Ionicons name="star" size={STAR_SIZE} color={colors.gold} />
+        <View style={[styles.starClip, { width: fillWidth, height: size }]}>
+          <Ionicons name="star" size={size} color={colors.gold} />
         </View>
       ) : null}
     </View>
   );
 }
 
-export function PriceRatingRow({ priceLevel, rating }: PriceRatingRowProps) {
+export function PriceRatingRow({
+  priceLevel,
+  rating,
+  compact = false,
+}: PriceRatingRowProps) {
   const hasRating = rating != null && Number.isFinite(rating);
   const clamped = hasRating ? Math.min(MAX_STARS, Math.max(0, rating)) : 0;
   const ratingLabel = hasRating ? rating.toFixed(1) : null;
+  const starSize = compact ? 11 : STAR_SIZE;
   if (!priceLevel && !hasRating) return null;
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, compact && styles.rowCompact]}>
       {hasRating ? (
         <View
           style={styles.rating}
@@ -51,10 +58,18 @@ export function PriceRatingRow({ priceLevel, rating }: PriceRatingRowProps) {
         >
           <View style={styles.stars} accessible={false}>
             {Array.from({ length: MAX_STARS }, (_, i) => (
-              <FractionalStar key={i} portion={starPortion(clamped, i)} />
+              <FractionalStar
+                key={i}
+                portion={starPortion(clamped, i)}
+                size={starSize}
+              />
             ))}
           </View>
-          <Text style={styles.ratingNumber}>{ratingLabel}</Text>
+          <Text
+            style={[styles.ratingNumber, compact && styles.ratingNumberCompact]}
+          >
+            {ratingLabel}
+          </Text>
         </View>
       ) : null}
       {priceLevel ? <Badge label={priceLevel} /> : null}
@@ -69,6 +84,10 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 6,
   },
+  rowCompact: {
+    marginTop: 0,
+    gap: 6,
+  },
   rating: {
     flexDirection: "row",
     alignItems: "center",
@@ -79,22 +98,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 1,
   },
-  starSlot: {
-    width: STAR_SIZE,
-    height: STAR_SIZE,
-  },
   starBase: {
     position: "absolute",
     left: 0,
     top: 0,
   },
   starClip: {
-    height: STAR_SIZE,
     overflow: "hidden",
   },
   ratingNumber: {
     fontFamily: typography.bodyMedium,
     fontSize: 13,
     color: colors.gray,
+  },
+  ratingNumberCompact: {
+    fontSize: 11,
   },
 });

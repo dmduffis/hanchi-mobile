@@ -5,17 +5,18 @@ import { IconImage } from "../icons";
 import { colors, typography } from "../theme";
 import { CircularFlag } from "./CircularFlag";
 import { FavoriteHeart } from "./FavoriteHeart";
+import { PriceRatingRow } from "./PriceRatingRow";
 
 /** Shared right-edge inset so flag badge and heart share one vertical axis. */
-const EDGE = 10;
+const EDGE = 8;
 /** Slot size for flag + heart so their right edges line up. */
-const TRAILING_SLOT = 22;
+const TRAILING_SLOT = 20;
 
 type MapSheetCardProps = {
   width: number;
   title: string;
-  meta: string;
-  detail?: string;
+  priceLevel?: string | null;
+  rating?: number | null;
   imageUrl?: string | null;
   countryCode?: string | null;
   flag?: string;
@@ -25,13 +26,13 @@ type MapSheetCardProps = {
 };
 
 /**
- * Compact map carousel card: photo (flag only) + title/meta with heart on the right.
+ * Compact map carousel card: photo (flag only) + title + rating/price.
  */
 export function MapSheetCard({
   width,
   title,
-  meta,
-  detail,
+  priceLevel,
+  rating,
   imageUrl,
   countryCode,
   flag,
@@ -60,7 +61,7 @@ export function MapSheetCard({
           />
         ) : (
           <View style={styles.imageFallback}>
-            <IconImage size={28} color={colors.grayLight} />
+            <IconImage size={22} color={colors.grayLight} />
           </View>
         )}
         {showFlag ? (
@@ -79,16 +80,7 @@ export function MapSheetCard({
           <Text style={styles.title} numberOfLines={1}>
             {title}
           </Text>
-          {meta ? (
-            <Text style={styles.meta} numberOfLines={1}>
-              {meta}
-            </Text>
-          ) : null}
-          {detail ? (
-            <Text style={styles.detail} numberOfLines={1}>
-              {detail}
-            </Text>
-          ) : null}
+          <PriceRatingRow priceLevel={priceLevel} rating={rating} compact />
         </View>
         {showFavorite ? (
           <View
@@ -99,7 +91,7 @@ export function MapSheetCard({
             <FavoriteHeart
               type={favoriteType!}
               targetId={favoriteId!}
-              size={18}
+              size={16}
             />
           </View>
         ) : null}
@@ -111,7 +103,7 @@ export function MapSheetCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
-    borderRadius: 14,
+    borderRadius: 12,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#D6D3CC",
@@ -121,7 +113,7 @@ const styles = StyleSheet.create({
   },
   imageWrap: {
     width: "100%",
-    height: 100,
+    height: 80,
     backgroundColor: colors.surface,
   },
   image: {
@@ -148,14 +140,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingLeft: EDGE,
     paddingRight: EDGE,
-    paddingTop: 7,
-    paddingBottom: 8,
-    gap: 8,
+    paddingTop: 9,
+    paddingBottom: 6,
+    gap: 6,
   },
   bodyText: {
     flex: 1,
-    gap: 1,
     minWidth: 0,
+    gap: 0,
   },
   heartWrap: {
     width: TRAILING_SLOT,
@@ -166,18 +158,9 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: typography.bodySemibold,
-    fontSize: 13,
+    fontSize: 14,
     color: colors.ink,
-  },
-  meta: {
-    fontFamily: typography.body,
-    fontSize: 11,
-    color: colors.gray,
-  },
-  detail: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 11,
-    color: colors.ink,
-    marginTop: 1,
+    lineHeight: 17,
+    marginBottom: 0,
   },
 });
