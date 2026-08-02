@@ -63,6 +63,7 @@ import {
 } from "../data/communityFlags";
 import {
   availableCultureFiltersForCommunities,
+  availableCultureFiltersForEthnicities,
   ethnicitiesForCultureFilter,
   filterCommunities,
   getAffinityLabels,
@@ -480,16 +481,38 @@ export function MapScreen() {
     return availableCultureFiltersForCommunities(source);
   }, [mode, queryMatchedCommunities, region]);
 
+  /** Culture chips from POI ethnicities while a community restaurant filter is on. */
+  const communityRestaurantCultureFilters = useMemo(() => {
+    if (!foodCommunityFilter) return [];
+    return availableCultureFiltersForEthnicities(
+      foodPois.flatMap((p) => p.ethnicities ?? []),
+    );
+  }, [foodCommunityFilter, foodPois]);
+
+  const activeCultureFilters = foodCommunityFilter
+    ? communityRestaurantCultureFilters
+    : cultureFilters;
+
   useEffect(() => {
     if (culture === "all") return;
-    if (cultureFilters.some((f) => f.id === culture)) return;
+    if (activeCultureFilters.some((f) => f.id === culture)) return;
     setCulture("all");
-  }, [culture, cultureFilters]);
+  }, [culture, activeCultureFilters]);
 
-  const filteredFood = useMemo(
-    () => foodPois.filter((p) => poiMatchesQuery(p, query)),
-    [foodPois, query],
-  );
+  const filteredFood = useMemo(() => {
+    let list = foodPois.filter((p) => poiMatchesQuery(p, query));
+    // Community-scoped fetch is unfiltered by culture — narrow here.
+    if (foodCommunityFilter && culture !== "all") {
+      const ids = ethnicitiesForCultureFilter(culture);
+      if (ids?.length) {
+        const allow = new Set(ids.map((id) => id.toLowerCase()));
+        list = list.filter((p) =>
+          (p.ethnicities ?? []).some((e) => allow.has(e.toLowerCase())),
+        );
+      }
+    }
+    return list;
+  }, [foodPois, query, foodCommunityFilter, culture]);
 
   const inViewFood = useMemo(
     () =>
@@ -663,6 +686,8 @@ export function MapScreen() {
   }, [filteredKey, query, culture, filtered, layer, moveCamera, resultsOpen]);
 
   // Restaurants layer: fetch for viewport, or one community when expanded.
+  // When scoped to a community, fetch the full set and filter culture client-side
+  // so ethnicity chips still work inside that community.
   useEffect(() => {
     if (layer !== "restaurants") return;
     const gen = ++foodFetchGen.current;
@@ -697,7 +722,13 @@ export function MapScreen() {
         });
     }, 350);
     return () => clearTimeout(handle);
-  }, [layer, region, culture, foodCommunityFilter?.id]);
+    // Culture is applied client-side while a community filter is active.
+  }, [
+    layer,
+    region,
+    foodCommunityFilter?.id,
+    foodCommunityFilter ? null : culture,
+  ]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -886,19 +917,16 @@ export function MapScreen() {
     !showSearchPanel;
   const showRestaurantCarousel =
     mode === "cards" && layer === "restaurants" && !showSearchPanel;
+  // Same header chip on map cards and list — scoped restaurant filter.
   const showFoodCommunityFilter =
-    layer === "restaurants" &&
-    foodCommunityFilter != null &&
-    !showSearchPanel &&
-    mode === "cards";
-  // Hide when only "All" is available — a lone All chip is noise after
-  // clearing a community restaurant filter.
+    layer === "restaurants" && foodCommunityFilter != null && !showSearchPanel;
+  // Culture chips stay available inside a community filter (mixed enclaves).
+  // Hide when only "All" is available. List sheet has its own chip row.
   const showCultureChips =
     mode === "cards" &&
     !showCommunityDetail &&
     !showSearchPanel &&
-    !showFoodCommunityFilter &&
-    cultureFilters.some((f) => f.id !== "all");
+    activeCultureFilters.some((f) => f.id !== "all");
 
   const handleSearchResultPress = (item: SearchResult) => {
     Keyboard.dismiss();
@@ -1110,7 +1138,10 @@ export function MapScreen() {
           <View style={styles.communityFilterRow}>
             <Pressable
               style={styles.communityFilterChip}
-              onPress={() => setFoodCommunityFilter(null)}
+              onPress={() => {
+                setFoodCommunityFilter(null);
+                setCulture("all");
+              }}
               accessibilityRole="button"
               accessibilityLabel={`Clear ${foodCommunityFilter.name} restaurant filter`}
             >
@@ -1130,7 +1161,7 @@ export function MapScreen() {
             keyboardShouldPersistTaps="handled"
             style={styles.topFiltersScroll}
           >
-            {cultureFilters.map((f) => (
+            {activeCultureFilters.map((f) => (
               <Chip
                 key={f.id}
                 label={f.label}
@@ -1417,9 +1448,15 @@ export function MapScreen() {
               <Text style={styles.sheetTitle}>
                 {layer === "enclaves"
                   ? "Communities on the map"
-                  : "Restaurants nearby"}
+                  : foodCommunityFilter
+                    ? foodCommunityFilter.name
+                    : "Restaurants nearby"}
               </Text>
-              <Text style={styles.sheetSub}>{filterLabel}</Text>
+              <Text style={styles.sheetSub}>
+                {layer === "restaurants" && foodCommunityFilter
+                  ? `${filteredFood.length} restaurant${filteredFood.length === 1 ? "" : "s"} in this community`
+                  : filterLabel}
+              </Text>
             </View>
             <Pressable
               style={styles.closeListBtn}
@@ -1429,24 +1466,26 @@ export function MapScreen() {
               <IconX size={18} color={colors.ink} />
             </Pressable>
           </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.sheetFilters}
-            keyboardShouldPersistTaps="handled"
-            style={styles.listFiltersScroll}
-          >
-            {cultureFilters.map((f) => (
-              <Chip
-                key={f.id}
-                label={f.label}
-                size="sm"
-                tone="overlay"
-                selected={culture === f.id}
-                onPress={() => setCulture(f.id)}
-              />
-            ))}
-          </ScrollView>
+          {activeCultureFilters.some((f) => f.id !== "all") ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.sheetFilters}
+              keyboardShouldPersistTaps="handled"
+              style={styles.listFiltersScroll}
+            >
+              {activeCultureFilters.map((f) => (
+                <Chip
+                  key={f.id}
+                  label={f.label}
+                  size="sm"
+                  tone="overlay"
+                  selected={culture === f.id}
+                  onPress={() => setCulture(f.id)}
+                />
+              ))}
+            </ScrollView>
+          ) : null}
           <View style={styles.listBody}>
             {layer === "enclaves" ? (
               <FlatList
