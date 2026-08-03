@@ -78,12 +78,56 @@ export interface DishStamp {
   earned: boolean;
 }
 
-export interface PassportBadge {
+/** Profile achievement badge (mock catalog for now). */
+export interface AchievementBadge {
   id: string;
   title: string;
   description: string;
   earned: boolean;
+  progressCurrent: number;
+  progressTarget: number;
+  /** Level number on the medal (e.g. "1", "3"). */
+  levelLabel?: string;
+  isNew?: boolean;
+  /** Key into shared app icon set (no emoji). */
+  icon:
+    | "award"
+    | "star"
+    | "mapPin"
+    | "fire"
+    | "building"
+    | "book"
+    | "users"
+    | "moon"
+    | "compass"
+    | "bolt"
+    | "kitchen"
+    | "check";
 }
+
+/** @deprecated Use AchievementBadge */
+export type PassportBadge = AchievementBadge;
+
+/** A feed item on the Moments tab. */
+export interface MomentItem {
+  id: string;
+  kind: "own" | "peer";
+  /** post = written note; stamp = stamped place only (activity/notification). */
+  activity: "post" | "stamp";
+  authorName: string;
+  note: string;
+  createdAt: string;
+  communityId?: string | null;
+  communityName?: string | null;
+  /** Place heritage flag (Facebook-style “Name at Place”). */
+  placeCountryCode?: string | null;
+  photoUrl?: string | null;
+  /** Author culture ISO country code for avatar flag badge. */
+  authorCountryCode?: string | null;
+  /** Emoji fallback when no country code. */
+  authorFlag?: string | null;
+}
+
 
 export interface AppNotification {
   id: string;

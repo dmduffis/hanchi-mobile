@@ -161,16 +161,19 @@ export function stampTiltForCommunity(communityId: string): number {
   return Math.round(t * 10) / 10;
 }
 
-/** Display title for stamp face — keep the full community name when it fits. */
+/**
+ * Display title for stamp face.
+ * Light cleanups only — wrap/ellipsis is handled by the Stamp Text layout
+ * (hard character cuts made names like "Little India in Hicksville" look broken).
+ */
 export function stampTitleForCommunity(name: string): string {
-  const trimmed = name.trim();
-  const shortened = trimmed
+  return name
+    .trim()
     .replace(/^Chinatown in /i, "Chinatown · ")
     .replace(/^Koreatown in /i, "Koreatown · ")
     .replace(/^Japantown in /i, "Japantown · ")
+    .replace(/^Little India in /i, "Little India · ")
     .replace(/\s+Cultural District$/i, "")
     .replace(/\s+Neighborhood$/i, "")
     .trim();
-  if (shortened.length <= 24) return shortened;
-  return `${shortened.slice(0, 23).trimEnd()}…`;
 }

@@ -127,20 +127,32 @@ export function SkeletonSheet() {
   );
 }
 
-/** Passport stamps + badge rows. */
-export function SkeletonPassport() {
+/** Moments feed skeleton. */
+export function SkeletonMoments() {
   return (
     <View style={styles.block}>
-      <Skeleton width="48%" height={18} />
+      <SkeletonListRows count={5} />
+    </View>
+  );
+}
+
+/** Stamp collection grid skeleton. */
+export function SkeletonStampGrid() {
+  return (
+    <View style={styles.block}>
+      <Skeleton width="40%" height={14} />
       <View style={styles.stampRow}>
         {Array.from({ length: 3 }, (_, i) => (
           <Skeleton key={i} width={112} height={132} radius={radii.md} />
         ))}
       </View>
-      <Skeleton width="28%" height={18} style={{ marginTop: 8 }} />
-      <SkeletonListRows count={4} style={{ marginTop: 12 }} />
     </View>
   );
+}
+
+/** @deprecated Prefer SkeletonMoments / SkeletonStampGrid */
+export function SkeletonPassport() {
+  return <SkeletonStampGrid />;
 }
 
 /** Map boot: search chrome over a soft wash. */
