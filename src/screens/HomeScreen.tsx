@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   dishPhoto: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: "100%",
     height: "100%",
   },

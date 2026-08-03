@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   splashOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 100,
     elevation: 100,
     backgroundColor: colors.forest,
