@@ -74,9 +74,7 @@ export function PassportStampButton({
       style={({ pressed }) => [btnStyle, pressed && styles.pressed]}
       disabled={busy}
       accessibilityRole="button"
-      accessibilityLabel={
-        stamped ? "Remove stamp from passport" : "Stamp passport"
-      }
+      accessibilityLabel={stamped ? "Remove stamp" : "Stamp place"}
     >
       <PostageStampIcon
         size={size}

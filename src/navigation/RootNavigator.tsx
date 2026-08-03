@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useAuth } from "../auth/AuthContext";
 import { AuthScreen } from "../screens/AuthScreen";
+import { BadgeCollectionScreen } from "../screens/BadgeCollectionScreen";
 import { CommunityProfileScreen } from "../screens/CommunityProfileScreen";
 import { DiscoverScreen } from "../screens/DiscoverScreen";
 import { DropInScreen } from "../screens/DropInScreen";
@@ -10,6 +11,7 @@ import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { OnboardingScreen } from "../screens/OnboardingScreen";
 import { RestaurantDetailScreen } from "../screens/RestaurantDetailScreen";
 import { SearchScreen } from "../screens/SearchScreen";
+import { StampCollectionScreen } from "../screens/StampCollectionScreen";
 import { colors, typography } from "../theme";
 import { TabNavigator } from "./TabNavigator";
 import type { RootStackParamList } from "./types";
@@ -109,6 +111,16 @@ export function RootNavigator({
             options={{ presentation: "fullScreenModal", animation: "fade" }}
           />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          <Stack.Screen
+            name="StampCollection"
+            component={StampCollectionScreen}
+            options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen
+            name="BadgeCollection"
+            component={BadgeCollectionScreen}
+            options={{ animation: "slide_from_right" }}
+          />
         </>
       )}
     </Stack.Navigator>

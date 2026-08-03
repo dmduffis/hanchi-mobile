@@ -1,11 +1,8 @@
-import type {
-    AppNotification,
-    DiscoverRoute,
-    DishStamp,
-    PassportBadge,
-    PassportStamp,
-} from "../types";
+import type { AppNotification, DiscoverRoute, DishStamp, PassportStamp } from "../types";
 import { mockCommunities } from "./mockCommunities";
+
+/** Re-export so older imports keep working. Prefer mockBadges. */
+export { mockBadges as mockPassportBadges } from "./mockBadges";
 
 export const TOTAL_COMMUNITY_STAMPS = mockCommunities.length;
 
@@ -33,33 +30,6 @@ export const mockDishStamps: DishStamp[] = [
   { id: "ds3", dishName: "Soup Dumplings", emoji: "🥟", earned: true },
   { id: "ds4", dishName: "Arepas", emoji: "🫓", earned: false },
   { id: "ds5", dishName: "Jerk Chicken", emoji: "🍗", earned: false },
-];
-
-export const mockPassportBadges: PassportBadge[] = [
-  {
-    id: "b1",
-    title: "First Stamp",
-    description: "Visited your first enclave",
-    earned: true,
-  },
-  {
-    id: "b2",
-    title: "Weekend Wanderer",
-    description: "Explored 3 enclaves in one month",
-    earned: true,
-  },
-  {
-    id: "b3",
-    title: "Spice Route",
-    description: "Tried 5 spicy dishes",
-    earned: false,
-  },
-  {
-    id: "b4",
-    title: "Borough Hopper",
-    description: "Stamped enclaves in 4 boroughs",
-    earned: false,
-  },
 ];
 
 export const mockNotifications: AppNotification[] = [

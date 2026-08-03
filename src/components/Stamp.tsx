@@ -34,7 +34,7 @@ type StampProps = {
 };
 
 /**
- * Passport stamp — landscape perforated frame, light tilt, one place icon.
+ * Place stamp card — landscape perforated frame, light tilt, one place icon.
  */
 export function Stamp({
   communityId,
@@ -61,9 +61,9 @@ export function Stamp({
       : colors.grayLight;
   const code = countryCode?.trim().toUpperCase().slice(0, 2) || "—";
   const isSm = size === "sm";
-  const w = isSm ? 156 : STAMP_W;
-  const h = isSm ? 110 : STAMP_H;
-  const tiltPad = 14;
+  const w = isSm ? 132 : STAMP_W;
+  const h = isSm ? 94 : STAMP_H;
+  const tiltPad = isSm ? 10 : 14;
 
   return (
     <Pressable
@@ -75,9 +75,7 @@ export function Stamp({
         pressed && onPress && !disabled && styles.pressed,
       ]}
       accessibilityRole={onPress ? "button" : undefined}
-      accessibilityLabel={
-        earned ? `${title}, stamped` : `Stamp ${title} in your passport`
-      }
+      accessibilityLabel={earned ? `${title}, stamped` : `Stamp ${title}`}
     >
       <View style={[styles.tiltBox, { padding: tiltPad }]}>
         <View style={{ transform: [{ rotate: `${tilt}deg` }] }}>
@@ -105,7 +103,7 @@ export function Stamp({
                   <StampPlaceIcon
                     type={motif}
                     color={ink}
-                    size={isSm ? 30 : 36}
+                    size={isSm ? 24 : 36}
                   />
                 </View>
               </View>
@@ -162,8 +160,8 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   titleSm: {
-    fontSize: 13,
-    lineHeight: 16,
+    fontSize: 12,
+    lineHeight: 15,
   },
   bottomRow: {
     flexDirection: "row",
@@ -177,24 +175,24 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   codeSm: {
-    fontSize: 12,
+    fontSize: 11,
   },
   caption: {
     marginTop: 2,
     alignItems: "center",
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     gap: 2,
     maxWidth: "100%",
   },
   captionLine: {
     fontFamily: typography.body,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.gray,
     textAlign: "center",
   },
   captionMeta: {
     fontFamily: typography.body,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.grayLight,
     textAlign: "center",
   },

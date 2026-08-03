@@ -1,4 +1,8 @@
-import { useEffect, useState } from "react";
+import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import type { CompositeNavigationProp } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -7,11 +11,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { fetchUserStamps } from "../api/stamps";
+import { fetchUserJournal, type ApiJournalEntry } from "../api/journal";
+import { fetchUserStamps, type ApiStamp } from "../api/stamps";
 import { fetchMe, updateMe, type ApiUser, type UserIntent } from "../api/users";
 import { useAuth } from "../auth/AuthContext";
 import {
@@ -19,7 +25,10 @@ import {
   CircularFlag,
   CultureMultiSelect,
   PrimaryButton,
+  Stamp,
 } from "../components";
+import { AchievementBadgeTile } from "../components/AchievementBadgeTile";
+import { mockBadges } from "../data/mockBadges";
 import { METRO_PRESETS } from "../data/mapDefaults";
 import {
   cultureCountryCode,
@@ -34,32 +43,57 @@ import {
   IconHelpCircle,
   IconLocate,
   IconMapPin,
+  IconSetting,
   IconStar,
   IconUser,
   type Icon,
 } from "../icons";
+import {
+  getProfileBio,
+  setProfileBio,
+  getShowLocationOnProfile,
+  setShowLocationOnProfile,
+} from "../lib/profileBio";
+import { sortStampsNewestFirst, stampToCard } from "../lib/stampDisplay";
 import {
   getSavedLocationInfo,
   resolveMapRegion,
   setManualMapRegion,
   type SavedLocationInfo,
 } from "../lib/userLocation";
+import type { MainTabParamList, RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
+
+type ProfileNav = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList, "Profile">,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 const SETTINGS: { id: string; label: string; icon: Icon }[] = [
   { id: "notifications", label: "Notifications", icon: IconBell },
   { id: "upgrade", label: "Upgrade", icon: IconStar },
-  { id: "account", label: "Account", icon: IconUser },
+  { id: "account", label: "Sign out", icon: IconUser },
   { id: "help", label: "Help", icon: IconHelpCircle },
 ];
 
+const PREVIEW_LIMIT = 4;
+const MOMENTS_PREVIEW = 5;
+
+type ProfileLowerTab = "collection" | "moments";
+
 export function ProfileScreen() {
+  const navigation = useNavigation<ProfileNav>();
   const { signOut, profile } = useAuth();
-  const [stamps, setStamps] = useState(0);
-  const [placesStamped, setPlacesStamped] = useState(0);
+  const [stampList, setStampList] = useState<ApiStamp[]>([]);
+  const [journal, setJournal] = useState<ApiJournalEntry[]>([]);
   const [user, setUser] = useState<ApiUser | null>(null);
+  const [bio, setBio] = useState("");
   const [signingOut, setSigningOut] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [bioOpen, setBioOpen] = useState(false);
+  const [draftBio, setDraftBio] = useState("");
+  const [bioSaving, setBioSaving] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   const [locationInfo, setLocationInfo] = useState<SavedLocationInfo | null>(
     null,
@@ -69,38 +103,45 @@ export function ProfileScreen() {
   const [draftCultures, setDraftCultures] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [lowerTab, setLowerTab] = useState<ProfileLowerTab>("collection");
+  const [showLocationOnProfile, setShowLocationOnProfileState] = useState(true);
+  /** How others will see this profile once follow exists. */
+  const [publicPreview, setPublicPreview] = useState(false);
 
-  const refreshLocation = async () => {
-    const info = await getSavedLocationInfo();
-    setLocationInfo(info);
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const [me, stampData, location] = await Promise.all([
+  const load = useCallback(async () => {
+    try {
+      const [me, stampData, location, journalData, savedBio, showLocation] =
+        await Promise.all([
           fetchMe(),
-          fetchUserStamps(),
+          fetchUserStamps().catch(() => [] as ApiStamp[]),
           getSavedLocationInfo(),
+          fetchUserJournal().catch(() => [] as ApiJournalEntry[]),
+          getProfileBio(),
+          getShowLocationOnProfile(),
         ]);
-        if (cancelled) return;
-        setUser(me);
-        setStamps(stampData.length);
-        setPlacesStamped(new Set(stampData.map((s) => s.communityId)).size);
-        setLocationInfo(location);
-      } catch {
-        if (!cancelled) {
-          setUser(null);
-          setStamps(0);
-          setPlacesStamped(0);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+      setUser(me);
+      setStampList(sortStampsNewestFirst(stampData));
+      setLocationInfo(location);
+      setJournal(
+        [...journalData].sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        ),
+      );
+      setBio(savedBio);
+      setShowLocationOnProfileState(showLocation);
+    } catch {
+      setUser(null);
+      setStampList([]);
+      setJournal([]);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   const openEdit = () => {
     const intents = (user?.intents ?? []).filter(
@@ -110,6 +151,11 @@ export function ProfileScreen() {
     setDraftCultures((user?.cultures ?? []).slice(0, 2).map(resolveCultureId));
     setEditError(null);
     setEditOpen(true);
+  };
+
+  const openBio = () => {
+    setDraftBio(bio);
+    setBioOpen(true);
   };
 
   const toggleDraftIntent = (id: UserIntent) => {
@@ -137,6 +183,19 @@ export function ProfileScreen() {
       setEditError(e instanceof Error ? e.message : "Couldn’t save");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const saveBio = async () => {
+    setBioSaving(true);
+    try {
+      await setProfileBio(draftBio);
+      setBio(draftBio.trim().slice(0, 280));
+      setBioOpen(false);
+    } catch {
+      Alert.alert("Couldn’t save bio", "Try again in a moment.");
+    } finally {
+      setBioSaving(false);
     }
   };
 
@@ -187,6 +246,37 @@ export function ProfileScreen() {
   const displayName = user?.displayName ?? profile?.displayName ?? "Explorer";
   const initial = displayName.charAt(0).toUpperCase();
   const cultures = user?.cultures ?? profile?.cultures ?? [];
+  const stampCards = stampList.map((s) => stampToCard(s));
+  const previewStamps = stampCards.slice(0, PREVIEW_LIMIT);
+  const previewBadges = mockBadges.slice(0, PREVIEW_LIMIT);
+  const previewMoments = journal.slice(0, MOMENTS_PREVIEW);
+  const badgesEarned = mockBadges.filter((b) => b.earned).length;
+  const collectionCount = stampList.length + badgesEarned;
+  const momentsCount = journal.length;
+
+  const mapLocationLabel =
+    locationInfo == null
+      ? "Set where the map opens"
+      : locationInfo.mode === "gps"
+        ? `${locationInfo.label} · Current location`
+        : `${locationInfo.label} · Exploring`;
+
+  /** Short place line for the public profile header. */
+  const publicLocationLine = !showLocationOnProfile
+    ? "Somewhere out exploring"
+    : locationInfo?.label
+      ? locationInfo.label
+      : "Exploring the city";
+
+  const toggleShowLocation = async () => {
+    const next = !showLocationOnProfile;
+    setShowLocationOnProfileState(next);
+    try {
+      await setShowLocationOnProfile(next);
+    } catch {
+      setShowLocationOnProfileState(!next);
+    }
+  };
 
   const onSignOut = () => {
     Alert.alert("Sign out", "Sign out of Hanchi on this device?", [
@@ -206,18 +296,24 @@ export function ProfileScreen() {
               );
             } finally {
               setSigningOut(false);
+              setSettingsOpen(false);
             }
           })();
         },
       },
     ]);
   };
-  const locationSubtitle =
-    locationInfo == null
-      ? "Set where the map opens"
-      : locationInfo.mode === "gps"
-        ? `${locationInfo.label} · Current location`
-        : `${locationInfo.label} · Exploring`;
+
+  const goMoments = () => {
+    navigation.navigate("Moments");
+  };
+
+  /** Own tab is always self; publicPreview simulates a visitor (follow-ready). */
+  const isOwnProfile = !publicPreview;
+  const bioText = bio.trim();
+  const hasBio = bioText.length > 0;
+  /** Empty About is omitted for visitors — only the owner sees the add prompt. */
+  const showAboutSection = hasBio || isOwnProfile;
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -225,93 +321,463 @@ export function ProfileScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.profileHeader}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initial}</Text>
-          </View>
-          <Text style={styles.name}>{displayName}</Text>
-          <Badge label="Explorer plan" variant="gold" />
-        </View>
-
-        <View style={styles.prefsCard}>
-          <View style={styles.prefsHeader}>
-            <Text style={styles.prefsTitle}>Your cultures</Text>
-            <Pressable onPress={openEdit} hitSlop={8}>
-              <Text style={styles.editLink}>Edit</Text>
+        {/* Top actions */}
+        <View style={styles.topBar}>
+          {publicPreview ? (
+            <Pressable
+              onPress={() => setPublicPreview(false)}
+              hitSlop={8}
+              style={styles.previewBanner}
+            >
+              <Text style={styles.previewBannerText}>
+                Viewing as others · Done
+              </Text>
             </Pressable>
-          </View>
-          {cultures.length > 0 ? (
-            <View style={styles.cultureRow}>
-              {cultures.map((slug) => (
-                <CircularFlag
-                  key={slug}
-                  countryCode={cultureCountryCode(slug)}
-                  flag={cultureFlag(slug)}
-                  size={36}
-                />
-              ))}
-            </View>
           ) : (
-            <Text style={styles.intentLineMuted}>Add 1–2 cultures</Text>
+            <View style={{ flex: 1 }} />
+          )}
+          {isOwnProfile ? (
+            <Pressable
+              onPress={() => setSettingsOpen(true)}
+              hitSlop={10}
+              style={styles.settingsBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Settings"
+            >
+              <IconSetting size={22} color={colors.ink} />
+            </Pressable>
+          ) : (
+            <View style={styles.settingsBtn} />
           )}
         </View>
 
+        {/* Header */}
         <Pressable
-          style={styles.prefsCard}
-          onPress={() => {
-            void refreshLocation();
-            setLocationOpen(true);
-          }}
+          style={styles.headerRow}
+          onPress={isOwnProfile ? openEdit : undefined}
+          disabled={!isOwnProfile}
+          accessibilityRole={isOwnProfile ? "button" : undefined}
+          accessibilityLabel={
+            isOwnProfile ? "Edit profile preferences" : undefined
+          }
         >
-          <View style={styles.prefsHeader}>
-            <Text style={styles.prefsTitle}>Map location</Text>
-            <Text style={styles.editLink}>Change</Text>
-          </View>
-          <View style={styles.locationRow}>
-            <View style={styles.settingsIcon}>
-              <IconMapPin size={18} color={colors.forest} />
+          <View style={styles.avatarWrap}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initial}</Text>
             </View>
-            <Text style={styles.locationLabel}>{locationSubtitle}</Text>
-            <IconChevronRight size={18} color={colors.grayLight} />
+          </View>
+
+          <View style={styles.headerMeta}>
+            <View style={styles.nameRow}>
+              <Text style={styles.name} numberOfLines={1}>
+                {displayName}
+              </Text>
+              <Badge label="Explorer" variant="gold" />
+              {isOwnProfile ? (
+                <IconChevronRight size={18} color={colors.grayLight} />
+              ) : null}
+            </View>
+
+            {cultures.length > 0 ? (
+              <View style={styles.cultureRowCompact}>
+                {cultures.map((slug) => (
+                  <CircularFlag
+                    key={slug}
+                    countryCode={cultureCountryCode(slug)}
+                    flag={cultureFlag(slug)}
+                    size={22}
+                  />
+                ))}
+              </View>
+            ) : isOwnProfile ? (
+              <Text style={styles.mutedPrompt}>Add your cultures</Text>
+            ) : null}
+
+            <Pressable
+              style={styles.locationLine}
+              onPress={() => {
+                if (!isOwnProfile) return;
+                if (showLocationOnProfile) {
+                  setLocationOpen(true);
+                } else {
+                  setSettingsOpen(true);
+                }
+              }}
+              disabled={!isOwnProfile}
+              hitSlop={4}
+              accessibilityLabel={
+                showLocationOnProfile
+                  ? `Location ${publicLocationLine}`
+                  : "Location hidden on profile"
+              }
+            >
+              <IconMapPin
+                size={13}
+                color={
+                  showLocationOnProfile && locationInfo
+                    ? colors.gray
+                    : colors.grayLight
+                }
+              />
+              <Text
+                style={[
+                  styles.locationText,
+                  (!showLocationOnProfile || !locationInfo) &&
+                    styles.locationTextTemplate,
+                ]}
+                numberOfLines={1}
+              >
+                {publicLocationLine}
+              </Text>
+              {isOwnProfile && showLocationOnProfile ? (
+                <Text style={styles.editLinkSmall}>Edit</Text>
+              ) : null}
+            </Pressable>
           </View>
         </Pressable>
 
-        <View style={styles.stats}>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{stamps}</Text>
-            <Text style={styles.statLabel}>Stamps</Text>
+        {/* About — hidden entirely for visitors when empty */}
+        {showAboutSection ? (
+          <View style={styles.block}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionEyebrow}>ABOUT</Text>
+              {isOwnProfile ? (
+                <Pressable onPress={openBio} hitSlop={8}>
+                  <Text style={styles.editLink}>{hasBio ? "Edit" : "Add"}</Text>
+                </Pressable>
+              ) : (
+                <View />
+              )}
+            </View>
+            {hasBio ? (
+              <Pressable
+                onPress={isOwnProfile ? openBio : undefined}
+                disabled={!isOwnProfile}
+              >
+                <Text style={styles.bioText}>{bioText}</Text>
+              </Pressable>
+            ) : (
+              <Pressable onPress={openBio}>
+                <Text style={styles.mutedPrompt}>
+                  Write a short intro about yourself (optional)
+                </Text>
+              </Pressable>
+            )}
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{placesStamped}</Text>
-            <Text style={styles.statLabel}>Places stamped</Text>
-          </View>
+        ) : null}
+
+        {/* Collection | Moments */}
+        <View style={styles.segmented}>
+          <Pressable
+            style={[
+              styles.segment,
+              lowerTab === "collection" && styles.segmentActive,
+            ]}
+            onPress={() => setLowerTab("collection")}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: lowerTab === "collection" }}
+          >
+            <Text
+              style={[
+                styles.segmentLabel,
+                lowerTab === "collection" && styles.segmentLabelActive,
+              ]}
+            >
+              Collection{" "}
+              <Text
+                style={[
+                  styles.segmentCount,
+                  lowerTab === "collection" && styles.segmentCountActive,
+                ]}
+              >
+                {collectionCount}
+              </Text>
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.segment,
+              lowerTab === "moments" && styles.segmentActive,
+            ]}
+            onPress={() => setLowerTab("moments")}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: lowerTab === "moments" }}
+          >
+            <Text
+              style={[
+                styles.segmentLabel,
+                lowerTab === "moments" && styles.segmentLabelActive,
+              ]}
+            >
+              Moments{" "}
+              <Text
+                style={[
+                  styles.segmentCount,
+                  lowerTab === "moments" && styles.segmentCountActive,
+                ]}
+              >
+                {momentsCount}
+              </Text>
+            </Text>
+          </Pressable>
         </View>
 
-        <Text style={styles.sectionTitle}>Settings</Text>
-        {SETTINGS.map((item) => {
-          const SettingIcon = item.icon;
-          return (
+        {lowerTab === "collection" ? (
+          <>
             <Pressable
-              key={item.id}
-              style={styles.settingsRow}
-              onPress={item.id === "account" ? onSignOut : undefined}
+              style={styles.sectionHeader}
+              onPress={() => navigation.navigate("StampCollection")}
+              accessibilityRole="button"
+              accessibilityLabel="See all stamps"
             >
-              <View style={styles.settingsIcon}>
-                <SettingIcon size={18} color={colors.forest} />
-              </View>
-              <Text style={styles.settingsLabel}>
-                {item.id === "account" ? "Sign out" : item.label}
-              </Text>
-              <IconChevronRight size={18} color={colors.grayLight} />
+              <Text style={styles.sectionEyebrow}>STAMPS</Text>
+              <IconChevronRight size={20} color={colors.gray} />
             </Pressable>
-          );
-        })}
-        {signingOut ? (
-          <ActivityIndicator color={colors.forest} style={{ marginTop: 12 }} />
-        ) : null}
+            {previewStamps.length === 0 ? (
+              <Text style={styles.sectionEmpty}>
+                Visit communities and stamp them. They show here.
+              </Text>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.stampRow}
+                style={styles.stampScroll}
+              >
+                {previewStamps.map((stamp) => (
+                  <Stamp
+                    key={stamp.stampId}
+                    communityId={stamp.id}
+                    name={stamp.communityName}
+                    subtitle={stamp.subtitle}
+                    meta={stamp.meta}
+                    countryCode={stamp.countryCode}
+                    earned
+                    size="sm"
+                    onPress={() =>
+                      navigation.navigate("CommunityProfile", {
+                        communityId: stamp.id,
+                      })
+                    }
+                  />
+                ))}
+              </ScrollView>
+            )}
+
+            <Pressable
+              style={[styles.sectionHeader, styles.sectionHeaderSpaced]}
+              onPress={() => navigation.navigate("BadgeCollection")}
+              accessibilityRole="button"
+              accessibilityLabel="See all badges"
+            >
+              <Text style={styles.sectionEyebrow}>BADGES</Text>
+              <IconChevronRight size={20} color={colors.gray} />
+            </Pressable>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.badgeRow}
+            >
+              {previewBadges.map((badge) => (
+                <AchievementBadgeTile
+                  key={badge.id}
+                  badge={badge}
+                  compact
+                  onPress={() => navigation.navigate("BadgeCollection")}
+                />
+              ))}
+            </ScrollView>
+          </>
+        ) : (
+          <>
+            <Pressable
+              style={styles.sectionHeader}
+              onPress={goMoments}
+              accessibilityRole="button"
+              accessibilityLabel="Open Moments tab"
+            >
+              <Text style={styles.sectionEyebrow}>YOUR MOMENTS</Text>
+              <IconChevronRight size={20} color={colors.gray} />
+            </Pressable>
+            {previewMoments.length === 0 ? (
+              <Pressable onPress={goMoments}>
+                <Text style={styles.sectionEmpty}>
+                  Notes from places you’ve been show up here and in Moments.
+                </Text>
+              </Pressable>
+            ) : (
+              <View style={styles.momentsList}>
+                {previewMoments.map((entry) => (
+                  <Pressable
+                    key={entry.id}
+                    style={styles.momentCard}
+                    onPress={goMoments}
+                  >
+                    <Text style={styles.momentNote} numberOfLines={2}>
+                      {entry.note}
+                    </Text>
+                    <Text style={styles.momentMeta}>
+                      {new Date(entry.createdAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </>
+        )}
       </ScrollView>
 
+      {/* Settings sheet */}
+      <Modal
+        visible={settingsOpen}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setSettingsOpen(false)}
+      >
+        <SafeAreaView style={styles.modalSafe}>
+          <View style={styles.modalHeader}>
+            <Pressable onPress={() => setSettingsOpen(false)}>
+              <Text style={styles.modalCancel}>Close</Text>
+            </Pressable>
+            <Text style={styles.modalTitle}>Settings</Text>
+            <View style={{ width: 56 }} />
+          </View>
+
+          <Pressable
+            style={styles.settingsRow}
+            onPress={() => {
+              setSettingsOpen(false);
+              setLocationOpen(true);
+            }}
+          >
+            <View style={styles.settingsIcon}>
+              <IconMapPin size={18} color={colors.forest} />
+            </View>
+            <View style={styles.settingsCopy}>
+              <Text style={styles.settingsLabel}>Map location</Text>
+              <Text style={styles.settingsSublabel} numberOfLines={1}>
+                {mapLocationLabel}
+              </Text>
+            </View>
+            <IconChevronRight size={18} color={colors.grayLight} />
+          </Pressable>
+
+          <Pressable style={styles.settingsRow} onPress={toggleShowLocation}>
+            <View style={styles.settingsIcon}>
+              <IconMapPin size={18} color={colors.forest} />
+            </View>
+            <View style={styles.settingsCopy}>
+              <Text style={styles.settingsLabel}>Show location on profile</Text>
+              <Text style={styles.settingsSublabel}>
+                {showLocationOnProfile
+                  ? "Visible · tap to hide"
+                  : "Hidden · “Somewhere out exploring”"}
+              </Text>
+            </View>
+            <Text
+              style={[
+                styles.togglePill,
+                showLocationOnProfile && styles.togglePillOn,
+              ]}
+            >
+              {showLocationOnProfile ? "On" : "Off"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.settingsRow}
+            onPress={() => {
+              setSettingsOpen(false);
+              setPublicPreview(true);
+            }}
+          >
+            <View style={styles.settingsIcon}>
+              <IconUser size={18} color={colors.forest} />
+            </View>
+            <View style={styles.settingsCopy}>
+              <Text style={styles.settingsLabel}>
+                Preview as others see you
+              </Text>
+              <Text style={styles.settingsSublabel}>
+                Empty About hidden. Edits stay private.
+              </Text>
+            </View>
+            <IconChevronRight size={18} color={colors.grayLight} />
+          </Pressable>
+
+          {SETTINGS.map((item) => {
+            const SettingIcon = item.icon;
+            return (
+              <Pressable
+                key={item.id}
+                style={styles.settingsRow}
+                onPress={
+                  item.id === "account"
+                    ? onSignOut
+                    : () => Alert.alert(item.label, "Coming soon.")
+                }
+              >
+                <View style={styles.settingsIcon}>
+                  <SettingIcon size={18} color={colors.forest} />
+                </View>
+                <Text style={styles.settingsLabel}>{item.label}</Text>
+                <IconChevronRight size={18} color={colors.grayLight} />
+              </Pressable>
+            );
+          })}
+          {signingOut ? (
+            <ActivityIndicator
+              color={colors.forest}
+              style={{ marginTop: 16 }}
+            />
+          ) : null}
+        </SafeAreaView>
+      </Modal>
+
+      {/* Bio */}
+      <Modal
+        visible={bioOpen}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setBioOpen(false)}
+      >
+        <SafeAreaView style={styles.modalSafe}>
+          <View style={styles.modalHeader}>
+            <Pressable onPress={() => setBioOpen(false)}>
+              <Text style={styles.modalCancel}>Cancel</Text>
+            </Pressable>
+            <Text style={styles.modalTitle}>About you</Text>
+            <View style={{ width: 56 }} />
+          </View>
+          <ScrollView
+            contentContainerStyle={styles.modalScroll}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={styles.modalHint}>
+              Optional. A short note others could see on your profile someday.
+            </Text>
+            <TextInput
+              style={styles.bioInput}
+              placeholder="What do you love exploring?"
+              placeholderTextColor={colors.grayLight}
+              value={draftBio}
+              onChangeText={setDraftBio}
+              multiline
+              maxLength={280}
+              textAlignVertical="top"
+            />
+            <Text style={styles.charCount}>{draftBio.length}/280</Text>
+          </ScrollView>
+          <View style={styles.modalFooter}>
+            <PrimaryButton label="Save" onPress={saveBio} loading={bioSaving} />
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Cultures / intents */}
       <Modal
         visible={editOpen}
         animationType="slide"
@@ -390,6 +856,7 @@ export function ProfileScreen() {
         </SafeAreaView>
       </Modal>
 
+      {/* Location */}
       <Modal
         visible={locationOpen}
         animationType="slide"
@@ -404,7 +871,7 @@ export function ProfileScreen() {
             >
               <Text style={styles.modalCancel}>Close</Text>
             </Pressable>
-            <Text style={styles.modalTitle}>Map location</Text>
+            <Text style={styles.modalTitle}>Location</Text>
             <View style={{ width: 56 }} />
           </View>
 
@@ -481,18 +948,53 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: 48,
   },
-  profileHeader: {
+  topBar: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 12,
-    marginBottom: 24,
-    gap: 10,
+    justifyContent: "flex-end",
+    marginTop: 2,
+    marginBottom: 8,
+    gap: 8,
+  },
+  previewBanner: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: radii.full,
+    backgroundColor: colors.forest,
+  },
+  previewBannerText: {
+    fontFamily: typography.bodyMedium,
+    fontSize: 13,
+    color: colors.white,
+    textAlign: "center",
+  },
+  settingsBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 14,
+    marginBottom: 20,
+  },
+  avatarWrap: {
+    width: 88,
+    height: 88,
   },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     backgroundColor: colors.forest,
     alignItems: "center",
     justifyContent: "center",
@@ -500,96 +1002,181 @@ const styles = StyleSheet.create({
   avatarText: {
     fontFamily: typography.bodySemibold,
     color: colors.white,
-    fontSize: 28,
+    fontSize: 32,
+  },
+  headerMeta: {
+    flex: 1,
+    minWidth: 0,
+    gap: 6,
+    paddingTop: 2,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
   },
   name: {
     fontFamily: typography.display,
-    fontSize: 24,
+    fontSize: 22,
     color: colors.ink,
+    maxWidth: "55%",
   },
-  prefsCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 16,
-    marginBottom: 16,
-    gap: 10,
+  cultureRowCompact: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 2,
   },
-  prefsHeader: {
+  locationLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 4,
+  },
+  locationText: {
+    flexShrink: 1,
+    fontFamily: typography.body,
+    fontSize: 13,
+    color: colors.gray,
+  },
+  locationTextTemplate: {
+    fontStyle: "italic",
+    color: colors.grayLight,
+  },
+  editLinkSmall: {
+    fontFamily: typography.bodyMedium,
+    fontSize: 12,
+    color: colors.forest,
+    marginLeft: 2,
+  },
+  block: {
+    marginBottom: 8,
+  },
+  sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginBottom: 10,
   },
-  prefsTitle: {
+  sectionHeaderSpaced: {
+    marginTop: 22,
+  },
+  sectionEyebrow: {
     fontFamily: typography.bodySemibold,
-    fontSize: 15,
-    color: colors.ink,
+    fontSize: 13,
+    color: colors.gray,
+    letterSpacing: 0.8,
   },
   editLink: {
     fontFamily: typography.bodyMedium,
     fontSize: 14,
     color: colors.forest,
   },
-  intentLineMuted: {
+  mutedPrompt: {
     fontFamily: typography.body,
     fontSize: 14,
     color: colors.grayLight,
+    lineHeight: 20,
   },
-  cultureRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  locationLabel: {
-    flex: 1,
+  bioText: {
     fontFamily: typography.body,
+    fontSize: 15,
+    color: colors.ink,
+    lineHeight: 22,
+  },
+  segmented: {
+    flexDirection: "row",
+    backgroundColor: colors.surface,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 3,
+    marginTop: 18,
+    marginBottom: 16,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: radii.full,
+    alignItems: "center",
+  },
+  segmentActive: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  segmentLabel: {
+    fontFamily: typography.bodyMedium,
     fontSize: 14,
     color: colors.gray,
   },
-  stats: {
-    flexDirection: "row",
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    paddingVertical: 18,
-    marginBottom: 28,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  stat: {
-    flex: 1,
-    alignItems: "center",
-  },
-  statValue: {
-    fontFamily: typography.display,
-    fontSize: 22,
+  segmentLabelActive: {
+    fontFamily: typography.bodySemibold,
     color: colors.ink,
   },
-  statLabel: {
+  segmentCount: {
+    fontFamily: typography.bodyMedium,
+    fontSize: 13,
+    color: colors.grayLight,
+  },
+  segmentCountActive: {
+    color: colors.forest,
+    fontFamily: typography.bodySemibold,
+  },
+  sectionEmpty: {
+    fontFamily: typography.body,
+    fontSize: 14,
+    color: colors.gray,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  stampScroll: {
+    overflow: "visible",
+    marginHorizontal: -20,
+  },
+  stampRow: {
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingBottom: 4,
+  },
+  badgeRow: {
+    gap: 8,
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  momentsList: {
+    gap: 8,
+  },
+  momentCard: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
+    padding: 12,
+    gap: 4,
+  },
+  momentNote: {
+    fontFamily: typography.body,
+    fontSize: 14,
+    color: colors.ink,
+    lineHeight: 20,
+  },
+  momentMeta: {
     fontFamily: typography.body,
     fontSize: 12,
     color: colors.gray,
-    marginTop: 4,
-  },
-  statDivider: {
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: colors.border,
-  },
-  sectionTitle: {
-    fontFamily: typography.display,
-    fontSize: 20,
-    color: colors.ink,
-    marginBottom: 12,
   },
   settingsRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 14,
+    paddingHorizontal: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
     gap: 12,
@@ -607,6 +1194,33 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodyMedium,
     fontSize: 15,
     color: colors.ink,
+  },
+  settingsCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  settingsSublabel: {
+    fontFamily: typography.body,
+    fontSize: 12,
+    color: colors.gray,
+  },
+  togglePill: {
+    fontFamily: typography.bodySemibold,
+    fontSize: 12,
+    color: colors.gray,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radii.full,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: "hidden",
+  },
+  togglePillOn: {
+    color: colors.forest,
+    borderColor: colors.forest,
+    backgroundColor: colors.white,
   },
   modalSafe: {
     flex: 1,
@@ -655,6 +1269,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.grayLight,
     marginTop: 2,
+  },
+  bioInput: {
+    minHeight: 120,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
+    padding: 14,
+    fontFamily: typography.body,
+    fontSize: 15,
+    color: colors.ink,
+  },
+  charCount: {
+    fontFamily: typography.body,
+    fontSize: 12,
+    color: colors.grayLight,
+    textAlign: "right",
+    marginTop: 6,
   },
   gpsRow: {
     flexDirection: "row",

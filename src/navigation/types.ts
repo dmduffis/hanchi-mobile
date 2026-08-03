@@ -4,6 +4,7 @@ import type { CommunityProfileTab } from "../types";
 
 export type MainTabParamList = {
   Home: undefined;
+  Moments: undefined;
   Map:
     | {
         focusCommunityId?: string;
@@ -30,7 +31,6 @@ export type MainTabParamList = {
       }
     | undefined;
   Favorites: undefined;
-  Passport: undefined;
   Profile: undefined;
 };
 
@@ -44,4 +44,6 @@ export type RootStackParamList = {
   Discover: undefined;
   DropIn: undefined;
   Notifications: undefined;
+  StampCollection: undefined;
+  BadgeCollection: undefined;
 };

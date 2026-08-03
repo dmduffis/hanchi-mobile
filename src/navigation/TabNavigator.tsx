@@ -11,7 +11,7 @@ import {
 import { FavoritesScreen } from "../screens/FavoritesScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { MapScreen } from "../screens/MapScreen";
-import { PassportScreen } from "../screens/PassportScreen";
+import { MomentsScreen } from "../screens/MomentsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { colors, typography } from "../theme";
 import type { MainTabParamList } from "./types";
@@ -20,9 +20,9 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const TAB_ICONS: Record<keyof MainTabParamList, Icon> = {
   Home: IconHome,
+  Moments: IconBook2,
   Map: IconMap,
   Favorites: IconHeart,
-  Passport: IconBook2,
   Profile: IconUser,
 };
 
@@ -50,9 +50,9 @@ export function TabNavigator() {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Moments" component={MomentsScreen} />
       <Tab.Screen name="Map" component={MapScreen} />
       <Tab.Screen name="Favorites" component={FavoritesScreen} />
-      <Tab.Screen name="Passport" component={PassportScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
