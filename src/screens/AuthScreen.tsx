@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -12,8 +14,6 @@ import {
 } from "react-native";
 import Animated, {
   Easing,
-  FadeInDown,
-  FadeInUp,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -24,6 +24,7 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAuth } from "../auth/AuthContext";
+import { AuthCurlPattern } from "../components/AuthCurlPattern";
 import { Stamp } from "../components";
 import { getCommunityCountryCode } from "../data/communityFlags";
 import { isSupabaseConfigured } from "../lib/supabase";
@@ -35,6 +36,8 @@ const AUTH = {
   cream: "#F6F0E6",
   ink: "#141414",
   muted: "#8A847A",
+  /** Warm underpaint for auth field (pattern sits on top at low opacity). */
+  field: "#F6F0E6",
 };
 
 /**
@@ -123,11 +126,7 @@ function FanStamp({
   }));
 
   return (
-    <Animated.View
-      entering={FadeInUp.delay(delayMs).duration(650)}
-      style={[styles.fanItem, animStyle]}
-      pointerEvents="none"
-    >
+    <Animated.View style={[styles.fanItem, animStyle]} pointerEvents="none">
       <Stamp
         communityId={communityId}
         name={name}
@@ -219,168 +218,190 @@ export function AuthScreen() {
 
   return (
     <View style={styles.root}>
-      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          <ScrollView
+      <AuthCurlPattern />
+      <View style={styles.foreground} pointerEvents="box-none">
+        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+          <KeyboardAvoidingView
             style={styles.flex}
-            contentContainerStyle={styles.content}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            bounces={false}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
           >
-            <View style={styles.hero}>
-              <View style={styles.fan}>
-                {FAN.map((stamp, i) => (
-                  <FanStamp
-                    key={stamp.communityId}
-                    {...stamp}
-                    delayMs={80 + i * 100}
+            <ScrollView
+              style={styles.flex}
+              contentContainerStyle={styles.content}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
+              <View style={styles.hero}>
+                <View style={styles.fan}>
+                  {FAN.map((stamp, i) => (
+                    <FanStamp
+                      key={stamp.communityId}
+                      {...stamp}
+                      delayMs={80 + i * 100}
+                    />
+                  ))}
+                </View>
+
+                <View style={styles.heroCopy}>
+                  <Image
+                    source={require("../../assets/images/hanchi-wordmark-purple.png")}
+                    style={styles.wordmark}
+                    resizeMode="contain"
+                    accessibilityLabel="Hanchi"
                   />
-                ))}
+                  <Text style={styles.tagline}>Every alley holds a story.</Text>
+                </View>
               </View>
 
-              <Animated.View
-                entering={FadeInDown.delay(120).duration(550)}
-                style={styles.heroCopy}
-              >
-                <Text style={styles.wordmark}>Hanchi</Text>
-                <Text style={styles.tagline}>Every alley holds a story.</Text>
-              </Animated.View>
-            </View>
-
-            <Animated.View
-              entering={FadeInUp.delay(180).duration(550)}
-              style={styles.formSheet}
-            >
-              {!configured ? (
-                <Text style={styles.error}>
-                  Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY
-                  to your .env, then restart Expo.
-                </Text>
-              ) : awaitingEmailConfirm ? (
-                <View style={styles.form}>
-                  <Text style={styles.confirmTitle}>Confirm your email</Text>
-                  <Text style={styles.confirmBody}>
-                    We sent a link to{" "}
-                    <Text style={styles.confirmEmail}>
-                      {email.trim() || "your inbox"}
-                    </Text>
-                    . Open it to activate your account, then come back to sign
-                    in.
+              <View style={styles.formSheet}>
+                {!configured ? (
+                  <Text style={styles.error}>
+                    Add EXPO_PUBLIC_SUPABASE_URL and
+                    EXPO_PUBLIC_SUPABASE_ANON_KEY to your .env, then restart
+                    Expo.
                   </Text>
-
-                  {error ? <Text style={styles.error}>{error}</Text> : null}
-                  {info ? <Text style={styles.info}>{info}</Text> : null}
-
-                  <Pressable
-                    onPress={openEmailApp}
-                    style={({ pressed }) => [
-                      styles.cta,
-                      pressed && styles.ctaPressed,
-                    ]}
-                  >
-                    <Text style={styles.ctaLabel}>Open email app</Text>
-                  </Pressable>
-
-                  <Pressable
-                    onPress={() => void onResendConfirm()}
-                    disabled={busy}
-                    style={styles.switch}
-                  >
-                    <Text style={styles.switchText}>
-                      {busy ? "Sending…" : "Resend confirmation email"}
+                ) : awaitingEmailConfirm ? (
+                  <View style={styles.form}>
+                    <Text style={styles.confirmTitle}>Confirm your email</Text>
+                    <Text style={styles.confirmBody}>
+                      We sent a link to{" "}
+                      <Text style={styles.confirmEmail}>
+                        {email.trim() || "your inbox"}
+                      </Text>
+                      . Open it to activate your account, then come back to sign
+                      in.
                     </Text>
-                  </Pressable>
 
-                  <Pressable
-                    onPress={() => {
-                      setAwaitingEmailConfirm(false);
-                      setMode("signIn");
-                      setError(null);
-                      setInfo(null);
-                    }}
-                    style={styles.switch}
-                  >
-                    <Text style={styles.switchText}>
-                      I’ve confirmed — sign in
-                    </Text>
-                  </Pressable>
-                </View>
-              ) : (
-                <View style={styles.form}>
-                  {isSignUp ? (
+                    {error ? <Text style={styles.error}>{error}</Text> : null}
+                    {info ? <Text style={styles.info}>{info}</Text> : null}
+
+                    <Pressable
+                      onPress={openEmailApp}
+                      style={({ pressed }) => [
+                        styles.cta,
+                        pressed && styles.ctaPressed,
+                      ]}
+                    >
+                      <Text style={styles.ctaLabel}>Open email app</Text>
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() => void onResendConfirm()}
+                      disabled={busy}
+                      style={styles.switch}
+                    >
+                      {busy ? (
+                        <View style={styles.switchBusy}>
+                          <ActivityIndicator
+                            color={colors.forest}
+                            size="small"
+                          />
+                          <Text style={styles.switchText}>Sending email…</Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.switchText}>
+                          Resend confirmation email
+                        </Text>
+                      )}
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() => {
+                        setAwaitingEmailConfirm(false);
+                        setMode("signIn");
+                        setError(null);
+                        setInfo(null);
+                      }}
+                      style={styles.switch}
+                    >
+                      <Text style={styles.switchText}>
+                        I’ve confirmed — sign in
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <View style={styles.form}>
+                    {isSignUp ? (
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Display name"
+                        placeholderTextColor={AUTH.muted}
+                        autoCapitalize="words"
+                        value={displayName}
+                        onChangeText={setDisplayName}
+                      />
+                    ) : null}
                     <TextInput
                       style={styles.input}
-                      placeholder="Display name"
+                      placeholder="Email"
                       placeholderTextColor={AUTH.muted}
-                      autoCapitalize="words"
-                      value={displayName}
-                      onChangeText={setDisplayName}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="email-address"
+                      textContentType="emailAddress"
+                      autoComplete="email"
+                      value={email}
+                      onChangeText={setEmail}
                     />
-                  ) : null}
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Email"
-                    placeholderTextColor={AUTH.muted}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    keyboardType="email-address"
-                    textContentType="emailAddress"
-                    autoComplete="email"
-                    value={email}
-                    onChangeText={setEmail}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Password"
-                    placeholderTextColor={AUTH.muted}
-                    secureTextEntry
-                    textContentType={isSignUp ? "newPassword" : "password"}
-                    autoComplete={isSignUp ? "password-new" : "password"}
-                    value={password}
-                    onChangeText={setPassword}
-                  />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Password"
+                      placeholderTextColor={AUTH.muted}
+                      secureTextEntry
+                      textContentType={isSignUp ? "newPassword" : "password"}
+                      autoComplete={isSignUp ? "password-new" : "password"}
+                      value={password}
+                      onChangeText={setPassword}
+                    />
 
-                  {error ? <Text style={styles.error}>{error}</Text> : null}
-                  {info ? <Text style={styles.info}>{info}</Text> : null}
+                    {error ? <Text style={styles.error}>{error}</Text> : null}
+                    {info ? <Text style={styles.info}>{info}</Text> : null}
 
-                  <Pressable
-                    onPress={() => void submit()}
-                    disabled={busy}
-                    style={({ pressed }) => [
-                      styles.cta,
-                      (busy || pressed) && styles.ctaPressed,
-                    ]}
-                  >
-                    <Text style={styles.ctaLabel}>
-                      {busy ? "…" : isSignUp ? "Create account" : "Sign in"}
-                    </Text>
-                  </Pressable>
+                    <Pressable
+                      onPress={() => void submit()}
+                      disabled={busy}
+                      style={({ pressed }) => [
+                        styles.cta,
+                        (busy || pressed) && styles.ctaPressed,
+                      ]}
+                    >
+                      {busy ? (
+                        <View style={styles.ctaBusy}>
+                          <ActivityIndicator color={colors.white} />
+                          <Text style={styles.ctaLabel}>
+                            {isSignUp ? "Creating account…" : "Signing in…"}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.ctaLabel}>
+                          {isSignUp ? "Create account" : "Sign in"}
+                        </Text>
+                      )}
+                    </Pressable>
 
-                  <Pressable
-                    onPress={() => {
-                      setMode((m) => (m === "signUp" ? "signIn" : "signUp"));
-                      setAwaitingEmailConfirm(false);
-                      setError(null);
-                      setInfo(null);
-                    }}
-                    style={styles.switch}
-                  >
-                    <Text style={styles.switchText}>
-                      {isSignUp
-                        ? "Already have an account? Sign in"
-                        : "New here? Create an account"}
-                    </Text>
-                  </Pressable>
-                </View>
-              )}
-            </Animated.View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+                    <Pressable
+                      onPress={() => {
+                        setMode((m) => (m === "signUp" ? "signIn" : "signUp"));
+                        setAwaitingEmailConfirm(false);
+                        setError(null);
+                        setInfo(null);
+                      }}
+                      style={styles.switch}
+                    >
+                      <Text style={styles.switchText}>
+                        {isSignUp
+                          ? "Already have an account? Sign in"
+                          : "New here? Create an account"}
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </View>
     </View>
   );
 }
@@ -388,7 +409,12 @@ export function AuthScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: AUTH.cream,
+    backgroundColor: AUTH.field,
+  },
+  foreground: {
+    flex: 1,
+    zIndex: 1,
+    elevation: 2,
   },
   safe: {
     flex: 1,
@@ -406,6 +432,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 8,
     overflow: "visible",
+    backgroundColor: "transparent",
   },
   fan: {
     height: 168,
@@ -430,20 +457,16 @@ const styles = StyleSheet.create({
     overflow: "visible",
   },
   wordmark: {
-    fontFamily: typography.display,
-    fontSize: 44,
-    lineHeight: 54,
-    paddingTop: 2,
-    color: colors.forestDark,
-    textAlign: "center",
+    width: 260,
+    height: 96,
   },
   tagline: {
-    marginTop: -4,
+    marginTop: 2,
     maxWidth: 280,
-    fontFamily: typography.body,
+    fontFamily: typography.bodyMedium,
     fontSize: 15,
     lineHeight: 20,
-    color: AUTH.muted,
+    color: colors.forestDark,
     textAlign: "center",
   },
   formSheet: {
@@ -502,6 +525,11 @@ const styles = StyleSheet.create({
   ctaPressed: {
     opacity: 0.88,
   },
+  ctaBusy: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
   ctaLabel: {
     fontFamily: typography.bodySemibold,
     fontSize: 16,
@@ -510,6 +538,11 @@ const styles = StyleSheet.create({
   switch: {
     alignItems: "center",
     paddingVertical: 10,
+  },
+  switchBusy: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   switchText: {
     fontFamily: typography.bodyMedium,
