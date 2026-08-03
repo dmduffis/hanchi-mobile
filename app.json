@@ -7,6 +7,11 @@
     "icon": "./assets/images/icon.png",
     "scheme": "hanchi",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/images/splash-hanchi.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#7C3AED"
+    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.hanchi.app",
@@ -37,8 +42,9 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#7C3AED",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "image": "./assets/images/splash-hanchi.png",
+          "resizeMode": "cover",
+          "enableFullScreenImage_legacy": true
         }
       ],
       "expo-font",

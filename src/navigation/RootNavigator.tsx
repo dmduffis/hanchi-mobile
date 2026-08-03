@@ -20,6 +20,8 @@ type RootNavigatorProps = {
   isAuthenticated: boolean;
   needsOnboarding: boolean;
   onOnboarded: () => void | Promise<void>;
+  /** Stack canvas color so splash dissolve doesn’t flash white. */
+  entryBackground?: string;
 };
 
 function friendlyProfileError(raw: string | null): string {
@@ -47,9 +49,7 @@ function ProfileLoadError() {
   return (
     <View style={styles.errorWrap}>
       <Text style={styles.errorTitle}>Almost there</Text>
-      <Text style={styles.errorBody}>
-        {friendlyProfileError(profileError)}
-      </Text>
+      <Text style={styles.errorBody}>{friendlyProfileError(profileError)}</Text>
       <Pressable onPress={() => void refreshProfile()} style={styles.errorBtn}>
         <Text style={styles.errorBtnText}>Retry</Text>
       </Pressable>
@@ -64,6 +64,7 @@ export function RootNavigator({
   isAuthenticated,
   needsOnboarding,
   onOnboarded,
+  entryBackground = colors.background,
 }: RootNavigatorProps) {
   const { profile, profileReady } = useAuth();
   const profileMissing = isAuthenticated && profileReady && !profile;
@@ -72,7 +73,7 @@ export function RootNavigator({
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: colors.background },
+        contentStyle: { backgroundColor: entryBackground },
       }}
     >
       {!isAuthenticated ? (
