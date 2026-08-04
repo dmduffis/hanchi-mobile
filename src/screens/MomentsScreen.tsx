@@ -246,7 +246,7 @@ export function MomentsScreen() {
             accessibilityRole="button"
             accessibilityLabel="Add a moment"
           >
-            <IconPlus size={22} color={colors.white} />
+            <IconPlus size={21} color={colors.white} />
           </Pressable>
         </View>
 
@@ -286,8 +286,24 @@ export function MomentsScreen() {
                     }}
                     disabled={!item.communityId}
                   >
-                    <View style={styles.stampIconWrap}>
-                      <PostageStampIcon size={18} color={colors.gold} />
+                    <View style={styles.avatarWrap}>
+                      <View
+                        style={[
+                          styles.avatar,
+                          item.kind === "own" && styles.avatarOwn,
+                        ]}
+                      >
+                        <Text style={styles.avatarText}>{initial}</Text>
+                      </View>
+                      {item.authorCountryCode || item.authorFlag ? (
+                        <View style={styles.flagBadge}>
+                          <CircularFlag
+                            countryCode={item.authorCountryCode}
+                            flag={item.authorFlag ?? undefined}
+                            size={17}
+                          />
+                        </View>
+                      ) : null}
                     </View>
                     <View style={styles.stampBody}>
                       <Text style={styles.stampLine}>
@@ -300,9 +316,12 @@ export function MomentsScreen() {
                           {item.communityName ?? "a place"}
                         </Text>
                       </Text>
-                      <Text style={styles.time}>
-                        {formatRelativeTime(item.createdAt)}
-                      </Text>
+                      <View style={styles.stampMetaRow}>
+                        <PostageStampIcon size={12} color={colors.gold} />
+                        <Text style={styles.time}>
+                          {formatRelativeTime(item.createdAt)}
+                        </Text>
+                      </View>
                     </View>
                   </Pressable>
                 );
@@ -336,7 +355,7 @@ export function MomentsScreen() {
                           <CircularFlag
                             countryCode={item.authorCountryCode}
                             flag={item.authorFlag ?? undefined}
-                            size={18}
+                            size={17}
                           />
                         </View>
                       ) : null}
@@ -411,9 +430,6 @@ export function MomentsScreen() {
             />
 
             <Text style={styles.fieldLabel}>Check in</Text>
-            <Text style={styles.fieldHint}>
-              Optional. Like Facebook: “{authorName} at …”
-            </Text>
             {draftPlaceName ? (
               <View style={styles.checkInPreview}>
                 <Text style={styles.checkInPreviewLabel}>Preview</Text>
@@ -497,35 +513,35 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   scroll: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingHorizontal: 18,
+    paddingBottom: 32,
   },
   header: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
-    marginTop: 8,
-    marginBottom: 20,
+    marginTop: 6,
+    marginBottom: 14,
   },
   headerText: {
     flex: 1,
   },
   title: {
     fontFamily: typography.display,
-    fontSize: 28,
+    fontSize: 26,
     color: colors.ink,
   },
   subtitle: {
     fontFamily: typography.body,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.gray,
-    marginTop: 6,
-    lineHeight: 20,
+    marginTop: 4,
+    lineHeight: 18,
   },
   addBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.forest,
     alignItems: "center",
     justifyContent: "center",
@@ -533,34 +549,24 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: colors.surface,
-    borderRadius: radii.lg,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 14,
-    marginBottom: 12,
-    gap: 8,
+    padding: 12,
+    marginBottom: 14,
+    gap: 7,
   },
   stampCard: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    marginBottom: 6,
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 11,
+    marginBottom: 10,
     borderRadius: radii.md,
     backgroundColor: colors.background,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
-  },
-  stampIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
   },
   stampBody: {
     flex: 1,
@@ -571,7 +577,13 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 14,
     color: colors.gray,
-    lineHeight: 20,
+    lineHeight: 19,
+  },
+  stampMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 0,
   },
   stampVerb: {
     fontFamily: typography.body,
@@ -591,16 +603,16 @@ const styles = StyleSheet.create({
   cardTop: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 9,
   },
   avatarWrap: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.grayLight,
     alignItems: "center",
     justifyContent: "center",
@@ -610,16 +622,16 @@ const styles = StyleSheet.create({
   },
   flagBadge: {
     position: "absolute",
-    right: -4,
-    bottom: -4,
-    borderRadius: 10,
+    right: -3,
+    bottom: -3,
+    borderRadius: 9,
     borderWidth: 1.5,
     borderColor: colors.surface,
     backgroundColor: colors.surface,
   },
   avatarText: {
     fontFamily: typography.bodySemibold,
-    fontSize: 16,
+    fontSize: 15,
     color: colors.white,
   },
   cardMeta: {
@@ -628,46 +640,46 @@ const styles = StyleSheet.create({
   },
   author: {
     fontFamily: typography.bodySemibold,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.ink,
   },
   atLine: {
     fontFamily: typography.body,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.ink,
-    lineHeight: 21,
+    lineHeight: 19,
   },
   atWord: {
     fontFamily: typography.body,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.gray,
   },
   placeNameInline: {
     fontFamily: typography.bodySemibold,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.forest,
   },
   time: {
     fontFamily: typography.body,
     fontSize: 12,
     color: colors.gray,
-    marginTop: 2,
+    marginTop: 1,
   },
   note: {
     fontFamily: typography.body,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.ink,
-    lineHeight: 22,
+    lineHeight: 20,
   },
   emptyWrap: {
     alignItems: "center",
-    marginTop: 40,
+    marginTop: 36,
     gap: 12,
     paddingHorizontal: 12,
   },
   emptyTitle: {
     fontFamily: typography.display,
-    fontSize: 20,
+    fontSize: 19,
     color: colors.ink,
     textAlign: "center",
   },
@@ -676,7 +688,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.gray,
     textAlign: "center",
-    lineHeight: 22,
+    lineHeight: 21,
     marginBottom: 8,
   },
   modalSafe: {
@@ -725,12 +737,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodySemibold,
     fontSize: 14,
     color: colors.ink,
-    marginBottom: 4,
-  },
-  fieldHint: {
-    fontFamily: typography.body,
-    fontSize: 12,
-    color: colors.gray,
     marginBottom: 10,
   },
   checkInPreview: {

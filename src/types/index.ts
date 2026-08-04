@@ -119,7 +119,7 @@ export interface MomentItem {
   createdAt: string;
   communityId?: string | null;
   communityName?: string | null;
-  /** Place heritage flag (Facebook-style “Name at Place”). */
+  /** Place heritage flag for check-in “Name at Place” lines. */
   placeCountryCode?: string | null;
   photoUrl?: string | null;
   /** Author culture ISO country code for avatar flag badge. */
