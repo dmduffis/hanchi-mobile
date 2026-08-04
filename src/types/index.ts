@@ -112,20 +112,29 @@ export type PassportBadge = AchievementBadge;
 export interface MomentItem {
   id: string;
   kind: "own" | "peer";
-  /** post = written note; stamp = stamped place only (activity/notification). */
-  activity: "post" | "stamp";
+  /**
+   * post = written note / check-in
+   * stamp = stamped a place
+   * dish_try = marked a dish as tried
+   */
+  activity: "post" | "stamp" | "dish_try";
   authorName: string;
   note: string;
   createdAt: string;
   communityId?: string | null;
   communityName?: string | null;
-  /** Place heritage flag (Facebook-style “Name at Place”). */
+  /** Place / dish heritage flag for “at …” lines. */
   placeCountryCode?: string | null;
   photoUrl?: string | null;
   /** Author culture ISO country code for avatar flag badge. */
   authorCountryCode?: string | null;
   /** Emoji fallback when no country code. */
   authorFlag?: string | null;
+  /** dish_try fields */
+  dishId?: string | null;
+  dishName?: string | null;
+  restaurantId?: string | null;
+  restaurantName?: string | null;
 }
 
 

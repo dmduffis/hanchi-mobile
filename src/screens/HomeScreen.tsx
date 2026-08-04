@@ -38,11 +38,13 @@ import {
   getCommunityFlag,
 } from "../data/communityFlags";
 import { IconArrowsMaximize, IconBell } from "../icons";
+import { listDishTries, type StoredDishTry } from "../lib/dishTries";
 import {
   mapSearchResults,
   type SearchKindFilter,
   type SearchResult,
 } from "../lib/searchResults";
+import { communitySocialProof, dishSocialProof } from "../lib/socialProof";
 import { resolveMapRegion } from "../lib/userLocation";
 import type { MainTabParamList, RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
@@ -83,10 +85,14 @@ export function HomeScreen() {
   const [nearby, setNearby] = useState<Community[]>([]);
   const [nearbyRaw, setNearbyRaw] = useState<ApiCommunity[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(true);
+  const [ownDishTries, setOwnDishTries] = useState<StoredDishTry[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      void listDishTries().then((tries) => {
+        if (!cancelled) setOwnDishTries(tries);
+      });
       (async () => {
         setNearbyLoading(true);
         try {
@@ -337,42 +343,50 @@ export function HomeScreen() {
                   disableIntervalMomentum
                   contentContainerStyle={styles.dishRow}
                 >
-                  {dishes.map((dish) => (
-                    <Pressable
-                      key={dish.id}
-                      style={styles.dishCard}
-                      onPress={() =>
-                        navigation.navigate("RestaurantDetail", {
-                          restaurantId: dish.poiId,
-                        })
-                      }
-                    >
-                      <View style={styles.dishImage}>
-                        {dish.imageUrl ? (
-                          <Image
-                            source={{ uri: dish.imageUrl }}
-                            style={styles.dishPhoto}
-                          />
-                        ) : (
-                          <Text style={styles.dishEmoji}>🥢</Text>
-                        )}
-                        {dish.ethnicities?.length ? (
-                          <View style={styles.dishFlagBadge}>
-                            <EthnicityFlags
-                              ethnicities={dish.ethnicities}
-                              size={22}
+                  {dishes.map((dish) => {
+                    const proof = dishSocialProof(dish, ownDishTries);
+                    return (
+                      <Pressable
+                        key={dish.id}
+                        style={styles.dishCard}
+                        onPress={() =>
+                          navigation.navigate("RestaurantDetail", {
+                            restaurantId: dish.poiId,
+                          })
+                        }
+                      >
+                        <View style={styles.dishImage}>
+                          {dish.imageUrl ? (
+                            <Image
+                              source={{ uri: dish.imageUrl }}
+                              style={styles.dishPhoto}
                             />
-                          </View>
+                          ) : (
+                            <Text style={styles.dishEmoji}>🥢</Text>
+                          )}
+                          {dish.ethnicities?.length ? (
+                            <View style={styles.dishFlagBadge}>
+                              <EthnicityFlags
+                                ethnicities={dish.ethnicities}
+                                size={22}
+                              />
+                            </View>
+                          ) : null}
+                        </View>
+                        <Text style={styles.dishName} numberOfLines={2}>
+                          {dish.name}
+                        </Text>
+                        <Text style={styles.dishCommunity} numberOfLines={1}>
+                          {dish.poiName ?? "Nearby"}
+                        </Text>
+                        {proof ? (
+                          <Text style={styles.dishProof} numberOfLines={2}>
+                            {proof.label}
+                          </Text>
                         ) : null}
-                      </View>
-                      <Text style={styles.dishName} numberOfLines={2}>
-                        {dish.name}
-                      </Text>
-                      <Text style={styles.dishCommunity} numberOfLines={1}>
-                        {dish.poiName ?? "Nearby"}
-                      </Text>
-                    </Pressable>
-                  ))}
+                      </Pressable>
+                    );
+                  })}
                 </ScrollView>
               </View>
             ) : null}
@@ -386,25 +400,35 @@ export function HomeScreen() {
                   No communities near you yet.
                 </Text>
               ) : (
-                nearby.map((c) => (
-                  <ListRow
-                    key={c.id}
-                    thumbnail={
-                      <CircularFlag
-                        countryCode={getCommunityCountryCode(c.id)}
-                        emoji={getCommunityFlag(c.id, c.emoji)}
-                        size={40}
-                      />
-                    }
-                    title={c.name}
-                    subtitle={`${c.neighborhood} · ${poiCountById.get(c.id) ?? 0} places · ${formatNearbyDistance(c.distanceMiles)}`}
-                    onPress={() =>
-                      navigation.navigate("CommunityProfile", {
-                        communityId: c.id,
-                      })
-                    }
-                  />
-                ))
+                nearby.map((c) => {
+                  const proof = communitySocialProof(c.id);
+                  return (
+                    <ListRow
+                      key={c.id}
+                      leading={
+                        <CircularFlag
+                          countryCode={getCommunityCountryCode(c.id)}
+                          flag={getCommunityFlag(c.id, c.emoji)}
+                          size={40}
+                        />
+                      }
+                      title={c.name}
+                      subtitle={`${c.neighborhood} · ${poiCountById.get(c.id) ?? 0} places · ${formatNearbyDistance(c.distanceMiles)}`}
+                      belowElement={
+                        proof ? (
+                          <Text style={styles.proofLine} numberOfLines={1}>
+                            {proof.label}
+                          </Text>
+                        ) : null
+                      }
+                      onPress={() =>
+                        navigation.navigate("CommunityProfile", {
+                          communityId: c.id,
+                        })
+                      }
+                    />
+                  );
+                })
               )}
             </View>
           </>
@@ -563,6 +587,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     color: colors.gray,
+    marginTop: 2,
+  },
+  dishProof: {
+    fontFamily: typography.body,
+    fontSize: 11,
+    lineHeight: 14,
+    color: colors.forest,
+    marginTop: 6,
+  },
+  proofLine: {
+    fontFamily: typography.body,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.forest,
     marginTop: 2,
   },
 });
