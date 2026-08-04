@@ -17,6 +17,7 @@ import { fetchUserFavorites } from "../api/favorites";
 import { fetchPoi, type ApiPoiDetail } from "../api/pois";
 import {
   CircularFlag,
+  DishTryButton,
   FavoriteHeart,
   FavoriteThumb,
   ListRow,
@@ -28,6 +29,7 @@ import {
   primaryEthnicityCountryCode,
   primaryEthnicityEmoji,
 } from "../data/ethnicityFlags";
+import { getCommunityCountryCode } from "../data/communityFlags";
 import { IconArrowLeft, IconClock, IconMapPin, IconUsers } from "../icons";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, radii, typography } from "../theme";
@@ -221,13 +223,35 @@ export function RestaurantDetailScreen() {
               showChevron={false}
               rightAlign="top"
               rightElement={
-                <FavoriteHeart
-                  type="dish"
-                  targetId={dish.id}
-                  size={16}
-                  circled
-                  initialFavorited={favoriteIds.has(`dish:${dish.id}`)}
-                />
+                <View style={styles.dishActions}>
+                  <DishTryButton
+                    dish={{
+                      dishId: dish.id,
+                      dishName: dish.name,
+                      restaurantId: poi.id,
+                      restaurantName: poi.name,
+                      communityId: community?.id ?? poi.communityId ?? null,
+                      communityName: community?.name ?? null,
+                      placeCountryCode:
+                        getCommunityCountryCode(
+                          community?.id ?? poi.communityId ?? "",
+                        ) ??
+                        primaryEthnicityCountryCode(
+                          dish.ethnicities?.length
+                            ? dish.ethnicities
+                            : poi.ethnicities,
+                        ) ??
+                        null,
+                    }}
+                  />
+                  <FavoriteHeart
+                    type="dish"
+                    targetId={dish.id}
+                    size={16}
+                    circled
+                    initialFavorited={favoriteIds.has(`dish:${dish.id}`)}
+                  />
+                </View>
               }
             />
           ))
@@ -344,6 +368,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.gray,
     lineHeight: 22,
+  },
+  dishActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   linkText: {
     fontFamily: typography.bodyMedium,
