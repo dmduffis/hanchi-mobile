@@ -3,6 +3,7 @@ import type { MomentItem } from "../types";
 /**
  * Peer posts, stamps, and dish tries for the feed until follow exists.
  * Mix same-culture home stops with people exploring other kitchens.
+ * Not every visit should match the author's flag.
  */
 export const mockPeerMoments: MomentItem[] = [
   {

@@ -36,8 +36,8 @@ import type { RootStackParamList } from "../navigation/types";
 import type { MomentItem } from "../types";
 import { colors, radii, typography } from "../theme";
 
-const AVATAR = 40;
-const AVATAR_FLAG = 18;
+const AVATAR = 36;
+const AVATAR_FLAG = 17;
 
 /** Strip em/en dashes from moment copy (display + compose). */
 function cleanMomentNote(note: string): string {
@@ -647,27 +647,27 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 12,
     marginTop: 8,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   headerText: {
     flex: 1,
   },
   title: {
     fontFamily: typography.display,
-    fontSize: 28,
+    fontSize: 26,
     color: colors.ink,
   },
   subtitle: {
     fontFamily: typography.body,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.gray,
-    marginTop: 6,
-    lineHeight: 20,
+    marginTop: 4,
+    lineHeight: 18,
   },
   addBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.forest,
     alignItems: "center",
     justifyContent: "center",
@@ -675,20 +675,20 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: colors.surface,
-    borderRadius: radii.lg,
+    borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 14,
-    marginBottom: 12,
-    gap: 8,
+    padding: 12,
+    marginBottom: 10,
+    gap: 6,
   },
   cardPress: {
-    gap: 8,
+    gap: 6,
   },
   cardTop: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
+    alignItems: "center",
+    gap: 9,
   },
   avatarWrap: {
     width: AVATAR,
@@ -707,16 +707,16 @@ const styles = StyleSheet.create({
   },
   flagBadge: {
     position: "absolute",
-    right: -4,
-    bottom: -4,
-    borderRadius: 10,
+    right: -3,
+    bottom: -3,
+    borderRadius: 9,
     borderWidth: 1.5,
     borderColor: colors.surface,
     backgroundColor: colors.surface,
   },
   avatarText: {
     fontFamily: typography.bodySemibold,
-    fontSize: 16,
+    fontSize: 15,
     color: colors.white,
   },
   cardMeta: {
@@ -727,23 +727,23 @@ const styles = StyleSheet.create({
   /** Shared size for all head lines (at / stamped / tried) */
   headline: {
     fontFamily: typography.body,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.ink,
-    lineHeight: 21,
+    lineHeight: 19,
   },
   author: {
     fontFamily: typography.bodySemibold,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.ink,
   },
   verb: {
     fontFamily: typography.body,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.gray,
   },
   placeName: {
     fontFamily: typography.bodySemibold,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.forest,
   },
   time: {
@@ -753,23 +753,23 @@ const styles = StyleSheet.create({
   },
   note: {
     fontFamily: typography.body,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.ink,
-    lineHeight: 22,
+    lineHeight: 20,
     // Align under headline when avatar is present
-    marginLeft: AVATAR + 12,
+    marginLeft: AVATAR + 9,
   },
   cardActions: {
     flexDirection: "row",
     alignItems: "center",
-    marginLeft: AVATAR + 12,
-    marginTop: 2,
+    marginLeft: AVATAR + 9,
+    marginTop: 0,
   },
   likeBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    paddingVertical: 4,
+    paddingVertical: 2,
     paddingRight: 8,
   },
   likeBtnPressed: {
@@ -787,13 +787,13 @@ const styles = StyleSheet.create({
   },
   emptyWrap: {
     alignItems: "center",
-    marginTop: 40,
+    marginTop: 36,
     gap: 12,
     paddingHorizontal: 12,
   },
   emptyTitle: {
     fontFamily: typography.display,
-    fontSize: 20,
+    fontSize: 19,
     color: colors.ink,
     textAlign: "center",
   },
