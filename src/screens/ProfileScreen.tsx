@@ -577,6 +577,7 @@ export function ProfileScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.badgeRow}
+              style={styles.badgeScroll}
             >
               {previewBadges.map((badge) => (
                 <AchievementBadgeTile
@@ -1145,8 +1146,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 4,
   },
+  badgeScroll: {
+    overflow: "visible",
+    marginHorizontal: -20,
+  },
   badgeRow: {
     gap: 8,
+    paddingHorizontal: 20,
     paddingTop: 4,
     paddingBottom: 8,
   },
