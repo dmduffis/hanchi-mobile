@@ -1,12 +1,11 @@
 import type { MomentItem } from "../types";
 
 /**
- * Peer posts + stamp activities for the feed until follow exists.
- * Mix same-culture home stops with people trying other kitchens —
- * not every visit should match the author's flag.
+ * Peer posts, stamps, and dish tries for the feed until follow exists.
+ * Mix same-culture home stops with people exploring other kitchens.
+ * Not every visit should match the author's flag.
  */
 export const mockPeerMoments: MomentItem[] = [
-  // Aisha (Guyanese) → Korean, not Guyana
   {
     id: "mock-m1",
     kind: "peer",
@@ -20,7 +19,22 @@ export const mockPeerMoments: MomentItem[] = [
     authorCountryCode: "gy",
     authorFlag: "🇬🇾",
   },
-  // Sofia (Colombian) stamps Chinatown Flushing
+  {
+    id: "mock-d1",
+    kind: "peer",
+    activity: "dish_try",
+    authorName: "Sofia",
+    note: "",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    dishId: "mock-dish-arepas",
+    dishName: "Arepas",
+    restaurantName: "The Arepa Lady",
+    communityId: "little-colombia",
+    communityName: "Little Colombia in Jackson Heights",
+    placeCountryCode: "co",
+    authorCountryCode: "co",
+    authorFlag: "🇨🇴",
+  },
   {
     id: "mock-s1",
     kind: "peer",
@@ -34,7 +48,6 @@ export const mockPeerMoments: MomentItem[] = [
     authorCountryCode: "co",
     authorFlag: "🇨🇴",
   },
-  // Kenji (Japanese) → Chinese dim sum (keep exploration)
   {
     id: "mock-m2",
     kind: "peer",
@@ -48,7 +61,22 @@ export const mockPeerMoments: MomentItem[] = [
     authorCountryCode: "jp",
     authorFlag: "🇯🇵",
   },
-  // Luis (Mexican) stamps Little Pakistan
+  {
+    id: "mock-d2",
+    kind: "peer",
+    activity: "dish_try",
+    authorName: "Luis",
+    note: "Ordered it hot, no regrets.",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 11).toISOString(),
+    dishId: "mock-dish-nihari",
+    dishName: "Nihari",
+    restaurantName: "Ghazal Restaurant",
+    communityId: "little-pakistan",
+    communityName: "Little Pakistan",
+    placeCountryCode: "pk",
+    authorCountryCode: "mx",
+    authorFlag: "🇲🇽",
+  },
   {
     id: "mock-s2",
     kind: "peer",
@@ -62,7 +90,6 @@ export const mockPeerMoments: MomentItem[] = [
     authorCountryCode: "mx",
     authorFlag: "🇲🇽",
   },
-  // Maya (Korean) → Guyanese doubles night
   {
     id: "mock-m3",
     kind: "peer",
@@ -76,7 +103,6 @@ export const mockPeerMoments: MomentItem[] = [
     authorCountryCode: "kr",
     authorFlag: "🇰🇷",
   },
-  // Omar (Pakistani) → Mexican Sunset Park (home culture is rare exception)
   {
     id: "mock-m4",
     kind: "peer",
@@ -90,7 +116,6 @@ export const mockPeerMoments: MomentItem[] = [
     authorCountryCode: "pk",
     authorFlag: "🇵🇰",
   },
-  // Priya (Indian) stamps Little Colombia — exploration
   {
     id: "mock-s3",
     kind: "peer",
@@ -104,7 +129,6 @@ export const mockPeerMoments: MomentItem[] = [
     authorCountryCode: "in",
     authorFlag: "🇮🇳",
   },
-  // Priya home pocket — intentional same-culture return visit
   {
     id: "mock-m5",
     kind: "peer",

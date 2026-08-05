@@ -71,10 +71,17 @@ export function ListRow({
       {rightElement || (showChevron && onPress) ? (
         <View
           style={[styles.trailing, rightAlign === "top" && styles.trailingTop]}
+          // Isolate trailing controls so the row Pressable doesn't steal /
+          // double-fire presses on bookmark.
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => true}
+          pointerEvents="box-none"
         >
           {rightElement ? (
             <View
               onStartShouldSetResponder={() => true}
+              // Swallow the touch so parent row onPress never runs alongside
+              // nested bookmark presses.
               onTouchEnd={(e) => e.stopPropagation()}
             >
               {rightElement}

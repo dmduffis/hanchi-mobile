@@ -124,7 +124,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
             <Text style={styles.prompt}>Find communities near you</Text>
             <Text style={styles.hint}>
               Turn on location so the map opens where you are. If you skip,
-              we'll start you in New York — one of the densest places for
+              we'll start you in New York, one of the densest places for
               cultural neighborhoods on Hanchi.
             </Text>
           </View>
@@ -185,7 +185,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
               style={styles.skipLocation}
             >
               <Text style={styles.skipLocationLabel}>
-                Not now — start in New York
+                Not now. Start in New York
               </Text>
             </Pressable>
           ) : null}

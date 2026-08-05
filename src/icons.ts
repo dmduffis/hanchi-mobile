@@ -48,6 +48,24 @@ export function IconHeartFilled({ color = "currentColor", size }: IconProps) {
   });
 }
 
+/** Outline bookmark for collections. */
+export function IconBookmark({ color = "currentColor", size }: IconProps) {
+  return createElement(Ionicons, {
+    name: "bookmark-outline",
+    size: toIconSize(size),
+    color,
+  });
+}
+
+/** Filled bookmark for saved collections state. */
+export function IconBookmarkFilled({ color = "currentColor", size }: IconProps) {
+  return createElement(Ionicons, {
+    name: "bookmark",
+    size: toIconSize(size),
+    color,
+  });
+}
+
 export { default as IconArrowLeft } from "@iconscout/react-native-unicons/icons/uil-arrow-left";
 export { default as IconArrowRight } from "@iconscout/react-native-unicons/icons/uil-arrow-right";
 export { default as IconArrowsMaximize } from "@iconscout/react-native-unicons/icons/uil-expand-arrows";

@@ -1,14 +1,14 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 
 import {
+  IconBookmark,
   IconBook2,
-  IconHeart,
   IconHome,
   IconMap,
   IconUser,
   type Icon,
 } from "../icons";
-import { FavoritesScreen } from "../screens/FavoritesScreen";
+import { CollectionsScreen } from "../screens/CollectionsScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { MapScreen } from "../screens/MapScreen";
 import { MomentsScreen } from "../screens/MomentsScreen";
@@ -22,7 +22,7 @@ const TAB_ICONS: Record<keyof MainTabParamList, Icon> = {
   Home: IconHome,
   Moments: IconBook2,
   Map: IconMap,
-  Favorites: IconHeart,
+  Collections: IconBookmark,
   Profile: IconUser,
 };
 
@@ -52,7 +52,11 @@ export function TabNavigator() {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Moments" component={MomentsScreen} />
       <Tab.Screen name="Map" component={MapScreen} />
-      <Tab.Screen name="Favorites" component={FavoritesScreen} />
+      <Tab.Screen
+        name="Collections"
+        component={CollectionsScreen}
+        options={{ title: "Collections" }}
+      />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

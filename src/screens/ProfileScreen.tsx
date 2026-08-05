@@ -79,7 +79,7 @@ const SETTINGS: { id: string; label: string; icon: Icon }[] = [
 const PREVIEW_LIMIT = 4;
 const MOMENTS_PREVIEW = 5;
 
-type ProfileLowerTab = "collection" | "moments";
+type ProfileLowerTab = "passport" | "moments";
 
 export function ProfileScreen() {
   const navigation = useNavigation<ProfileNav>();
@@ -103,7 +103,7 @@ export function ProfileScreen() {
   const [draftCultures, setDraftCultures] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
-  const [lowerTab, setLowerTab] = useState<ProfileLowerTab>("collection");
+  const [lowerTab, setLowerTab] = useState<ProfileLowerTab>("passport");
   const [showLocationOnProfile, setShowLocationOnProfileState] = useState(true);
   /** How others will see this profile once follow exists. */
   const [publicPreview, setPublicPreview] = useState(false);
@@ -251,7 +251,7 @@ export function ProfileScreen() {
   const previewBadges = mockBadges.slice(0, PREVIEW_LIMIT);
   const previewMoments = journal.slice(0, MOMENTS_PREVIEW);
   const badgesEarned = mockBadges.filter((b) => b.earned).length;
-  const collectionCount = stampList.length + badgesEarned;
+  const passportCount = stampList.length + badgesEarned;
   const momentsCount = journal.length;
 
   const mapLocationLabel =
@@ -466,31 +466,31 @@ export function ProfileScreen() {
           </View>
         ) : null}
 
-        {/* Collection | Moments */}
+        {/* Passport | Moments */}
         <View style={styles.segmented}>
           <Pressable
             style={[
               styles.segment,
-              lowerTab === "collection" && styles.segmentActive,
+              lowerTab === "passport" && styles.segmentActive,
             ]}
-            onPress={() => setLowerTab("collection")}
+            onPress={() => setLowerTab("passport")}
             accessibilityRole="tab"
-            accessibilityState={{ selected: lowerTab === "collection" }}
+            accessibilityState={{ selected: lowerTab === "passport" }}
           >
             <Text
               style={[
                 styles.segmentLabel,
-                lowerTab === "collection" && styles.segmentLabelActive,
+                lowerTab === "passport" && styles.segmentLabelActive,
               ]}
             >
-              Collection{" "}
+              Passport{" "}
               <Text
                 style={[
                   styles.segmentCount,
-                  lowerTab === "collection" && styles.segmentCountActive,
+                  lowerTab === "passport" && styles.segmentCountActive,
                 ]}
               >
-                {collectionCount}
+                {passportCount}
               </Text>
             </Text>
           </Pressable>
@@ -522,7 +522,7 @@ export function ProfileScreen() {
           </Pressable>
         </View>
 
-        {lowerTab === "collection" ? (
+        {lowerTab === "passport" ? (
           <>
             <Pressable
               style={styles.sectionHeader}
@@ -577,6 +577,7 @@ export function ProfileScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.badgeRow}
+              style={styles.badgeScroll}
             >
               {previewBadges.map((badge) => (
                 <AchievementBadgeTile
@@ -1145,8 +1146,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 4,
   },
+  badgeScroll: {
+    overflow: "visible",
+    marginHorizontal: -20,
+  },
   badgeRow: {
     gap: 8,
+    paddingHorizontal: 20,
     paddingTop: 4,
     paddingBottom: 8,
   },

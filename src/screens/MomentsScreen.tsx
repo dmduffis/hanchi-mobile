@@ -20,16 +20,24 @@ import {
 import { fetchUserStamps, type ApiStamp } from "../api/stamps";
 import { useCommunities } from "../api/useCommunities";
 import { CircularFlag, PrimaryButton, SkeletonListRows } from "../components";
-import { PostageStampIcon } from "../components/stamp/PostageStampIcon";
 import { useAuth } from "../auth/AuthContext";
 import { getCommunityCountryCode } from "../data/communityFlags";
 import { mockPeerMoments } from "../data/mockMoments";
 import { cultureCountryCode, cultureFlag } from "../data/userPrefs";
 import { countryFlagEmoji } from "../data/worldCountries";
-import { IconPlus, IconX } from "../icons";
+import { IconHeart, IconHeartFilled, IconPlus, IconX } from "../icons";
+import { listDishTries, type StoredDishTry } from "../lib/dishTries";
+import {
+  baseLikeCount,
+  getMomentLikesMap,
+  toggleMomentLike,
+} from "../lib/momentLikes";
 import type { RootStackParamList } from "../navigation/types";
 import type { MomentItem } from "../types";
 import { colors, radii, typography } from "../theme";
+
+const AVATAR = 36;
+const AVATAR_FLAG = 17;
 
 /** Strip em/en dashes from moment copy (display + compose). */
 function cleanMomentNote(note: string): string {
@@ -105,6 +113,31 @@ function stampToMoment(
   };
 }
 
+function dishTryToMoment(
+  tryItem: StoredDishTry,
+  authorName: string,
+  authorCountryCode: string | null | undefined,
+  authorFlag: string | null | undefined,
+): MomentItem {
+  return {
+    id: tryItem.id,
+    kind: "own",
+    activity: "dish_try",
+    authorName,
+    note: cleanMomentNote(tryItem.note ?? ""),
+    createdAt: tryItem.createdAt,
+    communityId: tryItem.communityId ?? null,
+    communityName: tryItem.communityName ?? null,
+    placeCountryCode: tryItem.placeCountryCode ?? null,
+    authorCountryCode: authorCountryCode ?? null,
+    authorFlag: authorFlag ?? null,
+    dishId: tryItem.dishId,
+    dishName: tryItem.dishName,
+    restaurantId: tryItem.restaurantId ?? null,
+    restaurantName: tryItem.restaurantName ?? null,
+  };
+}
+
 export function MomentsScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -112,6 +145,10 @@ export function MomentsScreen() {
   const { communities } = useCommunities();
   const [entries, setEntries] = useState<ApiJournalEntry[]>([]);
   const [stamps, setStamps] = useState<ApiStamp[]>([]);
+  const [dishTries, setDishTries] = useState<StoredDishTry[]>([]);
+  const [likes, setLikes] = useState<
+    Record<string, { liked: boolean; count: number }>
+  >({});
   const [loading, setLoading] = useState(true);
   const [composeOpen, setComposeOpen] = useState(false);
   const [draftNote, setDraftNote] = useState("");
@@ -134,15 +171,18 @@ export function MomentsScreen() {
     setLoading(true);
     setError(null);
     try {
-      const [journalData, stampData] = await Promise.all([
+      const [journalData, stampData, tryData] = await Promise.all([
         fetchUserJournal().catch(() => [] as ApiJournalEntry[]),
         fetchUserStamps().catch(() => [] as ApiStamp[]),
+        listDishTries().catch(() => [] as StoredDishTry[]),
       ]);
       setEntries(journalData);
       setStamps(stampData);
+      setDishTries(tryData);
     } catch (e) {
       setEntries([]);
       setStamps([]);
+      setDishTries([]);
       setError(e instanceof Error ? e.message : "Couldn’t load moments");
     } finally {
       setLoading(false);
@@ -187,11 +227,70 @@ export function MomentsScreen() {
       );
     });
 
-    return [...ownPosts, ...ownStamps, ...mockPeerMoments].sort(
+    const ownDishTries: MomentItem[] = dishTries.map((t) =>
+      dishTryToMoment(t, authorName, ownCountryCode, ownFlag),
+    );
+
+    return [
+      ...ownPosts,
+      ...ownStamps,
+      ...ownDishTries,
+      ...mockPeerMoments,
+    ].sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
-  }, [entries, stamps, authorName, communityById, ownCountryCode, ownFlag]);
+  }, [
+    entries,
+    stamps,
+    dishTries,
+    authorName,
+    communityById,
+    ownCountryCode,
+    ownFlag,
+  ]);
+
+  // Load / refresh like state for the full visible feed.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      const ids = feed.map((m) => m.id);
+      if (ids.length === 0) {
+        setLikes({});
+        return;
+      }
+      void getMomentLikesMap(ids).then((map) => {
+        if (!cancelled) setLikes(map);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, [feed]),
+  );
+
+  const onToggleLike = useCallback(async (momentId: string) => {
+    setLikes((prev) => {
+      const cur = prev[momentId] ?? {
+        liked: false,
+        count: baseLikeCount(momentId),
+      };
+      const nextLiked = !cur.liked;
+      return {
+        ...prev,
+        [momentId]: {
+          liked: nextLiked,
+          count: Math.max(0, cur.count + (nextLiked ? 1 : -1)),
+        },
+      };
+    });
+    try {
+      const result = await toggleMomentLike(momentId);
+      setLikes((prev) => ({ ...prev, [momentId]: result }));
+    } catch {
+      const map = await getMomentLikesMap([momentId]);
+      setLikes((prev) => ({ ...prev, ...map }));
+    }
+  }, []);
 
   const draftPlaceName = draftCommunityId
     ? (communityById.get(draftCommunityId)?.name ?? null)
@@ -234,7 +333,7 @@ export function MomentsScreen() {
           <View style={styles.headerText}>
             <Text style={styles.title}>Moments</Text>
             <Text style={styles.subtitle}>
-              Posts, check-ins, and stamps from your wanderings.
+              Posts, check-ins, stamps, and dishes from your wanderings.
             </Text>
           </View>
           <Pressable
@@ -246,7 +345,7 @@ export function MomentsScreen() {
             accessibilityRole="button"
             accessibilityLabel="Add a moment"
           >
-            <IconPlus size={21} color={colors.white} />
+            <IconPlus size={22} color={colors.white} />
           </Pressable>
         </View>
 
@@ -268,124 +367,151 @@ export function MomentsScreen() {
           <>
             {feed.map((item) => {
               const displayName = item.kind === "own" ? "You" : item.authorName;
-              const initial = item.authorName.charAt(0).toUpperCase();
+              const initial = (
+                item.kind === "own" ? displayName : item.authorName
+              )
+                .charAt(0)
+                .toUpperCase();
               const isStamp = item.activity === "stamp";
-              const checkedIn = !isStamp && Boolean(item.communityName);
+              const isDishTry = item.activity === "dish_try";
+              const checkedIn =
+                !isStamp && !isDishTry && Boolean(item.communityName);
+              const placeFlag = item.placeCountryCode
+                ? `${countryFlagEmoji(item.placeCountryCode)} `
+                : "";
+              const venueLabel = isDishTry
+                ? (item.restaurantName ?? item.communityName ?? null)
+                : null;
 
-              if (isStamp) {
-                return (
+              const onPressCard = () => {
+                if (isDishTry && item.restaurantId) {
+                  navigation.navigate("RestaurantDetail", {
+                    restaurantId: item.restaurantId,
+                  });
+                  return;
+                }
+                if (item.communityId) {
+                  navigation.navigate("CommunityProfile", {
+                    communityId: item.communityId,
+                  });
+                }
+              };
+              const disabled = isDishTry
+                ? !item.restaurantId && !item.communityId
+                : !item.communityId;
+
+              const likeState = likes[item.id] ?? {
+                liked: false,
+                count: baseLikeCount(item.id),
+              };
+
+              return (
+                <View key={item.id} style={styles.card}>
                   <Pressable
-                    key={item.id}
-                    style={styles.stampCard}
-                    onPress={() => {
-                      if (item.communityId) {
-                        navigation.navigate("CommunityProfile", {
-                          communityId: item.communityId,
-                        });
-                      }
-                    }}
-                    disabled={!item.communityId}
+                    onPress={onPressCard}
+                    disabled={disabled}
+                    style={styles.cardPress}
                   >
-                    <View style={styles.avatarWrap}>
-                      <View
-                        style={[
-                          styles.avatar,
-                          item.kind === "own" && styles.avatarOwn,
-                        ]}
-                      >
-                        <Text style={styles.avatarText}>{initial}</Text>
-                      </View>
-                      {item.authorCountryCode || item.authorFlag ? (
-                        <View style={styles.flagBadge}>
-                          <CircularFlag
-                            countryCode={item.authorCountryCode}
-                            flag={item.authorFlag ?? undefined}
-                            size={17}
-                          />
+                    <View style={styles.cardTop}>
+                      <View style={styles.avatarWrap}>
+                        <View
+                          style={[
+                            styles.avatar,
+                            item.kind === "own" && styles.avatarOwn,
+                          ]}
+                        >
+                          <Text style={styles.avatarText}>{initial}</Text>
                         </View>
-                      ) : null}
-                    </View>
-                    <View style={styles.stampBody}>
-                      <Text style={styles.stampLine}>
-                        <Text style={styles.stampAuthor}>{displayName}</Text>
-                        <Text style={styles.stampVerb}> stamped </Text>
-                        {item.placeCountryCode
-                          ? `${countryFlagEmoji(item.placeCountryCode)} `
-                          : ""}
-                        <Text style={styles.stampPlace}>
-                          {item.communityName ?? "a place"}
-                        </Text>
-                      </Text>
-                      <View style={styles.stampMetaRow}>
-                        <PostageStampIcon size={12} color={colors.gold} />
+                        {item.authorCountryCode || item.authorFlag ? (
+                          <View style={styles.flagBadge}>
+                            <CircularFlag
+                              countryCode={item.authorCountryCode}
+                              flag={item.authorFlag ?? undefined}
+                              size={AVATAR_FLAG}
+                            />
+                          </View>
+                        ) : null}
+                      </View>
+                      <View style={styles.cardMeta}>
+                        {isStamp ? (
+                          <Text style={styles.headline}>
+                            <Text style={styles.author}>{displayName}</Text>
+                            <Text style={styles.verb}> stamped </Text>
+                            {placeFlag}
+                            <Text style={styles.placeName}>
+                              {item.communityName ?? "a place"}
+                            </Text>
+                          </Text>
+                        ) : isDishTry ? (
+                          <Text style={styles.headline}>
+                            <Text style={styles.author}>{displayName}</Text>
+                            <Text style={styles.verb}> tried </Text>
+                            <Text style={styles.placeName}>
+                              {item.dishName ?? "a dish"}
+                            </Text>
+                            {venueLabel ? (
+                              <>
+                                <Text style={styles.verb}> at </Text>
+                                {placeFlag}
+                                <Text style={styles.placeName}>
+                                  {venueLabel}
+                                </Text>
+                              </>
+                            ) : null}
+                          </Text>
+                        ) : checkedIn ? (
+                          <Text style={styles.headline}>
+                            <Text style={styles.author}>{displayName}</Text>
+                            <Text style={styles.verb}> at </Text>
+                            {placeFlag}
+                            <Text style={styles.placeName}>
+                              {item.communityName}
+                            </Text>
+                          </Text>
+                        ) : (
+                          <Text style={styles.author}>{displayName}</Text>
+                        )}
                         <Text style={styles.time}>
                           {formatRelativeTime(item.createdAt)}
                         </Text>
                       </View>
                     </View>
+                    {item.note ? (
+                      <Text style={styles.note}>
+                        {cleanMomentNote(item.note)}
+                      </Text>
+                    ) : null}
                   </Pressable>
-                );
-              }
-
-              return (
-                <Pressable
-                  key={item.id}
-                  style={styles.card}
-                  onPress={() => {
-                    if (item.communityId) {
-                      navigation.navigate("CommunityProfile", {
-                        communityId: item.communityId,
-                      });
-                    }
-                  }}
-                  disabled={!item.communityId}
-                >
-                  <View style={styles.cardTop}>
-                    <View style={styles.avatarWrap}>
-                      <View
+                  <View style={styles.cardActions}>
+                    <Pressable
+                      onPress={() => void onToggleLike(item.id)}
+                      hitSlop={8}
+                      style={({ pressed }) => [
+                        styles.likeBtn,
+                        pressed && styles.likeBtnPressed,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        likeState.liked ? "Unlike moment" : "Like moment"
+                      }
+                      accessibilityState={{ selected: likeState.liked }}
+                    >
+                      {likeState.liked ? (
+                        <IconHeartFilled size={18} color={colors.heart} />
+                      ) : (
+                        <IconHeart size={18} color={colors.gray} />
+                      )}
+                      <Text
                         style={[
-                          styles.avatar,
-                          item.kind === "own" && styles.avatarOwn,
+                          styles.likeCount,
+                          likeState.liked && styles.likeCountActive,
                         ]}
                       >
-                        <Text style={styles.avatarText}>{initial}</Text>
-                      </View>
-                      {item.authorCountryCode || item.authorFlag ? (
-                        <View style={styles.flagBadge}>
-                          <CircularFlag
-                            countryCode={item.authorCountryCode}
-                            flag={item.authorFlag ?? undefined}
-                            size={17}
-                          />
-                        </View>
-                      ) : null}
-                    </View>
-                    <View style={styles.cardMeta}>
-                      {checkedIn ? (
-                        <Text style={styles.atLine}>
-                          <Text style={styles.author}>{displayName}</Text>
-                          <Text style={styles.atWord}> at </Text>
-                          {item.placeCountryCode
-                            ? `${countryFlagEmoji(item.placeCountryCode)} `
-                            : ""}
-                          <Text style={styles.placeNameInline}>
-                            {item.communityName}
-                          </Text>
-                        </Text>
-                      ) : (
-                        <Text style={styles.author}>{displayName}</Text>
-                      )}
-                      <Text style={styles.time}>
-                        {formatRelativeTime(item.createdAt)}
+                        {likeState.count}
                       </Text>
-                    </View>
+                    </Pressable>
                   </View>
-                  {item.note ? (
-                    <Text style={styles.note}>
-                      {cleanMomentNote(item.note)}
-                    </Text>
-                  ) : null}
-                </Pressable>
+                </View>
               );
             })}
           </>
@@ -433,11 +559,11 @@ export function MomentsScreen() {
             {draftPlaceName ? (
               <View style={styles.checkInPreview}>
                 <Text style={styles.checkInPreviewLabel}>Preview</Text>
-                <Text style={styles.atLine}>
+                <Text style={styles.headline}>
                   <Text style={styles.author}>You</Text>
-                  <Text style={styles.atWord}> at </Text>
+                  <Text style={styles.verb}> at </Text>
                   {draftPlaceCode ? `${countryFlagEmoji(draftPlaceCode)} ` : ""}
-                  <Text style={styles.placeNameInline}>{draftPlaceName}</Text>
+                  <Text style={styles.placeName}>{draftPlaceName}</Text>
                 </Text>
               </View>
             ) : null}
@@ -513,15 +639,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   scroll: {
-    paddingHorizontal: 18,
-    paddingBottom: 32,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   header: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
-    marginTop: 6,
-    marginBottom: 14,
+    marginTop: 8,
+    marginBottom: 16,
   },
   headerText: {
     flex: 1,
@@ -553,52 +679,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     padding: 12,
-    marginBottom: 14,
-    gap: 7,
-  },
-  stampCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 11,
     marginBottom: 10,
-    borderRadius: radii.md,
-    backgroundColor: colors.background,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    gap: 6,
   },
-  stampBody: {
-    flex: 1,
-    gap: 2,
-    minWidth: 0,
-  },
-  stampLine: {
-    fontFamily: typography.body,
-    fontSize: 14,
-    color: colors.gray,
-    lineHeight: 19,
-  },
-  stampMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginTop: 0,
-  },
-  stampVerb: {
-    fontFamily: typography.body,
-    fontSize: 14,
-    color: colors.gray,
-  },
-  stampAuthor: {
-    fontFamily: typography.bodySemibold,
-    fontSize: 14,
-    color: colors.ink,
-  },
-  stampPlace: {
-    fontFamily: typography.bodySemibold,
-    fontSize: 14,
-    color: colors.forest,
+  cardPress: {
+    gap: 6,
   },
   cardTop: {
     flexDirection: "row",
@@ -606,13 +691,13 @@ const styles = StyleSheet.create({
     gap: 9,
   },
   avatarWrap: {
-    width: 36,
-    height: 36,
+    width: AVATAR,
+    height: AVATAR,
   },
   avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: AVATAR,
+    height: AVATAR,
+    borderRadius: AVATAR / 2,
     backgroundColor: colors.grayLight,
     alignItems: "center",
     justifyContent: "center",
@@ -637,24 +722,26 @@ const styles = StyleSheet.create({
   cardMeta: {
     flex: 1,
     minWidth: 0,
+    gap: 2,
+  },
+  /** Shared size for all head lines (at / stamped / tried) */
+  headline: {
+    fontFamily: typography.body,
+    fontSize: 14,
+    color: colors.ink,
+    lineHeight: 19,
   },
   author: {
     fontFamily: typography.bodySemibold,
     fontSize: 14,
     color: colors.ink,
   },
-  atLine: {
-    fontFamily: typography.body,
-    fontSize: 14,
-    color: colors.ink,
-    lineHeight: 19,
-  },
-  atWord: {
+  verb: {
     fontFamily: typography.body,
     fontSize: 14,
     color: colors.gray,
   },
-  placeNameInline: {
+  placeName: {
     fontFamily: typography.bodySemibold,
     fontSize: 14,
     color: colors.forest,
@@ -663,13 +750,40 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 12,
     color: colors.gray,
-    marginTop: 1,
   },
   note: {
     fontFamily: typography.body,
     fontSize: 14,
     color: colors.ink,
     lineHeight: 20,
+    // Align under headline when avatar is present
+    marginLeft: AVATAR + 9,
+  },
+  cardActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: AVATAR + 9,
+    marginTop: 0,
+  },
+  likeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: 2,
+    paddingRight: 8,
+  },
+  likeBtnPressed: {
+    opacity: 0.7,
+  },
+  likeCount: {
+    fontFamily: typography.body,
+    fontSize: 13,
+    color: colors.gray,
+    minWidth: 12,
+  },
+  likeCountActive: {
+    color: colors.heart,
+    fontFamily: typography.bodySemibold,
   },
   emptyWrap: {
     alignItems: "center",
@@ -688,7 +802,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.gray,
     textAlign: "center",
-    lineHeight: 21,
+    lineHeight: 22,
     marginBottom: 8,
   },
   modalSafe: {

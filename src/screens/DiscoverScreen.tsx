@@ -124,7 +124,7 @@ export function DiscoverScreen() {
 
             <View style={{ marginTop: 24 }}>
               <PromoBanner
-                text="Seasonal challenge: Taste of Queens — stamp 4 communities by Sunday"
+                text="Seasonal challenge: Taste of Queens. Stamp 4 communities by Sunday"
                 icon={IconAward}
               />
             </View>
