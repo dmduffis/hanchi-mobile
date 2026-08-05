@@ -38,7 +38,8 @@ export function SaveToCollectionSheet({
   onSaved,
 }: SaveToCollectionSheetProps) {
   const [collections, setCollections] = useState<ApiCollectionSummary[]>([]);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  /** Use string[] (not Set) so RN always re-renders checkbox state. */
+  const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -57,7 +58,7 @@ export function SaveToCollectionSheet({
         getMembership(type, targetId),
       ]);
       setCollections(list);
-      setSelected(new Set(membership.collectionIds));
+      setSelected(membership.collectionIds);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load collections");
       setCollections([]);
@@ -75,19 +76,17 @@ export function SaveToCollectionSheet({
   }, [visible, load]);
 
   const toggleId = (id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
   };
 
   const onDone = async () => {
+    if (saving) return;
     setSaving(true);
     setError(null);
     try {
-      const result = await smartSave(type, targetId, [...selected]);
+      const result = await smartSave(type, targetId, selected);
       onSaved?.(result.saved, result.collectionIds);
       onClose();
     } catch (e) {
@@ -99,7 +98,7 @@ export function SaveToCollectionSheet({
 
   const onCreate = async () => {
     const name = newName.trim();
-    if (!name) return;
+    if (!name || saving) return;
     setSaving(true);
     setError(null);
     try {
@@ -108,7 +107,9 @@ export function SaveToCollectionSheet({
         visibility: newVisibility,
       });
       setCollections((prev) => [...prev, created]);
-      setSelected((prev) => new Set([...prev, created.id]));
+      setSelected((prev) =>
+        prev.includes(created.id) ? prev : [...prev, created.id],
+      );
       setCreating(false);
       setNewName("");
     } catch (e) {
@@ -190,13 +191,14 @@ export function SaveToCollectionSheet({
               <Text style={styles.muted}>Loading…</Text>
             ) : (
               collections.map((c) => {
-                const on = selected.has(c.id);
+                const on = selected.includes(c.id);
                 const cover = c.coverImages[0];
                 return (
                   <Pressable
                     key={c.id}
                     style={styles.row}
                     onPress={() => toggleId(c.id)}
+                    disabled={saving}
                   >
                     <View style={styles.thumb}>
                       {cover ? (

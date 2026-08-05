@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet } from "react-native";
 
 import {
@@ -39,6 +39,10 @@ export function FavoriteHeart({
   const [saved, setSaved] = useState(initialFavorited ?? false);
   const [busy, setBusy] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  /** Sync lock so nested row + double-fire can't double-toggle. */
+  const busyRef = useRef(false);
+  const savedRef = useRef(saved);
+  savedRef.current = saved;
 
   useEffect(() => {
     if (initialFavorited !== undefined) {
@@ -51,7 +55,7 @@ export function FavoriteHeart({
         const membership = await getMembership(type, targetId);
         if (!cancelled) setSaved(membership.saved);
       } catch {
-        if (!cancelled) setSaved(false);
+        // Keep current icon on load errors (e.g. collections not deployed yet).
       }
     })();
     return () => {
@@ -60,15 +64,15 @@ export function FavoriteHeart({
   }, [type, targetId, initialFavorited]);
 
   const onPress = useCallback(async () => {
-    if (busy) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
-    const previous = saved;
+    const previous = savedRef.current;
     try {
       // If user has 2+ lists, always open the sheet for save control.
-      const lists = await listMyCollections().catch(() => []);
+      const lists = await listMyCollections().catch(() => [] as const);
       if (lists.length >= 2) {
         setSheetOpen(true);
-        setBusy(false);
         return;
       }
 
@@ -89,9 +93,10 @@ export function FavoriteHeart({
       setSaved(previous);
       onFavoritedChange?.(previous);
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
-  }, [busy, saved, type, targetId, onFavoritedChange]);
+  }, [type, targetId, onFavoritedChange]);
 
   const diameter = circled ? Math.max(size + 16, 36) : undefined;
 

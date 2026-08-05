@@ -130,12 +130,27 @@ export async function getMembership(
   targetId: string,
 ): Promise<MembershipResult> {
   const qs = new URLSearchParams({ type, targetId });
-  return apiFetch<MembershipResult>(`/collections/membership?${qs}`);
+  try {
+    return await apiFetch<MembershipResult>(`/collections/membership?${qs}`);
+  } catch (e) {
+    // Collections route may not be deployed yet; fall back to favorite list.
+    if (!(e instanceof ApiError) || (e.status !== 404 && e.status !== 0)) {
+      throw e;
+    }
+    try {
+      const favs = await fetchUserFavorites();
+      const hit = favs.some((f) => f.type === type && f.targetId === targetId);
+      return { saved: hit, collectionIds: [] };
+    } catch {
+      return { saved: false, collectionIds: [] };
+    }
+  }
 }
 
 /**
  * Smart save: toggles sole collection, or when collectionIds provided sets membership.
  * Throws with needsPicker when 2+ collections and no ids.
+ * Falls back to legacy /favorites/toggle when collections API is unavailable.
  */
 export async function smartSave(
   type: FavoriteType,
@@ -163,7 +178,21 @@ export async function smartSave(
         error: "needs_picker",
       };
     }
-    throw e;
+    // Multi-list set requires collections; no legacy equivalent.
+    if (collectionIds) throw e;
+    // Simple toggle only when /collections/save is missing (not deployed).
+    // Do not retry when the target itself is missing.
+    const looksLikeMissingRoute =
+      e instanceof ApiError &&
+      (e.status === 404 || e.status === 0 || e.status === 502) &&
+      !/target not found/i.test(e.message);
+    if (!looksLikeMissingRoute) throw e;
+    const result = await toggleFavorite(type, targetId);
+    return {
+      saved: Boolean(result.favorited),
+      collectionIds: [],
+      needsPicker: false,
+    };
   }
 }
 
