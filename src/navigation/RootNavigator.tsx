@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../auth/AuthContext";
 import { AuthScreen } from "../screens/AuthScreen";
 import { BadgeCollectionScreen } from "../screens/BadgeCollectionScreen";
+import { CollectionDetailScreen } from "../screens/CollectionDetailScreen";
 import { CommunityProfileScreen } from "../screens/CommunityProfileScreen";
 import { DiscoverScreen } from "../screens/DiscoverScreen";
 import { DropInScreen } from "../screens/DropInScreen";
@@ -41,7 +42,7 @@ function friendlyProfileError(raw: string | null): string {
     return "Account setup isn’t ready yet. Try again in a moment.";
   }
   if (lower.includes("network") || lower.includes("failed to fetch")) {
-    return "Network issue — check your connection and try again.";
+    return "Network issue. Check your connection and try again.";
   }
   return raw;
 }
@@ -119,6 +120,11 @@ export function RootNavigator({
           <Stack.Screen
             name="BadgeCollection"
             component={BadgeCollectionScreen}
+            options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen
+            name="CollectionDetail"
+            component={CollectionDetailScreen}
             options={{ animation: "slide_from_right" }}
           />
         </>

@@ -30,7 +30,7 @@ export type MainTabParamList = {
         };
       }
     | undefined;
-  Favorites: undefined;
+  Collections: undefined;
   Profile: undefined;
 };
 
@@ -46,4 +46,5 @@ export type RootStackParamList = {
   Notifications: undefined;
   StampCollection: undefined;
   BadgeCollection: undefined;
+  CollectionDetail: { collectionId?: string; shareSlug?: string };
 };

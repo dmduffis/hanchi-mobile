@@ -228,8 +228,8 @@ export function FavoritesScreen() {
               <IconHeart size={36} color={colors.grayLight} />
               <Text style={styles.emptyTitle}>No favorites yet</Text>
               <Text style={styles.empty}>
-                Tap the heart on a community or restaurant while you explore —
-                saved spots will show up here.
+                Tap the heart on a community or restaurant while you explore.
+                Saved spots will show up here.
               </Text>
             </View>
           }

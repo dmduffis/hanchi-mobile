@@ -157,7 +157,7 @@ export function AuthScreen() {
   const openEmailApp = () => {
     const url = Platform.OS === "ios" ? "message://" : "mailto:";
     void Linking.openURL(url).catch(() => {
-      setError("Couldn’t open your email app — check it manually.");
+      setError("Couldn’t open your email app. Check it manually.");
     });
   };
 
@@ -316,7 +316,7 @@ export function AuthScreen() {
                       style={styles.switch}
                     >
                       <Text style={styles.switchText}>
-                        I’ve confirmed — sign in
+                        I’ve confirmed. Sign in
                       </Text>
                     </Pressable>
                   </View>

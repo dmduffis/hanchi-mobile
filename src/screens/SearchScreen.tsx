@@ -161,7 +161,7 @@ export function SearchScreen() {
           ListHeaderComponent={
             <View style={styles.tip}>
               <PromoBanner
-                text="While you're there — try the weekend market on Main Street"
+                text="While you're there, try the weekend market on Main Street"
                 icon={IconMapPin}
               />
               <Text style={styles.resultsLabel}>

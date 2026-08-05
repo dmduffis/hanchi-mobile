@@ -162,7 +162,7 @@ export const mockDishes: Dish[] = [
     communityName: "Little Ukraine",
     restaurantId: "r-veselka",
     restaurantName: "Veselka",
-    description: "Potato and cheese dumplings — East Village classic.",
+    description: "Potato and cheese dumplings. East Village classic.",
     dietaryTags: ["Vegetarian"],
     emoji: "🥟",
   },
