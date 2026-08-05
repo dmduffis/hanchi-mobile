@@ -35,7 +35,7 @@ export const mockDishStamps: DishStamp[] = [
 export const mockNotifications: AppNotification[] = [
   {
     id: "n1",
-    message: "New seasonal challenge: Queens enclaves — stamp 4 this weekend.",
+    message: "New seasonal challenge: Queens enclaves. Stamp 4 this weekend.",
     timestamp: "2h ago",
     icon: "bolt",
   },
@@ -53,13 +53,13 @@ export const mockNotifications: AppNotification[] = [
   },
   {
     id: "n4",
-    message: "Your Little Pakistan favorites are nearby — free this weekend?",
+    message: "Your Little Pakistan favorites are nearby. Free this weekend?",
     timestamp: "5 days ago",
     icon: "heart",
   },
   {
     id: "n5",
-    message: "Drop In found a new spot — try Little Senegal?",
+    message: "Drop In found a new spot. Try Little Senegal?",
     timestamp: "1 week ago",
     icon: "map-pin",
   },

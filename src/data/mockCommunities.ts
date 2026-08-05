@@ -1,7 +1,7 @@
 import type { Community, InsiderQuote } from "../types";
 
 /**
- * NYC Immigrant Enclaves — aligned to the Mayor's Office of Immigrant Affairs map
+ * NYC Immigrant Enclaves, aligned to the Mayor's Office of Immigrant Affairs map
  * (30 flagged neighborhoods). Descriptions are mock copy for the Hanchi scaffold.
  */
 export const mockCommunities: Community[] = [
@@ -12,7 +12,7 @@ export const mockCommunities: Community[] = [
     heritage: "Chinese & Taiwanese",
     tags: ["Chinese", "Taiwanese", "Mandarin"],
     description:
-      "One of the largest Chinatowns outside Asia. Main Street and Roosevelt hum with regional Chinese cuisines — Shanghainese, Taiwanese, Sichuan, and more.",
+      "One of the largest Chinatowns outside Asia. Main Street and Roosevelt hum with regional Chinese cuisines. Shanghainese, Taiwanese, Sichuan, and more.",
     pullQuote:
       "Come for the soup dumplings, stay for whichever regional kitchen the aunties send you to next.",
     pullQuoteAuthor: "Mei L.",
@@ -36,7 +36,7 @@ export const mockCommunities: Community[] = [
     heritage: "Chinese",
     tags: ["Chinese", "Cantonese", "Fuzhou", "Historic"],
     description:
-      "The original New York Chinatown around Canal and Mott — bakers, banquet halls, and Little Fuzhou energy on East Broadway.",
+      "The original New York Chinatown around Canal and Mott, bakers, banquet halls, and Little Fuzhou energy on East Broadway.",
     pullQuote:
       "Skip the photo menus on Canal. Turn onto a side street and follow the steam.",
     pullQuoteAuthor: "Wei C.",
@@ -60,7 +60,7 @@ export const mockCommunities: Community[] = [
     heritage: "Chinese",
     tags: ["Chinese", "Fujianese", "8th Avenue"],
     description:
-      "Brooklyn's Chinatown along 8th Avenue — dim sum mornings and a walk up to the park for harbor views.",
+      "Brooklyn's Chinatown along 8th Avenue, dim sum mornings and a walk up to the park for harbor views.",
     pullQuote: "Walk 8th Avenue with no plan. Your nose will decide for you.",
     pullQuoteAuthor: "Lin H.",
     emoji: "🏯",
@@ -79,7 +79,7 @@ export const mockCommunities: Community[] = [
     heritage: "Guyanese",
     tags: ["Guyanese", "Caribbean"],
     description:
-      "A Guyanese gateway near Utica Avenue — roti shops, bakeries, and Caribbean groceries for the Crown Heights community.",
+      "A Guyanese gateway near Utica Avenue, roti shops, bakeries, and Caribbean groceries for the Crown Heights community.",
     pullQuote: "Ask for the pepper sauce on the side. You'll want more of it.",
     pullQuoteAuthor: "Ravi G.",
     emoji: "🇬🇾",
@@ -98,7 +98,7 @@ export const mockCommunities: Community[] = [
     heritage: "Korean",
     tags: ["Korean", "Late-night", "32nd Street"],
     description:
-      "A vertical village around 32nd Street — karaoke above BBQ, skincare next to soju bars.",
+      "A vertical village around 32nd Street, karaoke above BBQ, skincare next to soju bars.",
     pullQuote:
       "If the BBQ line is too long, go downstairs. There's always another floor.",
     pullQuoteAuthor: "Hana K.",
@@ -118,7 +118,7 @@ export const mockCommunities: Community[] = [
     heritage: "Korean",
     tags: ["Korean", "Queens"],
     description:
-      "Queens Koreatown near Flushing — quieter than 32nd Street, with barbecue halls and bakeries locals swear by.",
+      "Queens Koreatown near Flushing, quieter than 32nd Street, with barbecue halls and bakeries locals swear by.",
     pullQuote: "Come for dinner, stay for the second round of banchan.",
     pullQuoteAuthor: "Min J.",
     emoji: "🇰🇷",
@@ -137,7 +137,7 @@ export const mockCommunities: Community[] = [
     heritage: "West African",
     tags: ["West African", "Liberian", "Staten Island"],
     description:
-      "Clifton's Little Africa — Liberian and West African restaurants, markets, and community life on the North Shore.",
+      "Clifton's Little Africa. Liberian and West African restaurants, markets, and community life on the North Shore.",
     pullQuote: "The jollof will find you before you find the menu.",
     pullQuoteAuthor: "Fatima S.",
     emoji: "🌍",
@@ -156,7 +156,7 @@ export const mockCommunities: Community[] = [
     heritage: "West African",
     tags: ["West African", "Ghanaian", "Bronx"],
     description:
-      "A growing West African corridor near 167th Street — stews, grilled meats, and weekend gatherings.",
+      "A growing West African corridor near 167th Street, stews, grilled meats, and weekend gatherings.",
     pullQuote: "Order the banku if they have it that day. Trust the kitchen.",
     pullQuoteAuthor: "Kwame A.",
     emoji: "🥘",
@@ -175,7 +175,7 @@ export const mockCommunities: Community[] = [
     heritage: "Albanian",
     tags: ["Albanian", "Balkan", "Bronx"],
     description:
-      "The Bronx Albanian corridor around Belmont and Arthur Avenue — cafés, bakeries, and Balkan grilling shared with Little Italy.",
+      "The Bronx Albanian corridor around Belmont and Arthur Avenue, cafés, bakeries, and Balkan grilling shared with Little Italy.",
     pullQuote: "Get the qofte and sit outside if the weather allows.",
     pullQuoteAuthor: "Arben K.",
     emoji: "🇦🇱",
@@ -194,7 +194,7 @@ export const mockCommunities: Community[] = [
     heritage: "Bangladeshi",
     tags: ["Bangladeshi", "Halal", "Bengali"],
     description:
-      "Jamaica's Little Bangladesh — hilsa, biryani, and sweet shops near Hillside and Jamaica Center.",
+      "Jamaica's Little Bangladesh, hilsa, biryani, and sweet shops near Hillside and Jamaica Center.",
     pullQuote: "Mishti doi after dinner is not optional.",
     pullQuoteAuthor: "Nusrat R.",
     emoji: "🇧🇩",
@@ -213,7 +213,7 @@ export const mockCommunities: Community[] = [
     heritage: "Tibetan & Himalayan",
     tags: ["Tibetan", "Nepali", "Himalayan"],
     description:
-      "A Himalayan pocket near Northern Boulevard — momos, butter tea energy, and prayer flags in shop windows.",
+      "A Himalayan pocket near Northern Boulevard, momos, butter tea energy, and prayer flags in shop windows.",
     pullQuote: "Steam the momos, then order another plate. That's the rule.",
     pullQuoteAuthor: "Tenzin P.",
     emoji: "🏔️",
@@ -232,7 +232,7 @@ export const mockCommunities: Community[] = [
     heritage: "Caribbean",
     tags: ["Jamaican", "Trinidadian", "Caribbean"],
     description:
-      "Flatbush's Little Caribbean — jerk smoke in the air, roti shops, and Carnival energy year-round.",
+      "Flatbush's Little Caribbean, jerk smoke in the air, roti shops, and Carnival energy year-round.",
     pullQuote: "Follow the smoke. The best jerk is never the quietest spot.",
     pullQuoteAuthor: "Marcia T.",
     emoji: "🇯🇲",
@@ -251,7 +251,7 @@ export const mockCommunities: Community[] = [
     heritage: "Colombian",
     tags: ["Colombian", "Latin", "Roosevelt Ave"],
     description:
-      "Jackson Heights' Colombian strip — arepas, pan de bono, and late cafés under the 7 train.",
+      "Jackson Heights' Colombian strip, arepas, pan de bono, and late cafés under the 7 train.",
     pullQuote: "Cheese arepa first. Always cheese arepa first.",
     pullQuoteAuthor: "Sofia M.",
     emoji: "🇨🇴",
@@ -270,7 +270,7 @@ export const mockCommunities: Community[] = [
     heritage: "Dominican",
     tags: ["Dominican", "Caribbean", "Quisqueya"],
     description:
-      "Washington Heights — the largest Dominican community in the U.S. Chimichurris, merengue, and breakfast plates that ruin diners.",
+      "Washington Heights, the largest Dominican community in the U.S. Chimichurris, merengue, and breakfast plates that ruin diners.",
     pullQuote: "A proper Heights breakfast will ruin diner eggs forever.",
     pullQuoteAuthor: "Luis M.",
     emoji: "🇩🇴",
@@ -289,7 +289,7 @@ export const mockCommunities: Community[] = [
     heritage: "Ecuadorian",
     tags: ["Ecuadorian", "Andean", "Queens"],
     description:
-      "Corona and Jackson Heights' Ecuadorian corridor — hornado, encebollado, and bakeries near Junction Blvd.",
+      "Corona and Jackson Heights' Ecuadorian corridor, hornado, encebollado, and bakeries near Junction Blvd.",
     pullQuote:
       "If they still have hornado, get it. Tomorrow is not guaranteed.",
     pullQuoteAuthor: "Diego V.",
@@ -309,7 +309,7 @@ export const mockCommunities: Community[] = [
     heritage: "Egyptian & Arab",
     tags: ["Egyptian", "Arab", "Astoria"],
     description:
-      "Astoria's Little Egypt — shisha cafés, koshari, and Steinway Street evenings that stretch late.",
+      "Astoria's Little Egypt, shisha cafés, koshari, and Steinway Street evenings that stretch late.",
     pullQuote:
       "Koshari first, then walk Steinway until something else smells better.",
     pullQuoteAuthor: "Amira H.",
@@ -329,7 +329,7 @@ export const mockCommunities: Community[] = [
     heritage: "Guyanese & Indo-Caribbean",
     tags: ["Guyanese", "Indo-Caribbean", "Trinidadian"],
     description:
-      "Liberty Avenue's Little Guyana — roti shops, mandirs, mosques, and Indo-Caribbean bakeries between Lefferts and the Van Wyck.",
+      "Liberty Avenue's Little Guyana, roti shops, mandirs, mosques, and Indo-Caribbean bakeries between Lefferts and the Van Wyck.",
     pullQuote: "Doubles from a cart, then a pineapple tart for the walk home.",
     pullQuoteAuthor: "Priya M.",
     emoji: "🇬🇾",
@@ -348,7 +348,7 @@ export const mockCommunities: Community[] = [
     heritage: "Guyanese",
     tags: ["Guyanese", "Caribbean", "Bronx"],
     description:
-      "A Bronx Guyanese pocket near Nereid Avenue — cook-up rice, pepperpot energy, and weekend family tables.",
+      "A Bronx Guyanese pocket near Nereid Avenue, cook-up rice, pepperpot energy, and weekend family tables.",
     pullQuote:
       "The pepperpot tastes like someone's grandmother is in the kitchen.",
     pullQuoteAuthor: "Kevin B.",
@@ -368,7 +368,7 @@ export const mockCommunities: Community[] = [
     heritage: "Haitian",
     tags: ["Haitian", "Creole", "Brooklyn"],
     description:
-      "Flatbush's Little Haiti — griot, diri kole, and Creole on Church and Nostrand.",
+      "Flatbush's Little Haiti, griot, diri kole, and Creole on Church and Nostrand.",
     pullQuote: "Get the griot plate and sit with a juice. Rushing ruins it.",
     pullQuoteAuthor: "Nadia J.",
     emoji: "🇭🇹",
@@ -387,7 +387,7 @@ export const mockCommunities: Community[] = [
     heritage: "Indian",
     tags: ["Indian", "Desi", "74th Street"],
     description:
-      "74th Street's Little India — spice markets, chaat stalls, and the densest Desi shopping strip in the city.",
+      "74th Street's Little India, spice markets, chaat stalls, and the densest Desi shopping strip in the city.",
     pullQuote:
       "Patel Brothers for spices, then chaat before you decide on dinner.",
     pullQuoteAuthor: "Anika S.",
@@ -407,7 +407,7 @@ export const mockCommunities: Community[] = [
     heritage: "Filipino",
     tags: ["Filipino", "Pinoy", "Queens"],
     description:
-      "Little Manila in western Queens — lumpia, halo-halo, and grocery stores stocked like Manila.",
+      "Little Manila in western Queens, lumpia, halo-halo, and grocery stores stocked like Manila.",
     pullQuote: "If they have fresh lumpia shanghai, get two orders.",
     pullQuoteAuthor: "Maria L.",
     emoji: "🇵🇭",
@@ -426,7 +426,7 @@ export const mockCommunities: Community[] = [
     heritage: "Mexican",
     tags: ["Mexican", "Staten Island"],
     description:
-      "Port Richmond's Little Mexico — tacos, pan dulce, and a North Shore strip that feels like home.",
+      "Port Richmond's Little Mexico, tacos, pan dulce, and a North Shore strip that feels like home.",
     pullQuote: "Al pastor on a weeknight hits different out here.",
     pullQuoteAuthor: "Elena R.",
     emoji: "🇲🇽",
@@ -445,7 +445,7 @@ export const mockCommunities: Community[] = [
     heritage: "Mexican",
     tags: ["Mexican", "5th Avenue", "Brooklyn"],
     description:
-      "Sunset Park's Mexican corridor on 5th Avenue — tacos al pastor, tortillerias, and weekend markets.",
+      "Sunset Park's Mexican corridor on 5th Avenue, tacos al pastor, tortillerias, and weekend markets.",
     pullQuote: "Order a double. You will not regret the second taco.",
     pullQuoteAuthor: "Carlos M.",
     emoji: "🌮",
@@ -464,7 +464,7 @@ export const mockCommunities: Community[] = [
     heritage: "Russian & Ukrainian",
     tags: ["Russian", "Ukrainian", "Boardwalk"],
     description:
-      "Brighton Beach's Little Odessa — smoked fish, Georgian bakery, and Russian under the elevated tracks.",
+      "Brighton Beach's Little Odessa, smoked fish, Georgian bakery, and Russian under the elevated tracks.",
     pullQuote: "Smoked fish platter, then the boardwalk. That's the afternoon.",
     pullQuoteAuthor: "Anya V.",
     emoji: "🇷🇺",
@@ -483,7 +483,7 @@ export const mockCommunities: Community[] = [
     heritage: "Palestinian & Arab",
     tags: ["Palestinian", "Arab", "Bay Ridge"],
     description:
-      "Bay Ridge's Little Palestine — knafeh, falafel, and 5th Avenue cafés that stay busy late.",
+      "Bay Ridge's Little Palestine, knafeh, falafel, and 5th Avenue cafés that stay busy late.",
     pullQuote: "Knafeh is the dessert and the reason to come back.",
     pullQuoteAuthor: "Yara N.",
     emoji: "🇵🇸",
@@ -502,7 +502,7 @@ export const mockCommunities: Community[] = [
     heritage: "Pakistani",
     tags: ["Pakistani", "Halal", "Coney Island Ave"],
     description:
-      "Brooklyn's Little Pakistan on Coney Island Avenue — kebab houses, sweet shops, and Friday-night crowds.",
+      "Brooklyn's Little Pakistan on Coney Island Avenue, kebab houses, sweet shops, and Friday-night crowds.",
     pullQuote:
       "Order the nihari early. By noon the good pots are already deep in.",
     pullQuoteAuthor: "Omar K.",
@@ -522,7 +522,7 @@ export const mockCommunities: Community[] = [
     heritage: "Polish",
     tags: ["Polish", "Greenpoint", "Pierogi"],
     description:
-      "Greenpoint's Little Poland — pierogi, kielbasa, and bakeries that still open early for the regulars.",
+      "Greenpoint's Little Poland, pierogi, kielbasa, and bakeries that still open early for the regulars.",
     pullQuote: "Pierogi and a pickle. That's lunch and a mood.",
     pullQuoteAuthor: "Kasia W.",
     emoji: "🇵🇱",
@@ -541,7 +541,7 @@ export const mockCommunities: Community[] = [
     heritage: "Senegalese & West African",
     tags: ["Senegalese", "West African", "116th Street"],
     description:
-      "Le Petit Sénégal on West 116th — thieboudienne, fabric shops, and Wolof in the air.",
+      "Le Petit Sénégal on West 116th, thieboudienne, fabric shops, and Wolof in the air.",
     pullQuote: "Ask for the fish of the day. The answer is always right.",
     pullQuoteAuthor: "Awa D.",
     emoji: "🇸🇳",
@@ -560,7 +560,7 @@ export const mockCommunities: Community[] = [
     heritage: "Ukrainian",
     tags: ["Ukrainian", "East Village", "Pierogi"],
     description:
-      "East Village's Little Ukraine — pierogi counters, churches, and a neighborhood that still feels like home for many families.",
+      "East Village's Little Ukraine, pierogi counters, churches, and a neighborhood that still feels like home for many families.",
     pullQuote: "Pierogi first, then walk Second Avenue until you find dessert.",
     pullQuoteAuthor: "Oksana L.",
     emoji: "🇺🇦",
@@ -579,7 +579,7 @@ export const mockCommunities: Community[] = [
     heritage: "Yemeni",
     tags: ["Yemeni", "Arab", "Bronx"],
     description:
-      "The Bronx's Little Yemen — saltah, fahsa, and cafés near Bronx Park East that stay open late.",
+      "The Bronx's Little Yemen, saltah, fahsa, and cafés near Bronx Park East that stay open late.",
     pullQuote: "Saltah when it's bubbling. That's how you know.",
     pullQuoteAuthor: "Hassan A.",
     emoji: "🇾🇪",
@@ -598,7 +598,7 @@ export const mockCommunities: Community[] = [
     heritage: "Indian",
     tags: ["Indian", "Desi", "Long Island"],
     description:
-      "Long Island's Desi hub — South Asian groceries, sweets shops, and restaurants clustered around Broadway and Old Country Road.",
+      "Long Island's Desi hub. South Asian groceries, sweets shops, and restaurants clustered around Broadway and Old Country Road.",
     pullQuote: "Start at a sweets shop, then let Broadway decide dinner.",
     pullQuoteAuthor: "Priya K.",
     emoji: "🇮🇳",
@@ -617,7 +617,7 @@ export const mockCommunities: Community[] = [
     heritage: "Portuguese",
     tags: ["Portuguese", "Mineola", "Long Island"],
     description:
-      "The heart of New York's Portuguese community — pastelarias, seafood spots, and Jericho Turnpike weekends that feel like a festa.",
+      "The heart of New York's Portuguese community, pastelarias, seafood spots, and Jericho Turnpike weekends that feel like a festa.",
     pullQuote: "Pastéis de nata first. Everything else follows.",
     pullQuoteAuthor: "Sofia M.",
     emoji: "🇵🇹",
@@ -636,7 +636,7 @@ export const mockCommunities: Community[] = [
     heritage: "Salvadoran",
     tags: ["Salvadoran", "Central American", "Long Island"],
     description:
-      "Suffolk's Salvadoran corridor — pupuserías, panaderías, and Central American markets that anchor Brentwood and Central Islip.",
+      "Suffolk's Salvadoran corridor, pupuserías, panaderías, and Central American markets that anchor Brentwood and Central Islip.",
     pullQuote: "Order the curtido with everything. Trust me.",
     pullQuoteAuthor: "Diego R.",
     emoji: "🇸🇻",
@@ -655,7 +655,7 @@ export const mockCommunities: Community[] = [
     heritage: "Korean",
     tags: ["Korean", "Kimchi Belt", "Long Island"],
     description:
-      "Where the Kimchi Belt crosses into Nassau — Korean BBQ, bakeries, and H Mart runs along Northern Boulevard past the Queens line.",
+      "Where the Kimchi Belt crosses into Nassau. Korean BBQ, bakeries, and H Mart runs along Northern Boulevard past the Queens line.",
     pullQuote: "Same Northern Boulevard energy, just past the city line.",
     pullQuoteAuthor: "Minji P.",
     emoji: "🇰🇷",
@@ -674,7 +674,7 @@ export const mockCommunities: Community[] = [
     heritage: "Arab American",
     tags: ["Lebanese", "Arab", "Metro Detroit"],
     description:
-      "America's Arab capital — Warren Avenue bakeries, shawarma spots, and the densest Middle Eastern food corridor outside the Middle East.",
+      "America's Arab capital. Warren Avenue bakeries, shawarma spots, and the densest Middle Eastern food corridor outside the Middle East.",
     pullQuote: "Start on Warren. Follow the bakeries.",
     pullQuoteAuthor: "Layla H.",
     emoji: "🇱🇧",
@@ -697,7 +697,7 @@ export const mockCommunities: Community[] = [
     heritage: "Yemeni",
     tags: ["Yemeni", "Dearborn", "Metro Detroit"],
     description:
-      "Metro Detroit's historic Yemeni community — South End roots around Salina since the Rouge Plant era, plus mandi houses, sabaya bakeries, and coffee chains along Schaefer and Michigan Avenue into Dearborn Heights.",
+      "Metro Detroit's historic Yemeni community. South End roots around Salina since the Rouge Plant era, plus mandi houses, sabaya bakeries, and coffee chains along Schaefer and Michigan Avenue into Dearborn Heights.",
     pullQuote: "Schaefer for qahwah. Michigan Ave for mandi.",
     pullQuoteAuthor: "Ammar S.",
     emoji: "🇾🇪",
@@ -716,8 +716,8 @@ export const mockCommunities: Community[] = [
     heritage: "Chaldean / Iraqi",
     tags: ["Iraqi", "Chaldean", "Metro Detroit"],
     description:
-      "Metro Detroit's Chaldean and Iraqi hub — restaurants, markets, and bilingual storefronts around 15 Mile and Dequindre.",
-    pullQuote: "Dequindre and 15 Mile — that's the heart of it.",
+      "Metro Detroit's Chaldean and Iraqi hub, restaurants, markets, and bilingual storefronts around 15 Mile and Dequindre.",
+    pullQuote: "Dequindre and 15 Mile, that's the heart of it.",
     pullQuoteAuthor: "Yousif K.",
     emoji: "🇮🇶",
     latitude: 42.5806,
@@ -735,7 +735,7 @@ export const mockCommunities: Community[] = [
     heritage: "Bangladeshi",
     tags: ["Bangladeshi", "Hamtramck", "Metro Detroit"],
     description:
-      "Hamtramck's Banglatown — Bangladeshi groceries, sweets shops, and South Asian restaurants along Conant Street.",
+      "Hamtramck's Banglatown. Bangladeshi groceries, sweets shops, and South Asian restaurants along Conant Street.",
     pullQuote: "Conant Street for groceries, then pick a curry house.",
     pullQuoteAuthor: "Nadia R.",
     emoji: "🇧🇩",
@@ -754,7 +754,7 @@ export const mockCommunities: Community[] = [
     heritage: "Mexican",
     tags: ["Mexican", "Southwest Detroit"],
     description:
-      "Detroit's Mexicantown — tacos, bakeries, and murals along Vernor and Bagley in Southwest Detroit.",
+      "Detroit's Mexicantown, tacos, bakeries, and murals along Vernor and Bagley in Southwest Detroit.",
     pullQuote: "Bagley for dinner. Vernor for the walk.",
     pullQuoteAuthor: "Maria S.",
     emoji: "🇲🇽",
@@ -773,7 +773,7 @@ export const mockCommunities: Community[] = [
     heritage: "Korean",
     tags: ["Korean", "Los Angeles"],
     description:
-      "The largest Koreatown outside Seoul — barbecue halls, noraebang nights, and late-night soondubu around Wilshire and Western.",
+      "The largest Koreatown outside Seoul, barbecue halls, noraebang nights, and late-night soondubu around Wilshire and Western.",
     pullQuote: "Wilshire after midnight. Order the soondubu.",
     pullQuoteAuthor: "Jae K.",
     emoji: "🇰🇷",
@@ -792,7 +792,7 @@ export const mockCommunities: Community[] = [
     heritage: "Thai",
     tags: ["Thai", "Los Angeles", "East Hollywood"],
     description:
-      "America's only official Thai Town — pad thai, boat noodles, and markets along Hollywood Boulevard between Normandie and Western.",
+      "America's only official Thai Town, pad thai, boat noodles, and markets along Hollywood Boulevard between Normandie and Western.",
     pullQuote: "Boat noodles first. Then walk Hollywood Blvd.",
     pullQuoteAuthor: "Siriporn T.",
     emoji: "🇹🇭",
@@ -811,7 +811,7 @@ export const mockCommunities: Community[] = [
     heritage: "Japanese",
     tags: ["Japanese", "Los Angeles", "Downtown"],
     description:
-      "One of only three official Japantowns in the U.S. — ramen, sushi, and the Japanese American National Museum in downtown LA.",
+      "One of only three official Japantowns in the U.S., with ramen, sushi, and the Japanese American National Museum in downtown LA.",
     pullQuote: "Ramen, then the museum. Or reverse it.",
     pullQuoteAuthor: "Kenji M.",
     emoji: "🇯🇵",
@@ -830,7 +830,7 @@ export const mockCommunities: Community[] = [
     heritage: "Ethiopian",
     tags: ["Ethiopian", "Los Angeles", "Fairfax"],
     description:
-      "Ethiopian restaurants, coffee, and shops clustered on Fairfax near Olympic — injera, tibs, and first-Thursday nights.",
+      "Ethiopian restaurants, coffee, and shops clustered on Fairfax near Olympic, injera, tibs, and first-Thursday nights.",
     pullQuote: "Share everything. Order extra injera.",
     pullQuoteAuthor: "Hana G.",
     emoji: "🇪🇹",
@@ -849,7 +849,7 @@ export const mockCommunities: Community[] = [
     heritage: "Arab / Middle Eastern",
     tags: ["Arab", "Middle Eastern", "Anaheim", "Orange County"],
     description:
-      "Orange County's Arab corridor — shawarma, bakeries, and Middle Eastern markets along Brookhurst in Anaheim.",
+      "Orange County's Arab corridor, shawarma, bakeries, and Middle Eastern markets along Brookhurst in Anaheim.",
     pullQuote: "Brookhurst for shawarma. Stay for the bakery.",
     pullQuoteAuthor: "Layla H.",
     emoji: "🇸🇾",
@@ -868,7 +868,7 @@ export const mockCommunities: Community[] = [
     heritage: "Vietnamese",
     tags: ["Vietnamese", "Westminster", "Orange County"],
     description:
-      "The largest Little Saigon in the U.S. — phở, bánh mì, and Vietnamese plazas around Bolsa Avenue in Westminster and Garden Grove.",
+      "The largest Little Saigon in the U.S., with phở, bánh mì, and Vietnamese plazas around Bolsa Avenue in Westminster and Garden Grove.",
     pullQuote: "Bolsa Avenue. Start with phở, end with cà phê.",
     pullQuoteAuthor: "Mai N.",
     emoji: "🇻🇳",
@@ -887,7 +887,7 @@ export const mockCommunities: Community[] = [
     heritage: "Chinese",
     tags: ["Chinese", "Chicago"],
     description:
-      "Chicago's Chinatown around Wentworth and Cermak — dim sum, hot pot, and the Chinatown Gate at the heart of the South Side corridor.",
+      "Chicago's Chinatown around Wentworth and Cermak, dim sum, hot pot, and the Chinatown Gate at the heart of the South Side corridor.",
     pullQuote: "Wentworth for dim sum. Stay for hot pot.",
     pullQuoteAuthor: "Mei L.",
     emoji: "🇨🇳",
@@ -906,7 +906,7 @@ export const mockCommunities: Community[] = [
     heritage: "Vietnamese",
     tags: ["Vietnamese", "Chicago", "Uptown"],
     description:
-      "Uptown's Argyle Street — Chicago's Little Saigon of phở, bánh mì, and Vietnamese groceries under the Red Line.",
+      "Uptown's Argyle Street. Chicago's Little Saigon of phở, bánh mì, and Vietnamese groceries under the Red Line.",
     pullQuote: "Get off at Argyle. Follow the phở steam.",
     pullQuoteAuthor: "Lan P.",
     emoji: "🇻🇳",
@@ -925,7 +925,7 @@ export const mockCommunities: Community[] = [
     heritage: "Indian / Pakistani",
     tags: ["Indian", "Pakistani", "Chicago", "Devon"],
     description:
-      "West Ridge's Devon Avenue — Indian and Pakistani restaurants, sweet shops, and markets stretching west from Western Avenue.",
+      "West Ridge's Devon Avenue. Indian and Pakistani restaurants, sweet shops, and markets stretching west from Western Avenue.",
     pullQuote: "Devon for chaat, then mithai for the walk home.",
     pullQuoteAuthor: "Ayesha K.",
     emoji: "🇮🇳",
@@ -944,7 +944,7 @@ export const mockCommunities: Community[] = [
     heritage: "Mexican",
     tags: ["Mexican", "Chicago", "Little Village"],
     description:
-      "Chicago's Little Village — 26th Street taquerías, panaderías, and the arch that welcomes you into one of the Midwest's densest Mexican corridors.",
+      "Chicago's Little Village. 26th Street taquerías, panaderías, and the arch that welcomes you into one of the Midwest's densest Mexican corridors.",
     pullQuote: "26th Street. Al pastor, then a walk under the arch.",
     pullQuoteAuthor: "Rosa M.",
     emoji: "🇲🇽",
@@ -963,7 +963,7 @@ export const mockCommunities: Community[] = [
     heritage: "Mexican",
     tags: ["Mexican", "Chicago", "Pilsen"],
     description:
-      "Pilsen's murals, 18th Street taquerías, and galleries — a Mexican cultural heartland just southwest of downtown.",
+      "Pilsen's murals, 18th Street taquerías, and galleries, a Mexican cultural heartland just southwest of downtown.",
     pullQuote: "Murals first, then 18th Street for tacos.",
     pullQuoteAuthor: "Diego R.",
     emoji: "🇲🇽",
@@ -982,8 +982,8 @@ export const mockCommunities: Community[] = [
     heritage: "Arab / Palestinian",
     tags: ["Arab", "Palestinian", "Chicago", "Bridgeview"],
     description:
-      "Southwest suburban Bridgeview — Middle Eastern restaurants, bakeries, and one of the Midwest's largest Arab American communities.",
-    pullQuote: "Shawarma and knafeh — Bridgeview does both right.",
+      "Southwest suburban Bridgeview. Middle Eastern restaurants, bakeries, and one of the Midwest's largest Arab American communities.",
+    pullQuote: "Shawarma and knafeh. Bridgeview does both right.",
     pullQuoteAuthor: "Omar S.",
     emoji: "🇵🇸",
     latitude: 41.7501,
@@ -1001,7 +1001,7 @@ export const mockCommunities: Community[] = [
     heritage: "Korean",
     tags: ["Korean", "Chicago", "Albany Park"],
     description:
-      "Albany Park along Lawrence Avenue — Korean barbecue roots, plus one of Chicago's most globally mixed food streets.",
+      "Albany Park along Lawrence Avenue. Korean barbecue roots, plus one of Chicago's most globally mixed food streets.",
     pullQuote: "Lawrence Avenue barbecue, then keep walking.",
     pullQuoteAuthor: "Soojin H.",
     emoji: "🇰🇷",
@@ -1020,7 +1020,7 @@ export const mockCommunities: Community[] = [
     heritage: "Greek",
     tags: ["Greek", "Chicago", "Greektown"],
     description:
-      "Greektown on South Halsted — gyros, saganaki, and late-night baklava just west of the Loop.",
+      "Greektown on South Halsted, gyros, saganaki, and late-night baklava just west of the Loop.",
     pullQuote: "Order the saganaki. Yell opa if you want.",
     pullQuoteAuthor: "Nikos P.",
     emoji: "🇬🇷",
@@ -1039,7 +1039,7 @@ export const mockCommunities: Community[] = [
     heritage: "Italian",
     tags: ["Italian", "Chicago", "Taylor Street"],
     description:
-      "Taylor Street's Little Italy — red-sauce classics, espresso bars, and the historic Near West Side Italian corridor.",
+      "Taylor Street's Little Italy, red-sauce classics, espresso bars, and the historic Near West Side Italian corridor.",
     pullQuote: "Taylor Street for Sunday gravy energy any night.",
     pullQuoteAuthor: "Gina R.",
     emoji: "🇮🇹",
@@ -1058,7 +1058,7 @@ export const mockCommunities: Community[] = [
     heritage: "Puerto Rican",
     tags: ["Puerto Rican", "Chicago", "Humboldt Park"],
     description:
-      "Division Street's Paseo Boricua — Puerto Rican flags, cafés, and the cultural heart of Chicago's Boricua community.",
+      "Division Street's Paseo Boricua. Puerto Rican flags, cafés, and the cultural heart of Chicago's Boricua community.",
     pullQuote: "Walk under the flags on Division. Then eat.",
     pullQuoteAuthor: "Carmen V.",
     emoji: "🇵🇷",
@@ -1077,7 +1077,7 @@ export const mockCommunities: Community[] = [
     heritage: "Polish",
     tags: ["Polish", "Chicago", "Avondale"],
     description:
-      "Avondale's Polish Village (Jackowo) — pierogi, bakeries, and Milwaukee Avenue storefronts that still speak Polish.",
+      "Avondale's Polish Village (Jackowo), pierogi, bakeries, and Milwaukee Avenue storefronts that still speak Polish.",
     pullQuote: "Pierogi before noon on Milwaukee.",
     pullQuoteAuthor: "Ania K.",
     emoji: "🇵🇱",
@@ -1096,7 +1096,7 @@ export const mockCommunities: Community[] = [
     heritage: "Ukrainian",
     tags: ["Ukrainian", "Chicago", "West Town"],
     description:
-      "Ukrainian Village — onion-dome churches, Eastern European delis, and a dense West Town cultural corridor.",
+      "Ukrainian Village, onion-dome churches, Eastern European delis, and a dense West Town cultural corridor.",
     pullQuote: "Churches first, then a deli sandwich.",
     pullQuoteAuthor: "Oksana M.",
     emoji: "🇺🇦",
@@ -1115,7 +1115,7 @@ export const mockCommunities: Community[] = [
     heritage: "Pakistani",
     tags: ["Pakistani", "Chicago", "Bolingbrook", "Suburb"],
     description:
-      "Southwest suburban Bolingbrook — one of Chicagoland's strongest Pakistani restaurant and market corridors.",
+      "Southwest suburban Bolingbrook, one of Chicagoland's strongest Pakistani restaurant and market corridors.",
     pullQuote: "Drive out for nihari. Worth it.",
     pullQuoteAuthor: "Bilal H.",
     emoji: "🇵🇰",
@@ -1134,7 +1134,7 @@ export const mockCommunities: Community[] = [
     heritage: "Chinese",
     tags: ["Chinese", "Houston"],
     description:
-      "Houston's Chinatown along Bellaire — dim sum, hot pot, and one of the largest Asian food corridors in Texas.",
+      "Houston's Chinatown along Bellaire, dim sum, hot pot, and one of the largest Asian food corridors in Texas.",
     pullQuote: "Bellaire for hot pot. Bring friends.",
     pullQuoteAuthor: "Wei C.",
     emoji: "🇨🇳",
@@ -1153,7 +1153,7 @@ export const mockCommunities: Community[] = [
     heritage: "Indian",
     tags: ["Indian", "Houston"],
     description:
-      "Hillcroft's Mahatma Gandhi District — Indian and Pakistani restaurants, sweets, and markets southwest of the Loop.",
+      "Hillcroft's Mahatma Gandhi District. Indian and Pakistani restaurants, sweets, and markets southwest of the Loop.",
     pullQuote: "Hillcroft sweets, then dinner next door.",
     pullQuoteAuthor: "Priya S.",
     emoji: "🇮🇳",
@@ -1172,7 +1172,7 @@ export const mockCommunities: Community[] = [
     heritage: "Vietnamese",
     tags: ["Vietnamese", "Houston"],
     description:
-      "Houston's Vietnamese corridor near Bellaire — phở, bánh mì, and cafés woven through the wider Chinatown belt.",
+      "Houston's Vietnamese corridor near Bellaire, phở, bánh mì, and cafés woven through the wider Chinatown belt.",
     pullQuote: "Phở steam along Bellaire never lies.",
     pullQuoteAuthor: "Lan T.",
     emoji: "🇻🇳",
@@ -1191,7 +1191,7 @@ export const mockCommunities: Community[] = [
     heritage: "Nigerian",
     tags: ["Nigerian", "Houston"],
     description:
-      "Alief's Little Lagos — Nigerian and West African restaurants, groceries, and a growing Houston African food scene.",
+      "Alief's Little Lagos. Nigerian and West African restaurants, groceries, and a growing Houston African food scene.",
     pullQuote: "Alief for jollof. Ask for the pepper.",
     pullQuoteAuthor: "Ada O.",
     emoji: "🇳🇬",
@@ -1210,7 +1210,7 @@ export const mockCommunities: Community[] = [
     heritage: "Indian",
     tags: ["Indian", "Houston"],
     description:
-      "Suburban Sugar Land — one of Greater Houston's strongest Indian restaurant and market corridors.",
+      "Suburban Sugar Land, one of Greater Houston's strongest Indian restaurant and market corridors.",
     pullQuote: "Drive out for thali. Worth the traffic.",
     pullQuoteAuthor: "Ankit R.",
     emoji: "🇮🇳",
@@ -1229,8 +1229,8 @@ export const mockCommunities: Community[] = [
     heritage: "Indian",
     tags: ["Indian", "Houston"],
     description:
-      "West-suburban Katy — Indian and South Asian dining that draws Houstonians out past the Energy Corridor.",
-    pullQuote: "West side Indian nights — go hungry.",
+      "West-suburban Katy. Indian and South Asian dining that draws Houstonians out past the Energy Corridor.",
+    pullQuote: "West side Indian nights, go hungry.",
     pullQuoteAuthor: "Neha K.",
     emoji: "🇮🇳",
     latitude: 29.7858,
@@ -1248,7 +1248,7 @@ export const mockCommunities: Community[] = [
     heritage: "Mexican",
     tags: ["Mexican", "Houston"],
     description:
-      "Houston's East End — Mexican taquerías, bakeries, and a historic Latino corridor east of downtown.",
+      "Houston's East End. Mexican taquerías, bakeries, and a historic Latino corridor east of downtown.",
     pullQuote: "Second Ward tortillas, still warm.",
     pullQuoteAuthor: "Maria G.",
     emoji: "🇲🇽",
@@ -1267,7 +1267,7 @@ export const mockCommunities: Community[] = [
     heritage: "Chinese",
     tags: ["Chinese", "Seattle"],
     description:
-      "Seattle's Chinatown–ID — dim sum, bánh mì, and the historic Asian core around King Street and Hing Hay Park.",
+      "Seattle's Chinatown–ID, dim sum, bánh mì, and the historic Asian core around King Street and Hing Hay Park.",
     pullQuote: "Hing Hay Park, then dim sum.",
     pullQuoteAuthor: "Mei L.",
     emoji: "🇨🇳",
@@ -1286,8 +1286,8 @@ export const mockCommunities: Community[] = [
     heritage: "Vietnamese",
     tags: ["Vietnamese", "Seattle"],
     description:
-      "Seattle's Little Saigon near 12th and Jackson — Vietnamese bakeries, phở shops, and ID-adjacent cafés.",
-    pullQuote: "12th and Jackson — follow the bánh mì.",
+      "Seattle's Little Saigon near 12th and Jackson. Vietnamese bakeries, phở shops, and ID-adjacent cafés.",
+    pullQuote: "12th and Jackson, follow the bánh mì.",
     pullQuoteAuthor: "Huy N.",
     emoji: "🇻🇳",
     latitude: 47.5992,
@@ -1305,7 +1305,7 @@ export const mockCommunities: Community[] = [
     heritage: "Vietnamese",
     tags: ["Vietnamese", "Seattle"],
     description:
-      "White Center south of West Seattle — Vietnamese, Cambodian, and Latin groceries and restaurants in a dense food pocket.",
+      "White Center south of West Seattle. Vietnamese, Cambodian, and Latin groceries and restaurants in a dense food pocket.",
     pullQuote: "White Center groceries, then dinner.",
     pullQuoteAuthor: "Sophea C.",
     emoji: "🇻🇳",
@@ -1324,7 +1324,7 @@ export const mockCommunities: Community[] = [
     heritage: "Filipino",
     tags: ["Filipino", "Seattle"],
     description:
-      "Beacon Hill — Filipino, Vietnamese, and Latin spots along Beacon Avenue south of downtown.",
+      "Beacon Hill. Filipino, Vietnamese, and Latin spots along Beacon Avenue south of downtown.",
     pullQuote: "Beacon Ave lumpia run.",
     pullQuoteAuthor: "Ana R.",
     emoji: "🇵🇭",
@@ -1343,7 +1343,7 @@ export const mockCommunities: Community[] = [
     heritage: "Indian",
     tags: ["Indian", "Seattle"],
     description:
-      "Bellevue's Crossroads — Eastside Asian and South Asian dining, markets, and a suburban food hub across the lake.",
+      "Bellevue's Crossroads. Eastside Asian and South Asian dining, markets, and a suburban food hub across the lake.",
     pullQuote: "Crossroads for Eastside thali.",
     pullQuoteAuthor: "Ravi M.",
     emoji: "🇮🇳",
@@ -1362,7 +1362,7 @@ export const mockCommunities: Community[] = [
     heritage: "Indian",
     tags: ["Indian", "Seattle"],
     description:
-      "South King County's Kent — Indian restaurants and markets that anchor one of Seattle's largest South Asian suburbs.",
+      "South King County's Kent. Indian restaurants and markets that anchor one of Seattle's largest South Asian suburbs.",
     pullQuote: "South King County Indian done right.",
     pullQuoteAuthor: "Deepa P.",
     emoji: "🇮🇳",
@@ -1381,7 +1381,7 @@ export const mockCommunities: Community[] = [
     heritage: "Indian",
     tags: ["Indian", "Seattle"],
     description:
-      "Eastside Redmond — Indian and tech-suburban dining near Microsoft, with a growing South Asian corridor.",
+      "Eastside Redmond. Indian and tech-suburban dining near Microsoft, with a growing South Asian corridor.",
     pullQuote: "Post-work dosa near the campus.",
     pullQuoteAuthor: "Arjun V.",
     emoji: "🇮🇳",
@@ -1400,7 +1400,7 @@ export const mockCommunities: Community[] = [
     heritage: "Chinese",
     tags: ["Chinese", "Boston"],
     description:
-      "Boston's Chinatown — the densest Chinese dining district in New England, steps from Downtown Crossing.",
+      "Boston's Chinatown, the densest Chinese dining district in New England, steps from Downtown Crossing.",
     pullQuote: "Beach Street for soup dumplings.",
     pullQuoteAuthor: "Li W.",
     emoji: "🇨🇳",
@@ -1419,8 +1419,8 @@ export const mockCommunities: Community[] = [
     heritage: "Chinese",
     tags: ["Chinese", "Boston"],
     description:
-      "Quincy's Chinatown — a major Chinese and Asian food suburb south of Boston along Hancock Street.",
-    pullQuote: "Hancock Street Chinese — south of the city.",
+      "Quincy's Chinatown, a major Chinese and Asian food suburb south of Boston along Hancock Street.",
+    pullQuote: "Hancock Street Chinese, south of the city.",
     pullQuoteAuthor: "Chen Y.",
     emoji: "🇨🇳",
     latitude: 42.2731,
@@ -1438,7 +1438,7 @@ export const mockCommunities: Community[] = [
     heritage: "Chinese",
     tags: ["Chinese", "Boston"],
     description:
-      "Malden's growing Chinatown north of Boston — Chinese restaurants and markets along Pleasant Street.",
+      "Malden's growing Chinatown north of Boston. Chinese restaurants and markets along Pleasant Street.",
     pullQuote: "Pleasant Street, north of Boston.",
     pullQuoteAuthor: "Ying Z.",
     emoji: "🇨🇳",
@@ -1457,7 +1457,7 @@ export const mockCommunities: Community[] = [
     heritage: "Salvadoran",
     tags: ["Salvadoran", "Boston"],
     description:
-      "East Boston — Latin American restaurants, bakeries, and a waterfront neighborhood with deep immigrant roots.",
+      "East Boston. Latin American restaurants, bakeries, and a waterfront neighborhood with deep immigrant roots.",
     pullQuote: "Pupusas by the water.",
     pullQuoteAuthor: "Carmen L.",
     emoji: "🇸🇻",
@@ -1476,7 +1476,7 @@ export const mockCommunities: Community[] = [
     heritage: "Armenian",
     tags: ["Armenian", "Boston"],
     description:
-      "Watertown — one of America's strongest Armenian communities, with Middle Eastern markets and restaurants west of Cambridge.",
+      "Watertown, one of America's strongest Armenian communities, with Middle Eastern markets and restaurants west of Cambridge.",
     pullQuote: "Armenian markets west of Cambridge.",
     pullQuoteAuthor: "Ani K.",
     emoji: "🇦🇲",
@@ -1495,7 +1495,7 @@ export const mockCommunities: Community[] = [
     heritage: "Brazilian",
     tags: ["Brazilian", "Boston"],
     description:
-      "Somerville's Union Square — Brazilian, Latin, and global restaurants in one of Greater Boston's densest food nodes.",
+      "Somerville's Union Square. Brazilian, Latin, and global restaurants in one of Greater Boston's densest food nodes.",
     pullQuote: "Union Square Brazilian for lunch.",
     pullQuoteAuthor: "Pedro S.",
     emoji: "🇧🇷",
@@ -1514,7 +1514,7 @@ export const mockCommunities: Community[] = [
     heritage: "Chinese",
     tags: ["Chinese", "DC"],
     description:
-      "D.C.'s Chinatown around Gallery Place — a compact historic core of Chinese restaurants under the friendship arch.",
+      "D.C.'s Chinatown around Gallery Place, a compact historic core of Chinese restaurants under the friendship arch.",
     pullQuote: "Under the arch for dumplings.",
     pullQuoteAuthor: "Wei H.",
     emoji: "🇨🇳",
@@ -1533,7 +1533,7 @@ export const mockCommunities: Community[] = [
     heritage: "Ethiopian",
     tags: ["Ethiopian", "DC"],
     description:
-      "D.C.'s Little Ethiopia near U Street — injera, tibs, and coffee ceremonies in one of America's best-known Ethiopian corridors.",
+      "D.C.'s Little Ethiopia near U Street, injera, tibs, and coffee ceremonies in one of America's best-known Ethiopian corridors.",
     pullQuote: "U Street for injera and coffee.",
     pullQuoteAuthor: "Hanna T.",
     emoji: "🇪🇹",
@@ -1552,7 +1552,7 @@ export const mockCommunities: Community[] = [
     heritage: "Ethiopian",
     tags: ["Ethiopian", "DC"],
     description:
-      "Silver Spring's Ethiopian corridor — restaurants and markets just north of the District line.",
+      "Silver Spring's Ethiopian corridor, restaurants and markets just north of the District line.",
     pullQuote: "Silver Spring tibs after Metro.",
     pullQuoteAuthor: "Dawit B.",
     emoji: "🇪🇹",
@@ -1571,8 +1571,8 @@ export const mockCommunities: Community[] = [
     heritage: "Vietnamese",
     tags: ["Vietnamese", "DC"],
     description:
-      "Eden Center — the largest Vietnamese shopping and dining plaza on the East Coast, in Falls Church.",
-    pullQuote: "Eden Center — East Coast Vietnamese hub.",
+      "Eden Center, the largest Vietnamese shopping and dining plaza on the East Coast, in Falls Church.",
+    pullQuote: "Eden Center. East Coast Vietnamese hub.",
     pullQuoteAuthor: "Mai N.",
     emoji: "🇻🇳",
     latitude: 38.8665,
@@ -1590,7 +1590,7 @@ export const mockCommunities: Community[] = [
     heritage: "Salvadoran",
     tags: ["Salvadoran", "DC"],
     description:
-      "Mount Pleasant — Salvadoran pupuserías and Latin American restaurants in a classic D.C. immigrant neighborhood.",
+      "Mount Pleasant. Salvadoran pupuserías and Latin American restaurants in a classic D.C, immigrant neighborhood.",
     pullQuote: "Mount Pleasant pupusas, late.",
     pullQuoteAuthor: "Sofia R.",
     emoji: "🇸🇻",
@@ -1609,7 +1609,7 @@ export const mockCommunities: Community[] = [
     heritage: "Korean",
     tags: ["Korean", "DC"],
     description:
-      "Annandale — Northern Virginia's Korean restaurant corridor, a short drive from the District.",
+      "Annandale. Northern Virginia's Korean restaurant corridor, a short drive from the District.",
     pullQuote: "Annandale Korean BBQ corridor.",
     pullQuoteAuthor: "Jihoon K.",
     emoji: "🇰🇷",
@@ -1628,7 +1628,7 @@ export const mockCommunities: Community[] = [
     heritage: "Chinese",
     tags: ["Chinese", "Dallas"],
     description:
-      "Richardson's DFW Chinatown — Chinese restaurants and plazas anchoring North Dallas's Asian food scene.",
+      "Richardson's DFW Chinatown. Chinese restaurants and plazas anchoring North Dallas's Asian food scene.",
     pullQuote: "Richardson plazas for hot pot.",
     pullQuoteAuthor: "Lin X.",
     emoji: "🇨🇳",
@@ -1647,8 +1647,8 @@ export const mockCommunities: Community[] = [
     heritage: "Chinese",
     tags: ["Chinese", "Dallas"],
     description:
-      "Plano's Little Asia — Chinese, Korean, and pan-Asian dining in the northern DFW suburbs.",
-    pullQuote: "Plano Little Asia — pick a plaza.",
+      "Plano's Little Asia. Chinese, Korean, and pan-Asian dining in the northern DFW suburbs.",
+    pullQuote: "Plano Little Asia, pick a plaza.",
     pullQuoteAuthor: "Min J.",
     emoji: "🇨🇳",
     latitude: 33.0198,
@@ -1666,7 +1666,7 @@ export const mockCommunities: Community[] = [
     heritage: "Indian",
     tags: ["Indian", "Dallas"],
     description:
-      "Plano's Indian restaurant belt — one of North Texas's densest South Asian dining suburbs.",
+      "Plano's Indian restaurant belt, one of North Texas's densest South Asian dining suburbs.",
     pullQuote: "North Texas thali belt.",
     pullQuoteAuthor: "Sneha D.",
     emoji: "🇮🇳",
@@ -1685,7 +1685,7 @@ export const mockCommunities: Community[] = [
     heritage: "Indian",
     tags: ["Indian", "Dallas"],
     description:
-      "Frisco — fast-growing North Texas suburb with a strong Indian restaurant and market scene.",
+      "Frisco, fast-growing North Texas suburb with a strong Indian restaurant and market scene.",
     pullQuote: "Frisco for weekend biryani.",
     pullQuoteAuthor: "Vikram A.",
     emoji: "🇮🇳",
@@ -1704,7 +1704,7 @@ export const mockCommunities: Community[] = [
     heritage: "Pakistani",
     tags: ["Pakistani", "Dallas"],
     description:
-      "Irving — Pakistani and South Asian restaurants between Dallas and DFW Airport.",
+      "Irving. Pakistani and South Asian restaurants between Dallas and DFW Airport.",
     pullQuote: "Irving for nihari between flights.",
     pullQuoteAuthor: "Omar F.",
     emoji: "🇵🇰",
@@ -1723,7 +1723,7 @@ export const mockCommunities: Community[] = [
     heritage: "Mexican",
     tags: ["Mexican", "Dallas"],
     description:
-      "Oak Cliff — Mexican restaurants, bakeries, and a historic South Dallas Latino corridor.",
+      "Oak Cliff. Mexican restaurants, bakeries, and a historic South Dallas Latino corridor.",
     pullQuote: "Oak Cliff tacos, old school.",
     pullQuoteAuthor: "Luis M.",
     emoji: "🇲🇽",
@@ -1742,7 +1742,7 @@ export const mockCommunities: Community[] = [
     heritage: "Korean",
     tags: ["Korean", "Dallas"],
     description:
-      "Carrollton — Korean and Asian plazas in the northwest DFW suburbs.",
+      "Carrollton. Korean and Asian plazas in the northwest DFW suburbs.",
     pullQuote: "Carrollton Korean plazas.",
     pullQuoteAuthor: "Soojin P.",
     emoji: "🇰🇷",
@@ -1761,7 +1761,7 @@ export const mockCommunities: Community[] = [
     heritage: "Italian",
     tags: ["Italian","Connecticut","New Haven","Pizza"],
     description:
-      "New Haven's Little Italy around Wooster Square — world-famous apizza, Italian bakeries, and the classic Wooster Street dinner crawl.",
+      "New Haven's Little Italy around Wooster Square, world-famous apizza, Italian bakeries, and the classic Wooster Street dinner crawl.",
     pullQuote: "Wooster Street for apizza. No debate.",
     pullQuoteAuthor: "Tony R.",
     emoji: "🇮🇹",
@@ -1780,7 +1780,7 @@ export const mockCommunities: Community[] = [
     heritage: "Polish",
     tags: ["Polish","Connecticut","New Britain"],
     description:
-      "New Britain's Little Poland along Broad Street — pierogi, delis, bakeries, and one of New England's strongest Polish food corridors.",
+      "New Britain's Little Poland along Broad Street, pierogi, delis, bakeries, and one of New England's strongest Polish food corridors.",
     pullQuote: "Broad Street pierogi, then the bakery.",
     pullQuoteAuthor: "Kasia W.",
     emoji: "🇵🇱",
@@ -1799,7 +1799,7 @@ export const mockCommunities: Community[] = [
     heritage: "Puerto Rican",
     tags: ["Puerto Rican","Connecticut","Hartford"],
     description:
-      "Hartford's Park Street — Puerto Rican and Latin restaurants, bakeries, and markets through Frog Hollow and Parkville.",
+      "Hartford's Park Street. Puerto Rican and Latin restaurants, bakeries, and markets through Frog Hollow and Parkville.",
     pullQuote: "Park Street for mofongo and pasteles.",
     pullQuoteAuthor: "Luis M.",
     emoji: "🇵🇷",
@@ -1818,7 +1818,7 @@ export const mockCommunities: Community[] = [
     heritage: "Italian",
     tags: ["Italian","Connecticut","Hartford"],
     description:
-      "Hartford's South End — Italian restaurants and markets along Franklin Avenue in a classic Connecticut Italian corridor.",
+      "Hartford's South End. Italian restaurants and markets along Franklin Avenue in a classic Connecticut Italian corridor.",
     pullQuote: "Franklin Avenue Sunday gravy energy.",
     pullQuoteAuthor: "Gina P.",
     emoji: "🇮🇹",
@@ -1837,7 +1837,7 @@ export const mockCommunities: Community[] = [
     heritage: "Portuguese",
     tags: ["Portuguese","Brazilian","Connecticut","Bridgeport"],
     description:
-      "Bridgeport's Hollow — Portuguese bakeries, Brazilian churrascarias, and a dense Lusophone food pocket near downtown.",
+      "Bridgeport's Hollow. Portuguese bakeries, Brazilian churrascarias, and a dense Lusophone food pocket near downtown.",
     pullQuote: "Pasteis de nata, then Brazilian next door.",
     pullQuoteAuthor: "João S.",
     emoji: "🇵🇹",
@@ -1856,7 +1856,7 @@ export const mockCommunities: Community[] = [
     heritage: "Italian",
     tags: ["Italian","Connecticut","Bridgeport"],
     description:
-      "Bridgeport's Little Italy along Madison Avenue — Italian restaurants and a long-standing North End food corridor.",
+      "Bridgeport's Little Italy along Madison Avenue. Italian restaurants and a long-standing North End food corridor.",
     pullQuote: "Madison Avenue Italian, still going.",
     pullQuoteAuthor: "Maria L.",
     emoji: "🇮🇹",
@@ -1875,7 +1875,7 @@ export const mockCommunities: Community[] = [
     heritage: "Brazilian",
     tags: ["Brazilian","Connecticut","Danbury"],
     description:
-      "Danbury's Brazilian corridor — churrascarias, padarias, and one of Connecticut's densest Brazilian dining scenes.",
+      "Danbury's Brazilian corridor, churrascarias, padarias, and one of Connecticut's densest Brazilian dining scenes.",
     pullQuote: "Danbury for churrasco and pão de queijo.",
     pullQuoteAuthor: "Ana C.",
     emoji: "🇧🇷",
@@ -1894,7 +1894,7 @@ export const mockCommunities: Community[] = [
     heritage: "Jamaican",
     tags: ["Jamaican","Caribbean","Connecticut","Stamford"],
     description:
-      "Stamford's West Indian corridor — Caribbean restaurants, jerk spots, and groceries on the city's west and south sides.",
+      "Stamford's West Indian corridor. Caribbean restaurants, jerk spots, and groceries on the city's west and south sides.",
     pullQuote: "West Side jerk, rice and peas.",
     pullQuoteAuthor: "Devon B.",
     emoji: "🇯🇲",
@@ -1913,7 +1913,7 @@ export const mockCommunities: Community[] = [
     heritage: "Puerto Rican",
     tags: ["Puerto Rican","Latin","Connecticut","New Haven"],
     description:
-      "Fair Haven — Latin American restaurants and markets east of downtown New Haven along a historic immigrant waterfront.",
+      "Fair Haven. Latin American restaurants and markets east of downtown New Haven along a historic immigrant waterfront.",
     pullQuote: "Fair Haven for pernil and plantains.",
     pullQuoteAuthor: "Carmen D.",
     emoji: "🇵🇷",
@@ -1932,7 +1932,7 @@ export const mockCommunities: Community[] = [
     heritage: "Cuban",
     tags: ["Cuban","Miami","Calle Ocho"],
     description:
-      "Little Havana along Calle Ocho — Cuban cafecito, sandwiches, cigar shops, and the cultural heart of Miami's Cuban diaspora.",
+      "Little Havana along Calle Ocho. Cuban cafecito, sandwiches, cigar shops, and the cultural heart of Miami's Cuban diaspora.",
     pullQuote: "Calle Ocho cafecito, then a Cuban sandwich.",
     pullQuoteAuthor: "Ana R.",
     emoji: "🇨🇺",
@@ -1951,7 +1951,7 @@ export const mockCommunities: Community[] = [
     heritage: "Haitian",
     tags: ["Haitian","Miami","Caribbean"],
     description:
-      "Little Haiti — griot, patties, Creole bakeries, and the Caribbean Marketplace north of the Design District.",
+      "Little Haiti, griot, patties, Creole bakeries, and the Caribbean Marketplace north of the Design District.",
     pullQuote: "Griot and pikliz in Little Haiti.",
     pullQuoteAuthor: "Jean B.",
     emoji: "🇭🇹",
@@ -1970,7 +1970,7 @@ export const mockCommunities: Community[] = [
     heritage: "Cuban",
     tags: ["Cuban","Miami","Hialeah"],
     description:
-      "Hialeah — one of America's densest Cuban cities, packed with ventanitas, bakeries, and Latin restaurants.",
+      "Hialeah, one of America's densest Cuban cities, packed with ventanitas, bakeries, and Latin restaurants.",
     pullQuote: "Hialeah ventanitas never sleep.",
     pullQuoteAuthor: "Carlos M.",
     emoji: "🇨🇺",
@@ -1989,7 +1989,7 @@ export const mockCommunities: Community[] = [
     heritage: "Nicaraguan",
     tags: ["Nicaraguan","Miami","Sweetwater"],
     description:
-      "Sweetwater — Miami's Little Managua, known for Nicaraguan restaurants, gallo pinto, and Central American markets.",
+      "Sweetwater. Miami's Little Managua, known for Nicaraguan restaurants, gallo pinto, and Central American markets.",
     pullQuote: "Sweetwater for gallo pinto done right.",
     pullQuoteAuthor: "Maria L.",
     emoji: "🇳🇮",
@@ -2008,7 +2008,7 @@ export const mockCommunities: Community[] = [
     heritage: "Dominican",
     tags: ["Dominican","Miami","Allapattah"],
     description:
-      "Allapattah — Dominican restaurants and markets in a dense Midtown-adjacent Latin corridor sometimes called Little Santo Domingo.",
+      "Allapattah. Dominican restaurants and markets in a dense Midtown-adjacent Latin corridor sometimes called Little Santo Domingo.",
     pullQuote: "Allapattah mangú and mofongo.",
     pullQuoteAuthor: "Luis P.",
     emoji: "🇩🇴",
@@ -2027,7 +2027,7 @@ export const mockCommunities: Community[] = [
     heritage: "Colombian",
     tags: ["Colombian","Miami","Westchester"],
     description:
-      "Westchester — a strong Colombian restaurant and bakery corridor west of Coral Gables.",
+      "Westchester, a strong Colombian restaurant and bakery corridor west of Coral Gables.",
     pullQuote: "Westchester for bandeja and arepas.",
     pullQuoteAuthor: "Camila S.",
     emoji: "🇨🇴",
@@ -2046,7 +2046,7 @@ export const mockCommunities: Community[] = [
     heritage: "Venezuelan",
     tags: ["Venezuelan","Miami","Doral"],
     description:
-      "Doral — Venezuelan arepas, bakeries, and South American dining in western Miami-Dade.",
+      "Doral. Venezuelan arepas, bakeries, and South American dining in western Miami-Dade.",
     pullQuote: "Doral arepas after work.",
     pullQuoteAuthor: "Andrés G.",
     emoji: "🇻🇪",
@@ -2065,7 +2065,7 @@ export const mockCommunities: Community[] = [
     heritage: "Vietnamese",
     tags: ["Vietnamese","Orlando","Mills 50"],
     description:
-      "Orlando's Mills 50 — Little Vietnam of phở, bánh mì, and Asian markets at Mills and Colonial.",
+      "Orlando's Mills 50. Little Vietnam of phở, bánh mì, and Asian markets at Mills and Colonial.",
     pullQuote: "Mills and Colonial for phở.",
     pullQuoteAuthor: "Lan N.",
     emoji: "🇻🇳",
@@ -2084,7 +2084,7 @@ export const mockCommunities: Community[] = [
     heritage: "Jamaican",
     tags: ["Jamaican","Caribbean","Orlando","Pine Hills"],
     description:
-      "Pine Hills — Jamaican and West Indian restaurants, jerk spots, and Caribbean groceries west of downtown Orlando.",
+      "Pine Hills. Jamaican and West Indian restaurants, jerk spots, and Caribbean groceries west of downtown Orlando.",
     pullQuote: "Pine Hills jerk, rice and peas.",
     pullQuoteAuthor: "Devon W.",
     emoji: "🇯🇲",
@@ -2103,7 +2103,7 @@ export const mockCommunities: Community[] = [
     heritage: "Colombian",
     tags: ["Colombian","Orlando","Azalea Park"],
     description:
-      "Azalea Park along East Colonial — Colombian and Latin restaurants in east Orlando.",
+      "Azalea Park along East Colonial. Colombian and Latin restaurants in east Orlando.",
     pullQuote: "East Colonial Colombian lunch.",
     pullQuoteAuthor: "Sofia R.",
     emoji: "🇨🇴",
@@ -2122,7 +2122,7 @@ export const mockCommunities: Community[] = [
     heritage: "Puerto Rican",
     tags: ["Puerto Rican","Orlando","Kissimmee"],
     description:
-      "Kissimmee — one of Central Florida's strongest Puerto Rican restaurant and market corridors south of Orlando.",
+      "Kissimmee, one of Central Florida's strongest Puerto Rican restaurant and market corridors south of Orlando.",
     pullQuote: "Kissimmee for pernil and pasteles.",
     pullQuoteAuthor: "Carmen D.",
     emoji: "🇵🇷",
@@ -2141,7 +2141,7 @@ export const mockCommunities: Community[] = [
     heritage: "Somali",
     tags: ["Somali","Minnesota","Minneapolis"],
     description:
-      "Cedar-Riverside — Little Mogadishu, the heart of the Somali diaspora with East African restaurants, markets, and cafés on the West Bank.",
+      "Cedar-Riverside. Little Mogadishu, the heart of the Somali diaspora with East African restaurants, markets, and cafés on the West Bank.",
     pullQuote: "West Bank for camel meat and sambusas.",
     pullQuoteAuthor: "Amina H.",
     emoji: "🇸🇴",
@@ -2160,7 +2160,7 @@ export const mockCommunities: Community[] = [
     heritage: "Hmong",
     tags: ["Hmong","Vietnamese","Minnesota","Saint Paul"],
     description:
-      "Little Mekong along University Avenue — Hmong, Vietnamese, Lao, and Cambodian restaurants and markets in Frogtown.",
+      "Little Mekong along University Avenue. Hmong, Vietnamese, Lao, and Cambodian restaurants and markets in Frogtown.",
     pullQuote: "University Avenue for Hmong and Vietnamese.",
     pullQuoteAuthor: "Mai V.",
     emoji: "🇱🇦",
@@ -2179,8 +2179,8 @@ export const mockCommunities: Community[] = [
     heritage: "Hmong",
     tags: ["Hmong","Minnesota","Saint Paul"],
     description:
-      "Hmongtown Marketplace — a sprawling Hmong food hall and market hub, one of the Twin Cities' essential Southeast Asian destinations.",
-    pullQuote: "Hmongtown Marketplace — go hungry.",
+      "Hmongtown Marketplace, a sprawling Hmong food hall and market hub, one of the Twin Cities' essential Southeast Asian destinations.",
+    pullQuote: "Hmongtown Marketplace, go hungry.",
     pullQuoteAuthor: "Tou L.",
     emoji: "🇱🇦",
     latitude: 44.969,
@@ -2198,7 +2198,7 @@ export const mockCommunities: Community[] = [
     heritage: "Mexican",
     tags: ["Mexican","Minnesota","Minneapolis"],
     description:
-      "Lake Street through Midtown — Mexican taquerías, panaderías, and a dense Latin American food corridor south of downtown.",
+      "Lake Street through Midtown. Mexican taquerías, panaderías, and a dense Latin American food corridor south of downtown.",
     pullQuote: "Lake Street tacos after Midtown.",
     pullQuoteAuthor: "Rosa M.",
     emoji: "🇲🇽",
@@ -2217,7 +2217,7 @@ export const mockCommunities: Community[] = [
     heritage: "Vietnamese",
     tags: ["Vietnamese","Minnesota","Minneapolis","Eat Street"],
     description:
-      "Eat Street on Nicollet Avenue — Vietnamese, pan-Asian, and global restaurants in one of Minneapolis's classic food corridors.",
+      "Eat Street on Nicollet Avenue. Vietnamese, pan-Asian, and global restaurants in one of Minneapolis's classic food corridors.",
     pullQuote: "Nicollet for phở on Eat Street.",
     pullQuoteAuthor: "Lan P.",
     emoji: "🇻🇳",
@@ -2236,7 +2236,7 @@ export const mockCommunities: Community[] = [
     heritage: "Mexican",
     tags: ["Mexican","Minnesota","Saint Paul"],
     description:
-      "District del Sol on Saint Paul's West Side — Mexican restaurants, bakeries, and a historic Latino cultural corridor.",
+      "District del Sol on Saint Paul's West Side. Mexican restaurants, bakeries, and a historic Latino cultural corridor.",
     pullQuote: "West Side for District del Sol dinner.",
     pullQuoteAuthor: "Carlos G.",
     emoji: "🇲🇽",
@@ -2255,7 +2255,7 @@ export const mockCommunities: Community[] = [
     heritage: "Mexican",
     tags: ["Mexican","Minnesota","Minneapolis","Northeast"],
     description:
-      "Central Avenue in Northeast — Latin American restaurants and markets along a busy Minneapolis corridor.",
+      "Central Avenue in Northeast. Latin American restaurants and markets along a busy Minneapolis corridor.",
     pullQuote: "Central Avenue Latin lunch in NE.",
     pullQuoteAuthor: "Sofia R.",
     emoji: "🇲🇽",
@@ -2274,7 +2274,7 @@ export const mockCommunities: Community[] = [
     heritage: "Hmong",
     tags: ["Hmong","Minnesota","Brooklyn Park"],
     description:
-      "Brooklyn Park — a major Twin Cities Hmong and Southeast Asian suburban corridor north of Minneapolis.",
+      "Brooklyn Park, a major Twin Cities Hmong and Southeast Asian suburban corridor north of Minneapolis.",
     pullQuote: "Drive north for suburban Hmong markets.",
     pullQuoteAuthor: "Pao Y.",
     emoji: "🇱🇦",
@@ -2293,7 +2293,7 @@ export const mockCommunities: Community[] = [
     heritage: "Cuban",
     tags: ["Cuban","Miami","Kendall"],
     description:
-      "Kendall — suburban Miami-Dade Cuban and Latin restaurants stretching south of the city core.",
+      "Kendall, suburban Miami-Dade Cuban and Latin restaurants stretching south of the city core.",
     pullQuote: "South Kendall for Cuban lunch.",
     pullQuoteAuthor: "Isabel R.",
     emoji: "🇨🇺",
@@ -2312,7 +2312,7 @@ export const mockCommunities: Community[] = [
     heritage: "Haitian",
     tags: ["Haitian","Miami","North Miami"],
     description:
-      "North Miami — a major Haitian and Caribbean restaurant corridor north of Little Haiti.",
+      "North Miami, a major Haitian and Caribbean restaurant corridor north of Little Haiti.",
     pullQuote: "North Miami for griot and soup joumou.",
     pullQuoteAuthor: "Marie J.",
     emoji: "🇭🇹",
@@ -2331,7 +2331,7 @@ export const mockCommunities: Community[] = [
     heritage: "Brazilian",
     tags: ["Brazilian","Miami","Pompano Beach","Broward"],
     description:
-      "North Broward's Brazilian corridor — churrascarias, padarias, and markets around Pompano and Deerfield Beach.",
+      "North Broward's Brazilian corridor, churrascarias, padarias, and markets around Pompano and Deerfield Beach.",
     pullQuote: "Pompano for churrasco and padaria.",
     pullQuoteAuthor: "Carlos S.",
     emoji: "🇧🇷",
@@ -2350,7 +2350,7 @@ export const mockCommunities: Community[] = [
     heritage: "Indian",
     tags: ["Indian","Orlando","Kirkman"],
     description:
-      "Kirkman Road near International Drive — Indian restaurants and markets in west Orlando.",
+      "Kirkman Road near International Drive. Indian restaurants and markets in west Orlando.",
     pullQuote: "Kirkman Road for thali near I-Drive.",
     pullQuoteAuthor: "Priya M.",
     emoji: "🇮🇳",
@@ -2369,7 +2369,7 @@ export const mockCommunities: Community[] = [
     heritage: "Mexican",
     tags: ["Mexican","Orlando","Apopka"],
     description:
-      "Apopka — Mexican restaurants and markets in northwest Greater Orlando.",
+      "Apopka. Mexican restaurants and markets in northwest Greater Orlando.",
     pullQuote: "Apopka tacos northwest of town.",
     pullQuoteAuthor: "Luis G.",
     emoji: "🇲🇽",
@@ -2388,7 +2388,7 @@ export const mockCommunities: Community[] = [
     heritage: "Cuban",
     tags: ["Cuban","Tampa","Ybor"],
     description:
-      "Ybor City — Tampa's historic Cuban and Spanish cigar district, birthplace of the Tampa Cuban sandwich.",
+      "Ybor City. Tampa's historic Cuban and Spanish cigar district, birthplace of the Tampa Cuban sandwich.",
     pullQuote: "Ybor for the original Tampa Cuban.",
     pullQuoteAuthor: "Tony C.",
     emoji: "🇨🇺",
@@ -2407,7 +2407,7 @@ export const mockCommunities: Community[] = [
     heritage: "Cuban",
     tags: ["Cuban","Tampa"],
     description:
-      "West Tampa — Cuban bakeries, cafés, and a classic Tampa Latin food corridor west of downtown.",
+      "West Tampa. Cuban bakeries, cafés, and a classic Tampa Latin food corridor west of downtown.",
     pullQuote: "West Tampa cafecito run.",
     pullQuoteAuthor: "Ana P.",
     emoji: "🇨🇺",
@@ -2426,7 +2426,7 @@ export const mockCommunities: Community[] = [
     heritage: "Greek",
     tags: ["Greek","Tampa","Tarpon Springs"],
     description:
-      "Tarpon Springs — Florida's strongest Greek sponge-diving town, packed with Greek restaurants and bakeries on the Anclote River.",
+      "Tarpon Springs. Florida's strongest Greek sponge-diving town, packed with Greek restaurants and bakeries on the Anclote River.",
     pullQuote: "Tarpon Springs for sponge docks and Greek plates.",
     pullQuoteAuthor: "Nikos A.",
     emoji: "🇬🇷",
@@ -2445,7 +2445,7 @@ export const mockCommunities: Community[] = [
     heritage: "Indian",
     tags: ["Indian","Jacksonville","Baymeadows"],
     description:
-      "Baymeadows — Jacksonville's global food corridor, anchored by Indian restaurants, markets, and international plazas.",
+      "Baymeadows. Jacksonville's global food corridor, anchored by Indian restaurants, markets, and international plazas.",
     pullQuote: "Baymeadows for Indian lunch.",
     pullQuoteAuthor: "Ravi K.",
     emoji: "🇮🇳",
@@ -2472,7 +2472,7 @@ export const mockInsiders: InsiderQuote[] = [
     id: "i2",
     communityId: "little-pakistan",
     quote:
-      "Coney Island Avenue on Friday night — follow the charcoal and you'll find dinner.",
+      "Coney Island Avenue on Friday night, follow the charcoal and you'll find dinner.",
     author: "Sana A.",
     role: "Midwood guide",
   },
@@ -2486,7 +2486,7 @@ export const mockInsiders: InsiderQuote[] = [
   {
     id: "i4",
     communityId: "chinatown-flushing",
-    quote: "Nan Xiang before noon — shorter line, hotter broth.",
+    quote: "Nan Xiang before noon, shorter line, hotter broth.",
     author: "Wei Chen",
     role: "Local guide",
   },
@@ -2515,7 +2515,7 @@ export const mockInsiders: InsiderQuote[] = [
   {
     id: "i8",
     communityId: "little-senegal",
-    quote: "Thieboudienne and attaya on 116th — stay for the second pour.",
+    quote: "Thieboudienne and attaya on 116th, stay for the second pour.",
     author: "Moussa B.",
     role: "Harlem guide",
   },
