@@ -101,3 +101,4 @@ export { default as IconToolsKitchen2 } from "@iconscout/react-native-unicons/ic
 export { default as IconUser } from "@iconscout/react-native-unicons/icons/uil-user";
 export { default as IconUsers } from "@iconscout/react-native-unicons/icons/uil-users-alt";
 export { default as IconX } from "@iconscout/react-native-unicons/icons/uil-times";
+export { default as IconEllipsisV } from "@iconscout/react-native-unicons/icons/uil-ellipsis-v";

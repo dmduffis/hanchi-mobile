@@ -49,3 +49,10 @@ export async function createJournalEntry(
     }),
   });
 }
+
+export async function deleteJournalEntry(id: string): Promise<void> {
+  await apiFetch<{ ok: boolean; id: string }>(
+    `/journal/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
+}

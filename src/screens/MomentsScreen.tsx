@@ -10,11 +10,13 @@ import {
   Text,
   TextInput,
   View,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   createJournalEntry,
+  deleteJournalEntry,
   fetchUserJournal,
   type ApiJournalEntry,
 } from "../api/journal";
@@ -39,6 +41,7 @@ import { mockPeerMoments } from "../data/mockMoments";
 import { cultureCountryCode, cultureFlag } from "../data/userPrefs";
 import { countryFlagEmoji } from "../data/worldCountries";
 import {
+  IconEllipsisV,
   IconHeart,
   IconHeartFilled,
   IconImage,
@@ -354,6 +357,29 @@ export function MomentsScreen() {
     }
   }, []);
 
+  const onDeleteOwnPost = useCallback((item: MomentItem) => {
+    if (item.kind !== "own" || item.activity !== "post") return;
+    Alert.alert("Delete moment?", "This can’t be undone.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => {
+          void (async () => {
+            try {
+              await deleteJournalEntry(item.id);
+              setEntries((prev) => prev.filter((e) => e.id !== item.id));
+            } catch (e) {
+              setError(
+                e instanceof Error ? e.message : "Couldn’t delete moment",
+              );
+            }
+          })();
+        },
+      },
+    ]);
+  }, []);
+
   const draftPlaceName = draftPoiName
     ? draftPoiName
     : draftCommunityId
@@ -638,12 +664,12 @@ export function MomentsScreen() {
 
               return (
                 <View key={item.id} style={styles.card}>
-                  <Pressable
-                    onPress={onPressCard}
-                    disabled={disabled}
-                    style={styles.cardPress}
-                  >
-                    <View style={styles.cardTop}>
+                  <View style={styles.cardTop}>
+                    <Pressable
+                      onPress={onPressCard}
+                      disabled={disabled}
+                      style={styles.cardTopMain}
+                    >
                       <View style={styles.avatarWrap}>
                         <View
                           style={[
@@ -704,7 +730,24 @@ export function MomentsScreen() {
                           {formatRelativeTime(item.createdAt)}
                         </Text>
                       </View>
-                    </View>
+                    </Pressable>
+                    {item.kind === "own" && item.activity === "post" ? (
+                      <Pressable
+                        onPress={() => onDeleteOwnPost(item)}
+                        hitSlop={10}
+                        style={styles.cardMenuBtn}
+                        accessibilityRole="button"
+                        accessibilityLabel="Moment options"
+                      >
+                        <IconEllipsisV size={20} color={colors.gray} />
+                      </Pressable>
+                    ) : null}
+                  </View>
+                  <Pressable
+                    onPress={onPressCard}
+                    disabled={disabled}
+                    style={styles.cardPress}
+                  >
                     {item.note ? (
                       <Text style={styles.note}>
                         {cleanMomentNote(item.note)}
@@ -1068,8 +1111,20 @@ const styles = StyleSheet.create({
   },
   cardTop: {
     flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 4,
+  },
+  cardTopMain: {
+    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
     gap: 9,
+    minWidth: 0,
+  },
+  cardMenuBtn: {
+    paddingTop: 2,
+    paddingHorizontal: 4,
+    paddingBottom: 4,
   },
   avatarWrap: {
     width: AVATAR,
