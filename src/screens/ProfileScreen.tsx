@@ -6,6 +6,7 @@ import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -55,6 +56,7 @@ import {
   setShowLocationOnProfile,
 } from "../lib/profileBio";
 import { sortStampsNewestFirst, stampToCard } from "../lib/stampDisplay";
+import { pickPhoto, uploadLocalPhoto } from "../lib/uploadPhoto";
 import {
   getSavedLocationInfo,
   resolveMapRegion,
@@ -83,12 +85,13 @@ type ProfileLowerTab = "passport" | "moments";
 
 export function ProfileScreen() {
   const navigation = useNavigation<ProfileNav>();
-  const { signOut, profile } = useAuth();
+  const { signOut, profile, refreshProfile } = useAuth();
   const [stampList, setStampList] = useState<ApiStamp[]>([]);
   const [journal, setJournal] = useState<ApiJournalEntry[]>([]);
   const [user, setUser] = useState<ApiUser | null>(null);
   const [bio, setBio] = useState("");
   const [signingOut, setSigningOut] = useState(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [bioOpen, setBioOpen] = useState(false);
@@ -245,6 +248,7 @@ export function ProfileScreen() {
 
   const displayName = user?.displayName ?? profile?.displayName ?? "Explorer";
   const initial = displayName.charAt(0).toUpperCase();
+  const avatarUrl = user?.avatarUrl ?? profile?.avatarUrl ?? null;
   const cultures = user?.cultures ?? profile?.cultures ?? [];
   const stampCards = stampList.map((s) => stampToCard(s));
   const previewStamps = stampCards.slice(0, PREVIEW_LIMIT);
@@ -315,6 +319,41 @@ export function ProfileScreen() {
   /** Empty About is omitted for visitors — only the owner sees the add prompt. */
   const showAboutSection = hasBio || isOwnProfile;
 
+  const onChangeAvatar = () => {
+    if (!isOwnProfile || avatarBusy) return;
+    Alert.alert("Profile photo", "Choose a photo for your profile", [
+      {
+        text: "Choose photo",
+        onPress: () => {
+          void (async () => {
+            setAvatarBusy(true);
+            try {
+              const photo = await pickPhoto();
+              if (!photo) return;
+              const uploaded = await uploadLocalPhoto("avatar", photo.uri);
+              if (!uploaded.mediaId || uploaded.status !== "approved") {
+                throw new Error("Photo didn’t pass review. Try another.");
+              }
+              const updated = await updateMe({
+                avatarMediaId: uploaded.mediaId,
+              });
+              setUser(updated);
+              await refreshProfile();
+            } catch (e) {
+              Alert.alert(
+                "Couldn’t update photo",
+                e instanceof Error ? e.message : "Try again",
+              );
+            } finally {
+              setAvatarBusy(false);
+            }
+          })();
+        },
+      },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <ScrollView
@@ -352,22 +391,39 @@ export function ProfileScreen() {
         </View>
 
         {/* Header */}
-        <Pressable
-          style={styles.headerRow}
-          onPress={isOwnProfile ? openEdit : undefined}
-          disabled={!isOwnProfile}
-          accessibilityRole={isOwnProfile ? "button" : undefined}
-          accessibilityLabel={
-            isOwnProfile ? "Edit profile preferences" : undefined
-          }
-        >
-          <View style={styles.avatarWrap}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initial}</Text>
-            </View>
-          </View>
+        <View style={styles.headerRow}>
+          <Pressable
+            style={styles.avatarWrap}
+            onPress={isOwnProfile ? onChangeAvatar : undefined}
+            disabled={!isOwnProfile || avatarBusy}
+            accessibilityRole={isOwnProfile ? "button" : undefined}
+            accessibilityLabel={
+              isOwnProfile ? "Change profile photo" : undefined
+            }
+          >
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{initial}</Text>
+              </View>
+            )}
+            {avatarBusy ? (
+              <View style={styles.avatarBusy}>
+                <ActivityIndicator color={colors.white} />
+              </View>
+            ) : null}
+          </Pressable>
 
-          <View style={styles.headerMeta}>
+          <Pressable
+            style={styles.headerMeta}
+            onPress={isOwnProfile ? openEdit : undefined}
+            disabled={!isOwnProfile}
+            accessibilityRole={isOwnProfile ? "button" : undefined}
+            accessibilityLabel={
+              isOwnProfile ? "Edit profile preferences" : undefined
+            }
+          >
             <View style={styles.nameRow}>
               <Text style={styles.name} numberOfLines={1}>
                 {displayName}
@@ -433,8 +489,8 @@ export function ProfileScreen() {
                 <Text style={styles.editLinkSmall}>Edit</Text>
               ) : null}
             </Pressable>
-          </View>
-        </Pressable>
+          </Pressable>
+        </View>
 
         {/* About — hidden entirely for visitors when empty */}
         {showAboutSection ? (
@@ -997,6 +1053,19 @@ const styles = StyleSheet.create({
     height: 88,
     borderRadius: 44,
     backgroundColor: colors.forest,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarImage: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.surface,
+  },
+  avatarBusy: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: 44,
+    backgroundColor: "rgba(0,0,0,0.35)",
     alignItems: "center",
     justifyContent: "center",
   },

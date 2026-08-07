@@ -17,7 +17,8 @@
       "bundleIdentifier": "com.hanchi.app",
       "icon": "./assets/expo.icon",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Hanchi uses your location to center the map on you and show nearby communities and restaurants."
+        "NSLocationWhenInUseUsageDescription": "Hanchi uses your location to center the map on you and show nearby communities and restaurants.",
+        "NSPhotoLibraryUsageDescription": "Hanchi uses your photos for Moments and your profile picture."
       }
     },
     "android": {
@@ -52,6 +53,12 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "Allow Hanchi to use your location to center the map on you."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Hanchi to use your photos for Moments and your profile."
         }
       ],
       "expo-secure-store",

@@ -1,7 +1,8 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -17,21 +18,46 @@ import {
   fetchUserJournal,
   type ApiJournalEntry,
 } from "../api/journal";
+import { searchAll } from "../api/search";
 import { fetchUserStamps, type ApiStamp } from "../api/stamps";
 import { useCommunities } from "../api/useCommunities";
-import { CircularFlag, PrimaryButton, SkeletonListRows } from "../components";
+import {
+  CircularFlag,
+  MomentPhotos,
+  PrimaryButton,
+  SearchBar,
+  SkeletonListRows,
+} from "../components";
 import { useAuth } from "../auth/AuthContext";
 import { getCommunityCountryCode } from "../data/communityFlags";
+import { filterCommunities, scoreCommunityQuery } from "../data/cultureFilters";
+import {
+  primaryEthnicityCountryCode,
+  primaryEthnicityEmoji,
+} from "../data/ethnicityFlags";
 import { mockPeerMoments } from "../data/mockMoments";
 import { cultureCountryCode, cultureFlag } from "../data/userPrefs";
 import { countryFlagEmoji } from "../data/worldCountries";
-import { IconHeart, IconHeartFilled, IconPlus, IconX } from "../icons";
+import {
+  IconHeart,
+  IconHeartFilled,
+  IconImage,
+  IconMapPin,
+  IconPlus,
+  IconX,
+} from "../icons";
 import { listDishTries, type StoredDishTry } from "../lib/dishTries";
 import {
   baseLikeCount,
   getMomentLikesMap,
   toggleMomentLike,
 } from "../lib/momentLikes";
+import {
+  MAX_MOMENT_PHOTOS,
+  pickPhotos,
+  uploadLocalPhoto,
+  type LocalPhoto,
+} from "../lib/uploadPhoto";
 import type { RootStackParamList } from "../navigation/types";
 import type { MomentItem } from "../types";
 import { colors, radii, typography } from "../theme";
@@ -74,6 +100,7 @@ function entryToMoment(
   authorCountryCode: string | null | undefined,
   authorFlag: string | null | undefined,
 ): MomentItem {
+  const restaurantName = entry.poiName ?? entry.poi?.name ?? null;
   return {
     id: entry.id,
     kind: "own",
@@ -82,13 +109,31 @@ function entryToMoment(
     note: cleanMomentNote(entry.note),
     createdAt: entry.createdAt,
     communityId: entry.communityId,
-    communityName: communityName ?? null,
+    communityName: communityName ?? entry.communityName ?? null,
     placeCountryCode: placeCountryCode ?? null,
     photoUrl: entry.photoUrl,
+    photoUrls: entry.photoUrls?.length
+      ? entry.photoUrls
+      : entry.photoUrl
+        ? [entry.photoUrl]
+        : [],
     authorCountryCode: authorCountryCode ?? null,
     authorFlag: authorFlag ?? null,
+    restaurantId: entry.poiId,
+    restaurantName,
   };
 }
+
+type PlacePick = {
+  key: string;
+  kind: "community" | "restaurant";
+  id: string;
+  name: string;
+  subtitle: string;
+  communityId: string | null;
+  countryCode: string | null;
+  ethnicities?: string[];
+};
 
 function stampToMoment(
   stamp: ApiStamp,
@@ -153,6 +198,16 @@ export function MomentsScreen() {
   const [composeOpen, setComposeOpen] = useState(false);
   const [draftNote, setDraftNote] = useState("");
   const [draftCommunityId, setDraftCommunityId] = useState<string | null>(null);
+  const [draftPoiId, setDraftPoiId] = useState<string | null>(null);
+  const [draftPoiName, setDraftPoiName] = useState<string | null>(null);
+  const [draftPlaceCountryCode, setDraftPlaceCountryCode] = useState<
+    string | null
+  >(null);
+  const [draftPlaceQuery, setDraftPlaceQuery] = useState("");
+  const [placePickerOpen, setPlacePickerOpen] = useState(false);
+  const [placeSearchResults, setPlaceSearchResults] = useState<PlacePick[]>([]);
+  const [placeSearchLoading, setPlaceSearchLoading] = useState(false);
+  const [draftPhotos, setDraftPhotos] = useState<LocalPhoto[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -200,13 +255,20 @@ export function MomentsScreen() {
       const community = e.communityId
         ? communityById.get(e.communityId)
         : undefined;
-      const placeCode = e.communityId
-        ? (getCommunityCountryCode(e.communityId) ?? null)
-        : null;
+      const restaurantName = e.poiName ?? e.poi?.name ?? null;
+      // Prefer restaurant ethnicity for a place flag when tagging a restaurant.
+      const placeCode = restaurantName
+        ? (primaryEthnicityCountryCode(e.poi?.ethnicities) ??
+          (e.communityId
+            ? (getCommunityCountryCode(e.communityId) ?? null)
+            : null))
+        : e.communityId
+          ? (getCommunityCountryCode(e.communityId) ?? null)
+          : null;
       return entryToMoment(
         e,
         authorName,
-        community?.name ?? null,
+        community?.name ?? e.communityName ?? null,
         placeCode,
         ownCountryCode,
         ownFlag,
@@ -292,12 +354,143 @@ export function MomentsScreen() {
     }
   }, []);
 
-  const draftPlaceName = draftCommunityId
-    ? (communityById.get(draftCommunityId)?.name ?? null)
-    : null;
-  const draftPlaceCode = draftCommunityId
-    ? (getCommunityCountryCode(draftCommunityId) ?? null)
-    : null;
+  const draftPlaceName = draftPoiName
+    ? draftPoiName
+    : draftCommunityId
+      ? (communityById.get(draftCommunityId)?.name ?? null)
+      : null;
+  const draftPlaceCode = draftPlaceCountryCode;
+
+  // Browse communities when empty; search restaurants + communities when typing.
+  useEffect(() => {
+    if (!placePickerOpen) return;
+    let cancelled = false;
+    const q = draftPlaceQuery.trim();
+    const handle = setTimeout(
+      async () => {
+        setPlaceSearchLoading(true);
+        try {
+          if (!q) {
+            const local: PlacePick[] = communities.slice(0, 12).map((c) => ({
+              key: `c-${c.id}`,
+              kind: "community" as const,
+              id: c.id,
+              name: c.name,
+              subtitle: [c.neighborhood, c.heritage]
+                .filter(Boolean)
+                .join(" · "),
+              communityId: c.id,
+              countryCode: getCommunityCountryCode(c.id) ?? null,
+            }));
+            if (!cancelled) setPlaceSearchResults(local);
+            return;
+          }
+
+          // Local community filter (instant) + API restaurants (live).
+          const communityHits = filterCommunities(communities, {
+            culture: "all",
+            query: q,
+          })
+            .map((c) => ({ c, score: scoreCommunityQuery(c, q) }))
+            .sort(
+              (a, b) => b.score - a.score || a.c.name.localeCompare(b.c.name),
+            )
+            .slice(0, 10)
+            .map(
+              ({ c }): PlacePick => ({
+                key: `c-${c.id}`,
+                kind: "community",
+                id: c.id,
+                name: c.name,
+                subtitle: [c.neighborhood, c.heritage]
+                  .filter(Boolean)
+                  .join(" · "),
+                communityId: c.id,
+                countryCode: getCommunityCountryCode(c.id) ?? null,
+              }),
+            );
+
+          let restaurantHits: PlacePick[] = [];
+          try {
+            const data = await searchAll(q);
+            restaurantHits = data.pois.slice(0, 15).map((p) => {
+              const communityName = p.communityId
+                ? (communityById.get(p.communityId)?.name ?? null)
+                : null;
+              const sub = [p.category, communityName]
+                .filter(Boolean)
+                .join(" · ");
+              return {
+                key: `r-${p.id}`,
+                kind: "restaurant" as const,
+                id: p.id,
+                name: p.name,
+                subtitle: sub || "Restaurant",
+                communityId: p.communityId,
+                countryCode:
+                  primaryEthnicityCountryCode(p.ethnicities) ??
+                  (p.communityId
+                    ? (getCommunityCountryCode(p.communityId) ?? null)
+                    : null),
+                ethnicities: p.ethnicities,
+              };
+            });
+          } catch {
+            // Communities still useful offline / on API error.
+          }
+
+          if (!cancelled) {
+            setPlaceSearchResults([...restaurantHits, ...communityHits]);
+          }
+        } finally {
+          if (!cancelled) setPlaceSearchLoading(false);
+        }
+      },
+      q ? 250 : 0,
+    );
+
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [placePickerOpen, draftPlaceQuery, communities, communityById]);
+
+  const selectPlace = (place: PlacePick) => {
+    if (place.kind === "restaurant") {
+      setDraftPoiId(place.id);
+      setDraftPoiName(place.name);
+      setDraftCommunityId(place.communityId);
+      setDraftPlaceCountryCode(place.countryCode);
+    } else {
+      setDraftPoiId(null);
+      setDraftPoiName(null);
+      setDraftCommunityId(place.id);
+      setDraftPlaceCountryCode(place.countryCode);
+    }
+    setDraftPlaceQuery("");
+    setPlacePickerOpen(false);
+  };
+
+  const clearDraftPlace = () => {
+    setDraftCommunityId(null);
+    setDraftPoiId(null);
+    setDraftPoiName(null);
+    setDraftPlaceCountryCode(null);
+    setPlacePickerOpen(false);
+  };
+
+  const resetCompose = () => {
+    setDraftNote("");
+    setDraftCommunityId(null);
+    setDraftPoiId(null);
+    setDraftPoiName(null);
+    setDraftPlaceCountryCode(null);
+    setDraftPlaceQuery("");
+    setPlacePickerOpen(false);
+    setPlaceSearchResults([]);
+    setDraftPhotos([]);
+    setError(null);
+  };
 
   const publish = async () => {
     const note = cleanMomentNote(draftNote);
@@ -308,18 +501,46 @@ export function MomentsScreen() {
     setSaving(true);
     setError(null);
     try {
+      const mediaIds: string[] = [];
+      for (const photo of draftPhotos) {
+        const uploaded = await uploadLocalPhoto("moment", photo.uri);
+        if (!uploaded.mediaId || uploaded.status !== "approved") {
+          throw new Error("A photo didn’t pass review. Try another.");
+        }
+        mediaIds.push(uploaded.mediaId);
+      }
       const created = await createJournalEntry({
         note,
         communityId: draftCommunityId,
+        poiId: draftPoiId,
+        mediaIds,
       });
       setEntries((prev) => [created, ...prev]);
-      setDraftNote("");
-      setDraftCommunityId(null);
+      resetCompose();
       setComposeOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn’t post moment");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const onAttachPhoto = async () => {
+    setError(null);
+    const remaining = MAX_MOMENT_PHOTOS - draftPhotos.length;
+    if (remaining <= 0) {
+      setError(`You can add up to ${MAX_MOMENT_PHOTOS} photos`);
+      return;
+    }
+    try {
+      const photos = await pickPhotos(remaining);
+      if (photos.length) {
+        setDraftPhotos((prev) =>
+          [...prev, ...photos].slice(0, MAX_MOMENT_PHOTOS),
+        );
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn’t open photos");
     }
   };
 
@@ -338,7 +559,7 @@ export function MomentsScreen() {
           </View>
           <Pressable
             onPress={() => {
-              setError(null);
+              resetCompose();
               setComposeOpen(true);
             }}
             style={styles.addBtn}
@@ -360,7 +581,10 @@ export function MomentsScreen() {
             </Text>
             <PrimaryButton
               label="Write a moment"
-              onPress={() => setComposeOpen(true)}
+              onPress={() => {
+                resetCompose();
+                setComposeOpen(true);
+              }}
             />
           </View>
         ) : (
@@ -374,8 +598,9 @@ export function MomentsScreen() {
                 .toUpperCase();
               const isStamp = item.activity === "stamp";
               const isDishTry = item.activity === "dish_try";
-              const checkedIn =
-                !isStamp && !isDishTry && Boolean(item.communityName);
+              const placeLabel =
+                item.restaurantName ?? item.communityName ?? null;
+              const checkedIn = !isStamp && !isDishTry && Boolean(placeLabel);
               const placeFlag = item.placeCountryCode
                 ? `${countryFlagEmoji(item.placeCountryCode)} `
                 : "";
@@ -390,6 +615,12 @@ export function MomentsScreen() {
                   });
                   return;
                 }
+                if (!isStamp && !isDishTry && item.restaurantId) {
+                  navigation.navigate("RestaurantDetail", {
+                    restaurantId: item.restaurantId,
+                  });
+                  return;
+                }
                 if (item.communityId) {
                   navigation.navigate("CommunityProfile", {
                     communityId: item.communityId,
@@ -398,7 +629,7 @@ export function MomentsScreen() {
               };
               const disabled = isDishTry
                 ? !item.restaurantId && !item.communityId
-                : !item.communityId;
+                : !item.restaurantId && !item.communityId;
 
               const likeState = likes[item.id] ?? {
                 liked: false,
@@ -464,9 +695,7 @@ export function MomentsScreen() {
                             <Text style={styles.author}>{displayName}</Text>
                             <Text style={styles.verb}> at </Text>
                             {placeFlag}
-                            <Text style={styles.placeName}>
-                              {item.communityName}
-                            </Text>
+                            <Text style={styles.placeName}>{placeLabel}</Text>
                           </Text>
                         ) : (
                           <Text style={styles.author}>{displayName}</Text>
@@ -481,6 +710,16 @@ export function MomentsScreen() {
                         {cleanMomentNote(item.note)}
                       </Text>
                     ) : null}
+                    {(() => {
+                      const urls = item.photoUrls?.length
+                        ? item.photoUrls
+                        : item.photoUrl
+                          ? [item.photoUrl]
+                          : [];
+                      return urls.length ? (
+                        <MomentPhotos urls={urls} indent={AVATAR + 9} />
+                      ) : null;
+                    })()}
                   </Pressable>
                   <View style={styles.cardActions}>
                     <Pressable
@@ -527,7 +766,10 @@ export function MomentsScreen() {
         <SafeAreaView style={styles.modalSafe}>
           <View style={styles.modalHeader}>
             <Pressable
-              onPress={() => setComposeOpen(false)}
+              onPress={() => {
+                setComposeOpen(false);
+                resetCompose();
+              }}
               hitSlop={8}
               accessibilityLabel="Close"
             >
@@ -541,10 +783,6 @@ export function MomentsScreen() {
             contentContainerStyle={styles.modalScroll}
             keyboardShouldPersistTaps="handled"
           >
-            <Text style={styles.modalHint}>
-              Write what stayed with you. Check in at a place so your moment
-              shows as you at that neighborhood, with its flag.
-            </Text>
             <TextInput
               style={styles.input}
               placeholder="What stayed with you?"
@@ -553,73 +791,216 @@ export function MomentsScreen() {
               onChangeText={setDraftNote}
               multiline
               textAlignVertical="top"
+              autoFocus
             />
 
-            <Text style={styles.fieldLabel}>Check in</Text>
-            {draftPlaceName ? (
-              <View style={styles.checkInPreview}>
-                <Text style={styles.checkInPreviewLabel}>Preview</Text>
-                <Text style={styles.headline}>
-                  <Text style={styles.author}>You</Text>
-                  <Text style={styles.verb}> at </Text>
-                  {draftPlaceCode ? `${countryFlagEmoji(draftPlaceCode)} ` : ""}
-                  <Text style={styles.placeName}>{draftPlaceName}</Text>
-                </Text>
+            {draftPhotos.length === 1 ? (
+              <View style={styles.draftSinglePhotoWrap}>
+                <Image
+                  source={{ uri: draftPhotos[0].uri }}
+                  style={[
+                    styles.draftSinglePhoto,
+                    {
+                      aspectRatio:
+                        draftPhotos[0].width && draftPhotos[0].height
+                          ? draftPhotos[0].width / draftPhotos[0].height
+                          : 4 / 3,
+                    },
+                  ]}
+                  resizeMode="cover"
+                />
+                <Pressable
+                  style={styles.photoRemoveBtn}
+                  onPress={() => setDraftPhotos([])}
+                  hitSlop={8}
+                  accessibilityLabel="Remove photo"
+                >
+                  <IconX size={16} color={colors.white} />
+                </Pressable>
+              </View>
+            ) : draftPhotos.length > 1 ? (
+              <View style={styles.draftGrid}>
+                {draftPhotos.map((p, i) => (
+                  <View key={`${p.uri}-${i}`} style={styles.draftGridCell}>
+                    <Image
+                      source={{ uri: p.uri }}
+                      style={styles.draftGridImage}
+                      resizeMode="cover"
+                    />
+                    <Pressable
+                      style={styles.draftGridRemove}
+                      onPress={() =>
+                        setDraftPhotos((prev) =>
+                          prev.filter((_, idx) => idx !== i),
+                        )
+                      }
+                      hitSlop={6}
+                      accessibilityLabel="Remove photo"
+                    >
+                      <IconX size={12} color={colors.white} />
+                    </Pressable>
+                  </View>
+                ))}
               </View>
             ) : null}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipRow}
-            >
-              <Pressable
-                onPress={() => setDraftCommunityId(null)}
-                style={[
-                  styles.chip,
-                  draftCommunityId === null && styles.chipSelected,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    draftCommunityId === null && styles.chipTextSelected,
-                  ]}
-                >
-                  No place
+
+            {draftPlaceName && !placePickerOpen ? (
+              <View style={styles.selectedPlaceChip}>
+                <IconMapPin size={16} color={colors.forest} />
+                {draftPlaceCode ? (
+                  <CircularFlag countryCode={draftPlaceCode} size={16} bare />
+                ) : null}
+                <Text style={styles.selectedPlaceText} numberOfLines={1}>
+                  {draftPlaceName}
                 </Text>
-              </Pressable>
-              {communities.slice(0, 20).map((c) => {
-                const selected = draftCommunityId === c.id;
-                const placeCode = getCommunityCountryCode(c.id);
-                return (
-                  <Pressable
-                    key={c.id}
-                    onPress={() => setDraftCommunityId(c.id)}
-                    style={[styles.chip, selected && styles.chipSelected]}
-                  >
-                    {placeCode ? (
-                      <View style={styles.chipFlag}>
-                        <CircularFlag countryCode={placeCode} size={16} bare />
-                      </View>
-                    ) : null}
-                    <Text
-                      style={[
-                        styles.chipText,
-                        selected && styles.chipTextSelected,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {c.name}
+                <Pressable
+                  onPress={clearDraftPlace}
+                  hitSlop={8}
+                  accessibilityLabel="Remove location"
+                >
+                  <IconX size={16} color={colors.gray} />
+                </Pressable>
+              </View>
+            ) : null}
+
+            {placePickerOpen ? (
+              <View style={styles.placePicker}>
+                <SearchBar
+                  placeholder="Search restaurants or communities"
+                  value={draftPlaceQuery}
+                  onChangeText={setDraftPlaceQuery}
+                  autoFocus
+                />
+                <View style={styles.placeResults}>
+                  {placeSearchLoading ? (
+                    <Text style={styles.placeEmpty}>Searching…</Text>
+                  ) : null}
+                  {!placeSearchLoading &&
+                    placeSearchResults.map((place) => {
+                      const countryCode =
+                        place.countryCode ??
+                        (place.kind === "restaurant"
+                          ? primaryEthnicityCountryCode(place.ethnicities)
+                          : null);
+                      const flagEmoji =
+                        place.kind === "restaurant"
+                          ? primaryEthnicityEmoji(place.ethnicities)
+                          : undefined;
+                      const kindLabel =
+                        place.kind === "restaurant"
+                          ? "Restaurant"
+                          : "Community";
+                      return (
+                        <Pressable
+                          key={place.key}
+                          style={styles.placeRow}
+                          onPress={() => selectPlace(place)}
+                        >
+                          {countryCode || flagEmoji ? (
+                            <View style={styles.placeRowFlag}>
+                              <CircularFlag
+                                countryCode={countryCode}
+                                flag={flagEmoji}
+                                size={22}
+                                bare
+                              />
+                            </View>
+                          ) : (
+                            <View style={styles.placeRowIcon}>
+                              <IconMapPin size={18} color={colors.forest} />
+                            </View>
+                          )}
+                          <View style={styles.placeRowText}>
+                            <Text
+                              style={styles.placeRowTitle}
+                              numberOfLines={1}
+                            >
+                              {place.name}
+                            </Text>
+                            <Text style={styles.placeRowSub} numberOfLines={1}>
+                              {place.subtitle
+                                ? `${place.subtitle} · ${kindLabel}`
+                                : kindLabel}
+                            </Text>
+                          </View>
+                        </Pressable>
+                      );
+                    })}
+                  {!placeSearchLoading &&
+                  draftPlaceQuery.trim() &&
+                  placeSearchResults.length === 0 ? (
+                    <Text style={styles.placeEmpty}>
+                      No restaurants or communities match “
+                      {draftPlaceQuery.trim()}”
                     </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+                  ) : null}
+                </View>
+              </View>
+            ) : null}
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
           </ScrollView>
 
           <View style={styles.modalFooter}>
+            <View style={styles.attachRow}>
+              <Pressable
+                style={[
+                  styles.attachIconBtn,
+                  draftPhotos.length > 0 ? styles.attachIconBtnOn : null,
+                ]}
+                onPress={() => void onAttachPhoto()}
+                accessibilityRole="button"
+                accessibilityLabel="Add photo"
+              >
+                <IconImage
+                  size={20}
+                  color={draftPhotos.length > 0 ? colors.forest : colors.gray}
+                />
+                <Text
+                  style={[
+                    styles.attachIconLabel,
+                    draftPhotos.length > 0 ? styles.attachIconLabelOn : null,
+                  ]}
+                >
+                  {draftPhotos.length > 0
+                    ? `Add photo (${draftPhotos.length}/${MAX_MOMENT_PHOTOS})`
+                    : "Add photo"}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.attachIconBtn,
+                  draftPlaceName || placePickerOpen
+                    ? styles.attachIconBtnOn
+                    : null,
+                ]}
+                onPress={() => {
+                  setPlacePickerOpen((open) => !open);
+                  setDraftPlaceQuery("");
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Add location"
+              >
+                <IconMapPin
+                  size={20}
+                  color={
+                    draftPlaceName || placePickerOpen
+                      ? colors.forest
+                      : colors.gray
+                  }
+                />
+                <Text
+                  style={[
+                    styles.attachIconLabel,
+                    draftPlaceName || placePickerOpen
+                      ? styles.attachIconLabelOn
+                      : null,
+                  ]}
+                >
+                  Add location
+                </Text>
+              </Pressable>
+            </View>
             <PrimaryButton
               label="Post moment"
               onPress={publish}
@@ -759,6 +1140,100 @@ const styles = StyleSheet.create({
     // Align under headline when avatar is present
     marginLeft: AVATAR + 9,
   },
+  momentPhoto: {
+    marginLeft: AVATAR + 9,
+    marginTop: 6,
+    width: "100%",
+    maxWidth: 320,
+    height: 180,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
+  },
+  draftSinglePhotoWrap: {
+    marginBottom: 12,
+    position: "relative",
+    alignSelf: "flex-start",
+    maxWidth: "100%",
+    borderRadius: radii.md,
+    overflow: "hidden",
+  },
+  draftSinglePhoto: {
+    width: "100%",
+    maxWidth: 320,
+    maxHeight: 280,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
+  },
+  draftGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 12,
+  },
+  draftGridCell: {
+    width: "31%",
+    aspectRatio: 1,
+    borderRadius: radii.sm,
+    overflow: "hidden",
+    position: "relative",
+    backgroundColor: colors.surface,
+  },
+  draftGridImage: {
+    width: "100%",
+    height: "100%",
+  },
+  draftGridRemove: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  photoPreviewWrap: {
+    marginBottom: 12,
+    position: "relative",
+  },
+  photoPreview: {
+    width: "100%",
+    height: 180,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
+  },
+  photoRemoveBtn: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectedPlaceChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    alignSelf: "flex-start",
+    maxWidth: "100%",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  selectedPlaceText: {
+    flexShrink: 1,
+    fontFamily: typography.bodyMedium,
+    fontSize: 13,
+    color: colors.ink,
+  },
   cardActions: {
     flexDirection: "row",
     alignItems: "center",
@@ -828,79 +1303,68 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 24,
   },
-  modalHint: {
+  input: {
+    minHeight: 140,
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    padding: 0,
     fontFamily: typography.body,
-    fontSize: 13,
-    color: colors.gray,
-    lineHeight: 18,
+    fontSize: 16,
+    color: colors.ink,
     marginBottom: 12,
   },
-  input: {
-    minHeight: 120,
+  placePicker: {
+    gap: 10,
+    marginBottom: 8,
+  },
+  placeResults: {
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.md,
     backgroundColor: colors.surface,
-    padding: 14,
-    fontFamily: typography.body,
-    fontSize: 15,
-    color: colors.ink,
-    marginBottom: 16,
+    overflow: "hidden",
+    maxHeight: 280,
   },
-  fieldLabel: {
+  placeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  placeRowFlag: {
+    width: 28,
+    alignItems: "center",
+  },
+  placeRowIcon: {
+    width: 28,
+    alignItems: "center",
+  },
+  placeRowFlagSpacer: {
+    width: 28,
+  },
+  placeRowText: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  placeRowTitle: {
     fontFamily: typography.bodySemibold,
     fontSize: 14,
     color: colors.ink,
-    marginBottom: 10,
   },
-  checkInPreview: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 12,
-    marginBottom: 12,
-    gap: 6,
-  },
-  checkInPreviewLabel: {
+  placeRowSub: {
     fontFamily: typography.body,
-    fontSize: 11,
-    color: colors.grayLight,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
+    fontSize: 12,
+    color: colors.gray,
   },
-  chipRow: {
-    gap: 8,
-    paddingBottom: 8,
-    alignItems: "center",
-  },
-  chip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: radii.full,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    maxWidth: 220,
-  },
-  chipFlag: {
-    marginRight: 0,
-  },
-  chipSelected: {
-    borderColor: colors.forest,
-    backgroundColor: colors.forest,
-  },
-  chipText: {
-    fontFamily: typography.bodyMedium,
+  placeEmpty: {
+    fontFamily: typography.body,
     fontSize: 13,
-    color: colors.ink,
-    flexShrink: 1,
-  },
-  chipTextSelected: {
-    color: colors.white,
+    color: colors.gray,
+    padding: 14,
   },
   error: {
     fontFamily: typography.body,
@@ -911,8 +1375,38 @@ const styles = StyleSheet.create({
   modalFooter: {
     paddingHorizontal: 20,
     paddingBottom: 20,
-    paddingTop: 12,
+    paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
+    gap: 12,
+  },
+  attachRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  attachIconBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  attachIconBtnOn: {
+    borderColor: colors.forest,
+    backgroundColor: colors.white,
+  },
+  attachIconLabel: {
+    fontFamily: typography.bodyMedium,
+    fontSize: 13,
+    color: colors.gray,
+  },
+  attachIconLabelOn: {
+    color: colors.forest,
   },
 });

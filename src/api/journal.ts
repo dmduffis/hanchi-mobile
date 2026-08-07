@@ -8,14 +8,25 @@ export type ApiJournalEntry = {
   poiId: string | null;
   note: string;
   photoUrl: string | null;
+  photoUrls?: string[];
   createdAt: string;
+  communityName?: string | null;
+  poiName?: string | null;
+  poi?: {
+    id: string;
+    name: string;
+    communityId: string | null;
+    category: string;
+    ethnicities?: string[];
+  } | null;
 };
 
 export type CreateJournalInput = {
   note: string;
   communityId?: string | null;
   poiId?: string | null;
-  photoUrl?: string | null;
+  /** Up to 6 approved media ids from POST /media (purpose moment). */
+  mediaIds?: string[] | null;
 };
 
 export async function fetchUserJournal(
@@ -34,7 +45,7 @@ export async function createJournalEntry(
       note: input.note,
       communityId: input.communityId ?? undefined,
       poiId: input.poiId ?? undefined,
-      photoUrl: input.photoUrl ?? undefined,
+      mediaIds: input.mediaIds?.length ? input.mediaIds : undefined,
     }),
   });
 }

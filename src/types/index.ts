@@ -126,6 +126,7 @@ export interface MomentItem {
   /** Place / dish heritage flag for “at …” lines. */
   placeCountryCode?: string | null;
   photoUrl?: string | null;
+  photoUrls?: string[];
   /** Author culture ISO country code for avatar flag badge. */
   authorCountryCode?: string | null;
   /** Emoji fallback when no country code. */
