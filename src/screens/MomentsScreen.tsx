@@ -385,31 +385,28 @@ export function MomentsScreen() {
     ]);
   }, []);
 
-  const openEditPost = useCallback(
-    (item: MomentItem) => {
-      if (item.kind !== "own" || item.activity !== "post") return;
-      setMenuOpenId(null);
-      setEditingId(item.id);
-      setDraftNote(item.note ?? "");
-      setDraftCommunityId(item.communityId ?? null);
-      setDraftPoiId(item.restaurantId ?? null);
-      setDraftPoiName(item.restaurantName ?? null);
-      setDraftPlaceCountryCode(item.placeCountryCode ?? null);
-      setDraftPlaceQuery("");
-      setPlacePickerOpen(false);
-      setDraftPhotos([]);
-      setExistingPhotoUrls(
-        item.photoUrls?.length
-          ? item.photoUrls
-          : item.photoUrl
-            ? [item.photoUrl]
-            : [],
-      );
-      setError(null);
-      setComposeOpen(true);
-    },
-    [],
-  );
+  const openEditPost = useCallback((item: MomentItem) => {
+    if (item.kind !== "own" || item.activity !== "post") return;
+    setMenuOpenId(null);
+    setEditingId(item.id);
+    setDraftNote(item.note ?? "");
+    setDraftCommunityId(item.communityId ?? null);
+    setDraftPoiId(item.restaurantId ?? null);
+    setDraftPoiName(item.restaurantName ?? null);
+    setDraftPlaceCountryCode(item.placeCountryCode ?? null);
+    setDraftPlaceQuery("");
+    setPlacePickerOpen(false);
+    setDraftPhotos([]);
+    setExistingPhotoUrls(
+      item.photoUrls?.length
+        ? item.photoUrls
+        : item.photoUrl
+          ? [item.photoUrl]
+          : [],
+    );
+    setError(null);
+    setComposeOpen(true);
+  }, []);
 
   const draftPlaceName = draftPoiName
     ? draftPoiName
@@ -1122,16 +1119,12 @@ export function MomentsScreen() {
                 >
                   <IconImage
                     size={20}
-                    color={
-                      draftPhotos.length > 0 ? colors.forest : colors.gray
-                    }
+                    color={draftPhotos.length > 0 ? colors.forest : colors.gray}
                   />
                   <Text
                     style={[
                       styles.attachIconLabel,
-                      draftPhotos.length > 0
-                        ? styles.attachIconLabelOn
-                        : null,
+                      draftPhotos.length > 0 ? styles.attachIconLabelOn : null,
                     ]}
                   >
                     {draftPhotos.length > 0
