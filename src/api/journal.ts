@@ -56,3 +56,23 @@ export async function deleteJournalEntry(id: string): Promise<void> {
     { method: "DELETE" },
   );
 }
+
+export type UpdateJournalInput = {
+  note?: string;
+  communityId?: string | null;
+  poiId?: string | null;
+};
+
+export async function updateJournalEntry(
+  id: string,
+  input: UpdateJournalInput,
+): Promise<ApiJournalEntry> {
+  return apiFetch<ApiJournalEntry>(`/journal/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      note: input.note,
+      communityId: input.communityId,
+      poiId: input.poiId,
+    }),
+  });
+}

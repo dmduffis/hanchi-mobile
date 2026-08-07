@@ -18,6 +18,7 @@ import {
   createJournalEntry,
   deleteJournalEntry,
   fetchUserJournal,
+  updateJournalEntry,
   type ApiJournalEntry,
 } from "../api/journal";
 import { searchAll } from "../api/search";
@@ -199,6 +200,8 @@ export function MomentsScreen() {
   >({});
   const [loading, setLoading] = useState(true);
   const [composeOpen, setComposeOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [draftNote, setDraftNote] = useState("");
   const [draftCommunityId, setDraftCommunityId] = useState<string | null>(null);
   const [draftPoiId, setDraftPoiId] = useState<string | null>(null);
@@ -211,6 +214,7 @@ export function MomentsScreen() {
   const [placeSearchResults, setPlaceSearchResults] = useState<PlacePick[]>([]);
   const [placeSearchLoading, setPlaceSearchLoading] = useState(false);
   const [draftPhotos, setDraftPhotos] = useState<LocalPhoto[]>([]);
+  const [existingPhotoUrls, setExistingPhotoUrls] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -359,6 +363,7 @@ export function MomentsScreen() {
 
   const onDeleteOwnPost = useCallback((item: MomentItem) => {
     if (item.kind !== "own" || item.activity !== "post") return;
+    setMenuOpenId(null);
     Alert.alert("Delete moment?", "This can’t be undone.", [
       { text: "Cancel", style: "cancel" },
       {
@@ -379,6 +384,32 @@ export function MomentsScreen() {
       },
     ]);
   }, []);
+
+  const openEditPost = useCallback(
+    (item: MomentItem) => {
+      if (item.kind !== "own" || item.activity !== "post") return;
+      setMenuOpenId(null);
+      setEditingId(item.id);
+      setDraftNote(item.note ?? "");
+      setDraftCommunityId(item.communityId ?? null);
+      setDraftPoiId(item.restaurantId ?? null);
+      setDraftPoiName(item.restaurantName ?? null);
+      setDraftPlaceCountryCode(item.placeCountryCode ?? null);
+      setDraftPlaceQuery("");
+      setPlacePickerOpen(false);
+      setDraftPhotos([]);
+      setExistingPhotoUrls(
+        item.photoUrls?.length
+          ? item.photoUrls
+          : item.photoUrl
+            ? [item.photoUrl]
+            : [],
+      );
+      setError(null);
+      setComposeOpen(true);
+    },
+    [],
+  );
 
   const draftPlaceName = draftPoiName
     ? draftPoiName
@@ -506,6 +537,7 @@ export function MomentsScreen() {
   };
 
   const resetCompose = () => {
+    setEditingId(null);
     setDraftNote("");
     setDraftCommunityId(null);
     setDraftPoiId(null);
@@ -515,6 +547,7 @@ export function MomentsScreen() {
     setPlacePickerOpen(false);
     setPlaceSearchResults([]);
     setDraftPhotos([]);
+    setExistingPhotoUrls([]);
     setError(null);
   };
 
@@ -527,25 +560,42 @@ export function MomentsScreen() {
     setSaving(true);
     setError(null);
     try {
-      const mediaIds: string[] = [];
-      for (const photo of draftPhotos) {
-        const uploaded = await uploadLocalPhoto("moment", photo.uri);
-        if (!uploaded.mediaId || uploaded.status !== "approved") {
-          throw new Error("A photo didn’t pass review. Try another.");
+      if (editingId) {
+        const updated = await updateJournalEntry(editingId, {
+          note,
+          communityId: draftCommunityId,
+          poiId: draftPoiId,
+        });
+        setEntries((prev) =>
+          prev.map((e) => (e.id === editingId ? updated : e)),
+        );
+      } else {
+        const mediaIds: string[] = [];
+        for (const photo of draftPhotos) {
+          const uploaded = await uploadLocalPhoto("moment", photo.uri);
+          if (!uploaded.mediaId || uploaded.status !== "approved") {
+            throw new Error("A photo didn’t pass review. Try another.");
+          }
+          mediaIds.push(uploaded.mediaId);
         }
-        mediaIds.push(uploaded.mediaId);
+        const created = await createJournalEntry({
+          note,
+          communityId: draftCommunityId,
+          poiId: draftPoiId,
+          mediaIds,
+        });
+        setEntries((prev) => [created, ...prev]);
       }
-      const created = await createJournalEntry({
-        note,
-        communityId: draftCommunityId,
-        poiId: draftPoiId,
-        mediaIds,
-      });
-      setEntries((prev) => [created, ...prev]);
       resetCompose();
       setComposeOpen(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn’t post moment");
+      setError(
+        e instanceof Error
+          ? e.message
+          : editingId
+            ? "Couldn’t save moment"
+            : "Couldn’t post moment",
+      );
     } finally {
       setSaving(false);
     }
@@ -575,6 +625,7 @@ export function MomentsScreen() {
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
+        onScrollBeginDrag={() => setMenuOpenId(null)}
       >
         <View style={styles.header}>
           <View style={styles.headerText}>
@@ -663,10 +714,19 @@ export function MomentsScreen() {
               };
 
               return (
-                <View key={item.id} style={styles.card}>
+                <View
+                  key={item.id}
+                  style={[
+                    styles.card,
+                    menuOpenId === item.id ? styles.cardMenuOpen : null,
+                  ]}
+                >
                   <View style={styles.cardTop}>
                     <Pressable
-                      onPress={onPressCard}
+                      onPress={() => {
+                        setMenuOpenId(null);
+                        onPressCard();
+                      }}
                       disabled={disabled}
                       style={styles.cardTopMain}
                     >
@@ -732,19 +792,59 @@ export function MomentsScreen() {
                       </View>
                     </Pressable>
                     {item.kind === "own" && item.activity === "post" ? (
-                      <Pressable
-                        onPress={() => onDeleteOwnPost(item)}
-                        hitSlop={10}
-                        style={styles.cardMenuBtn}
-                        accessibilityRole="button"
-                        accessibilityLabel="Moment options"
-                      >
-                        <IconEllipsisV size={20} color={colors.gray} />
-                      </Pressable>
+                      <View style={styles.cardMenuWrap}>
+                        <Pressable
+                          onPress={() =>
+                            setMenuOpenId((id) =>
+                              id === item.id ? null : item.id,
+                            )
+                          }
+                          hitSlop={10}
+                          style={styles.cardMenuBtn}
+                          accessibilityRole="button"
+                          accessibilityLabel="Moment options"
+                          accessibilityState={{
+                            expanded: menuOpenId === item.id,
+                          }}
+                        >
+                          <IconEllipsisV size={20} color={colors.gray} />
+                        </Pressable>
+                        {menuOpenId === item.id ? (
+                          <View style={styles.cardDropdown}>
+                            <Pressable
+                              style={styles.cardDropdownItem}
+                              onPress={() => openEditPost(item)}
+                              accessibilityRole="button"
+                              accessibilityLabel="Edit moment"
+                            >
+                              <Text style={styles.cardDropdownText}>Edit</Text>
+                            </Pressable>
+                            <View style={styles.cardDropdownDivider} />
+                            <Pressable
+                              style={styles.cardDropdownItem}
+                              onPress={() => onDeleteOwnPost(item)}
+                              accessibilityRole="button"
+                              accessibilityLabel="Delete moment"
+                            >
+                              <Text
+                                style={[
+                                  styles.cardDropdownText,
+                                  styles.cardDropdownDanger,
+                                ]}
+                              >
+                                Delete
+                              </Text>
+                            </Pressable>
+                          </View>
+                        ) : null}
+                      </View>
                     ) : null}
                   </View>
                   <Pressable
-                    onPress={onPressCard}
+                    onPress={() => {
+                      setMenuOpenId(null);
+                      onPressCard();
+                    }}
                     disabled={disabled}
                     style={styles.cardPress}
                   >
@@ -818,7 +918,9 @@ export function MomentsScreen() {
             >
               <IconX size={22} color={colors.ink} />
             </Pressable>
-            <Text style={styles.modalTitle}>New moment</Text>
+            <Text style={styles.modalTitle}>
+              {editingId ? "Edit moment" : "New moment"}
+            </Text>
             <View style={{ width: 22 }} />
           </View>
 
@@ -837,7 +939,29 @@ export function MomentsScreen() {
               autoFocus
             />
 
-            {draftPhotos.length === 1 ? (
+            {editingId && existingPhotoUrls.length === 1 ? (
+              <View style={styles.draftSinglePhotoWrap}>
+                <Image
+                  source={{ uri: existingPhotoUrls[0] }}
+                  style={styles.draftSinglePhoto}
+                  resizeMode="cover"
+                />
+              </View>
+            ) : editingId && existingPhotoUrls.length > 1 ? (
+              <View style={styles.draftGrid}>
+                {existingPhotoUrls.map((uri, i) => (
+                  <View key={`${uri}-${i}`} style={styles.draftGridCell}>
+                    <Image
+                      source={{ uri }}
+                      style={styles.draftGridImage}
+                      resizeMode="cover"
+                    />
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
+            {!editingId && draftPhotos.length === 1 ? (
               <View style={styles.draftSinglePhotoWrap}>
                 <Image
                   source={{ uri: draftPhotos[0].uri }}
@@ -861,7 +985,7 @@ export function MomentsScreen() {
                   <IconX size={16} color={colors.white} />
                 </Pressable>
               </View>
-            ) : draftPhotos.length > 1 ? (
+            ) : !editingId && draftPhotos.length > 1 ? (
               <View style={styles.draftGrid}>
                 {draftPhotos.map((p, i) => (
                   <View key={`${p.uri}-${i}`} style={styles.draftGridCell}>
@@ -986,30 +1110,36 @@ export function MomentsScreen() {
 
           <View style={styles.modalFooter}>
             <View style={styles.attachRow}>
-              <Pressable
-                style={[
-                  styles.attachIconBtn,
-                  draftPhotos.length > 0 ? styles.attachIconBtnOn : null,
-                ]}
-                onPress={() => void onAttachPhoto()}
-                accessibilityRole="button"
-                accessibilityLabel="Add photo"
-              >
-                <IconImage
-                  size={20}
-                  color={draftPhotos.length > 0 ? colors.forest : colors.gray}
-                />
-                <Text
+              {!editingId ? (
+                <Pressable
                   style={[
-                    styles.attachIconLabel,
-                    draftPhotos.length > 0 ? styles.attachIconLabelOn : null,
+                    styles.attachIconBtn,
+                    draftPhotos.length > 0 ? styles.attachIconBtnOn : null,
                   ]}
+                  onPress={() => void onAttachPhoto()}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add photo"
                 >
-                  {draftPhotos.length > 0
-                    ? `Add photo (${draftPhotos.length}/${MAX_MOMENT_PHOTOS})`
-                    : "Add photo"}
-                </Text>
-              </Pressable>
+                  <IconImage
+                    size={20}
+                    color={
+                      draftPhotos.length > 0 ? colors.forest : colors.gray
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.attachIconLabel,
+                      draftPhotos.length > 0
+                        ? styles.attachIconLabelOn
+                        : null,
+                    ]}
+                  >
+                    {draftPhotos.length > 0
+                      ? `Add photo (${draftPhotos.length}/${MAX_MOMENT_PHOTOS})`
+                      : "Add photo"}
+                  </Text>
+                </Pressable>
+              ) : null}
               <Pressable
                 style={[
                   styles.attachIconBtn,
@@ -1045,7 +1175,7 @@ export function MomentsScreen() {
               </Pressable>
             </View>
             <PrimaryButton
-              label="Post moment"
+              label={editingId ? "Save changes" : "Post moment"}
               onPress={publish}
               loading={saving}
               disabled={!draftNote.trim()}
@@ -1105,6 +1235,12 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 10,
     gap: 6,
+    overflow: "visible",
+    zIndex: 1,
+  },
+  cardMenuOpen: {
+    zIndex: 20,
+    elevation: 8,
   },
   cardPress: {
     gap: 6,
@@ -1113,6 +1249,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 4,
+    zIndex: 2,
   },
   cardTopMain: {
     flex: 1,
@@ -1121,10 +1258,46 @@ const styles = StyleSheet.create({
     gap: 9,
     minWidth: 0,
   },
+  cardMenuWrap: {
+    position: "relative",
+    zIndex: 30,
+  },
   cardMenuBtn: {
     paddingTop: 2,
     paddingHorizontal: 4,
     paddingBottom: 4,
+  },
+  cardDropdown: {
+    position: "absolute",
+    top: 28,
+    right: 0,
+    minWidth: 140,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+    overflow: "hidden",
+  },
+  cardDropdownItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  cardDropdownText: {
+    fontFamily: typography.bodyMedium,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  cardDropdownDanger: {
+    color: colors.heart,
+  },
+  cardDropdownDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
   },
   avatarWrap: {
     width: AVATAR,
