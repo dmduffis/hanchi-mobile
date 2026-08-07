@@ -22,11 +22,7 @@ import {
   type ApiJournalEntry,
 } from "../api/journal";
 import { searchAll } from "../api/search";
-import {
-  createStamp,
-  fetchUserStamps,
-  type ApiStamp,
-} from "../api/stamps";
+import { createStamp, fetchUserStamps, type ApiStamp } from "../api/stamps";
 import { useCommunities } from "../api/useCommunities";
 import {
   CircularFlag,
@@ -569,8 +565,7 @@ export function MomentsScreen() {
           communityId: draftCommunityId,
           poiId: draftPoiId,
         });
-        stampedCommunityId =
-          updated.communityId ?? draftCommunityId ?? null;
+        stampedCommunityId = updated.communityId ?? draftCommunityId ?? null;
         setEntries((prev) =>
           prev.map((e) => (e.id === editingId ? updated : e)),
         );
@@ -589,8 +584,7 @@ export function MomentsScreen() {
           poiId: draftPoiId,
           mediaIds,
         });
-        stampedCommunityId =
-          created.communityId ?? draftCommunityId ?? null;
+        stampedCommunityId = created.communityId ?? draftCommunityId ?? null;
         setEntries((prev) => [created, ...prev]);
       }
 
