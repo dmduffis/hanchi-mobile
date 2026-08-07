@@ -22,7 +22,11 @@ import {
   type ApiJournalEntry,
 } from "../api/journal";
 import { searchAll } from "../api/search";
-import { fetchUserStamps, type ApiStamp } from "../api/stamps";
+import {
+  createStamp,
+  fetchUserStamps,
+  type ApiStamp,
+} from "../api/stamps";
 import { useCommunities } from "../api/useCommunities";
 import {
   CircularFlag,
@@ -557,12 +561,16 @@ export function MomentsScreen() {
     setSaving(true);
     setError(null);
     try {
+      let stampedCommunityId: string | null = draftCommunityId;
+
       if (editingId) {
         const updated = await updateJournalEntry(editingId, {
           note,
           communityId: draftCommunityId,
           poiId: draftPoiId,
         });
+        stampedCommunityId =
+          updated.communityId ?? draftCommunityId ?? null;
         setEntries((prev) =>
           prev.map((e) => (e.id === editingId ? updated : e)),
         );
@@ -581,8 +589,26 @@ export function MomentsScreen() {
           poiId: draftPoiId,
           mediaIds,
         });
+        stampedCommunityId =
+          created.communityId ?? draftCommunityId ?? null;
         setEntries((prev) => [created, ...prev]);
       }
+
+      // Tagging a community (or its restaurant) counts as being there → stamp passport.
+      if (stampedCommunityId) {
+        try {
+          const stamp = await createStamp(stampedCommunityId);
+          setStamps((prev) => {
+            if (prev.some((s) => s.communityId === stampedCommunityId)) {
+              return prev;
+            }
+            return [stamp, ...prev];
+          });
+        } catch {
+          // Moment stays posted even if stamp fails.
+        }
+      }
+
       resetCompose();
       setComposeOpen(false);
     } catch (e) {
@@ -1145,7 +1171,9 @@ export function MomentsScreen() {
                   setDraftPlaceQuery("");
                 }}
                 accessibilityRole="button"
-                accessibilityLabel="Add location"
+                accessibilityLabel={
+                  draftPlaceName ? "Edit location" : "Add location"
+                }
               >
                 <IconMapPin
                   size={20}
@@ -1163,7 +1191,7 @@ export function MomentsScreen() {
                       : null,
                   ]}
                 >
-                  Add location
+                  {draftPlaceName ? "Edit location" : "Add location"}
                 </Text>
               </Pressable>
             </View>
