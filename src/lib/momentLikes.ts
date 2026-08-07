@@ -35,8 +35,12 @@ async function writeStore(store: LikeStore): Promise<void> {
   ]);
 }
 
-/** Stable base likes so peer moments aren't all zero before a backend exists. */
+/**
+ * Demo social proof for mock feed rows only.
+ * Real journal / stamp / dish-try posts start at 0 likes.
+ */
 export function baseLikeCount(momentId: string): number {
+  if (!momentId.startsWith("mock-")) return 0;
   let h = 0;
   for (let i = 0; i < momentId.length; i += 1) {
     h = (h * 33 + momentId.charCodeAt(i)) >>> 0;
