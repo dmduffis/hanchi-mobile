@@ -16,6 +16,7 @@ export { FavoriteThumb } from "./FavoriteThumb";
 export { ListRow } from "./ListRow";
 export { MapFlagPin } from "./MapFlagPin";
 export { MapSheetCard } from "./MapSheetCard";
+export { MomentPhotos } from "./MomentPhotos";
 export { PassportStampButton } from "./PassportStampButton";
 export { PhotoPlaceholder } from "./PhotoPlaceholder";
 export { PriceRatingRow } from "./PriceRatingRow";
